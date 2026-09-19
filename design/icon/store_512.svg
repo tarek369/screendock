@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Play Store listing icon: full-bleed square (Play applies its own mask) -->
+  <defs>
+    <radialGradient id="bg" gradientUnits="userSpaceOnUse" cx="256" cy="170" r="430">
+      <stop offset="0" stop-color="#152036"/>
+      <stop offset="1" stop-color="#06080D"/>
+    </radialGradient>
+    <linearGradient id="acc" gradientUnits="userSpaceOnUse" x1="114" y1="132" x2="398" y2="380">
+      <stop offset="0" stop-color="#7FB3FF"/>
+      <stop offset="1" stop-color="#A78BFA"/>
+    </linearGradient>
+    <linearGradient id="accSoft" gradientUnits="userSpaceOnUse" x1="114" y1="132" x2="398" y2="380">
+      <stop offset="0" stop-color="#7FB3FF" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#A78BFA" stop-opacity="0.22"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="512" height="512" fill="url(#bg)"/>
+  <!-- broadcast rings -->
+  <circle cx="256" cy="256" r="206" fill="none" stroke="url(#accSoft)" stroke-width="5"/>
+  <circle cx="256" cy="256" r="238" fill="none" stroke="#7FB3FF" stroke-opacity="0.10" stroke-width="3"/>
+  <!-- glyph (108-space scaled 3.6x, centered) -->
+  <g transform="translate(61.6 61.6) scale(3.6)">
+    <rect x="30" y="34" width="48" height="40" rx="7" fill="none" stroke="url(#acc)" stroke-width="4.5"/>
+    <path d="M 54 44.5 L 64.5 63.5 L 43.5 63.5 Z" fill="url(#acc)"/>
+  </g>
+</svg>

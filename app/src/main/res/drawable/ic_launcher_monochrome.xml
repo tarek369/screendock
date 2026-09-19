@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Themed-icon (Android 13+) layer: single-color glyph the system tints. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M37,34 L71,34 A7,7 0 0 1 78,41 L78,67 A7,7 0 0 1 71,74 L37,74 A7,7 0 0 1 30,67 L30,41 A7,7 0 0 1 37,34 Z"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4.5"
+        android:strokeLineJoin="round"/>
+    <path
+        android:pathData="M54,44.5 L64.5,63.5 L43.5,63.5 Z"
+        android:fillColor="#FFFFFFFF"/>
+</vector>

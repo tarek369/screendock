@@ -1,0 +1,10 @@
+name = "screendock-legal"
+main = "src/worker.js"
+compatibility_date = "2026-01-01"
+
+# Deploy to workers.dev first (free). Once you confirm cressu.com is on your
+# Cloudflare account, uncomment for a clean custom domain on the free plan:
+#
+routes = [
+  { pattern = "screendock.cressu.com", custom_domain = true }
+]

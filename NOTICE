@@ -1,0 +1,61 @@
+NOTICE — Airplay (Android AirPlay Receiver)
+============================================
+
+This product is licensed under the GNU General Public License v3.0 or later
+(see ./LICENSE). Because it statically links UxPlay (GPLv3), the whole
+application is a GPLv3 derivative: full source must accompany any distribution,
+and it may not be incorporated into a closed-source product without legal review.
+
+This project is not affiliated with, sponsored by, or endorsed by Apple Inc.
+"AirPlay" is a trademark of Apple Inc. This software ships no Apple trademarks
+or artwork.
+
+Third-party components
+----------------------
+All third-party sources are vendored as git submodules under
+app/src/main/cpp/third_party/. Each carries its own license file in-tree; this
+section summarizes attribution and the applicable license.
+
+1. UxPlay — AirPlay/RAOP protocol core (mDNS/RTSP/RTP, FairPlay handshake,
+   pairing). The majority of lib/*.c originates from ShairPlay (LGPLv2.1+,
+   Juho Vähä-Herttua) with mirroring code by dsafa22 (LGPLv2.1+) and later
+   modifications by fduncanh (GPLv3). The project as a whole is GPLv3.
+   Source: https://github.com/FDH2/UxPlay  — License: GPLv3 (see its ./LICENSE).
+
+2. PlayFair — FairPlay decryption (lib/playfair/ within UxPlay, by EstebanKubata).
+   License: GPLv3 (see lib/playfair/LICENSE.md). Legal status of FairPlay
+   reverse-engineering is documented in that file.
+
+3. libplist — Apple binary/XML property-list parsing. Used by the UxPlay core
+   for RTSP/plist parsing. Vendored sources (no autotools build).
+   Source: https://github.com/libimobiledevice/libplist — License: LGPLv2.1+
+   (see COPYING.LESSER). NOTE: statically linked into the .so; object files
+   remain relinkable from source on request (LGPL compliance).
+
+4. OpenSSL — cryptography (AES-CTR/CBC/GCM, X25519, Ed25519, SHA, RAND) used by
+   UxPlay's lib/crypto.c and lib/srp.c for the pairing layer. Built from source
+   via the openssl-cmake wrapper.
+   Source: https://www.openssl.org — License: Apache-2.0 (OpenSSL 3.x).
+   Wrapper: https://github.com/viaduck/openssl-cmake (MIT).
+
+5. llhttp — HTTP/RTSP request parser (lib/llhttp/ within UxPlay, by Fedor
+   Indutny / Joyent / Node.js). License: MIT (see lib/llhttp/LICENSE-MIT).
+
+6. mdnsd — self-contained mDNS responder backend (lib/mdnsd/ within UxPlay, by
+   kgbook). NOTE: this backend is NOT compiled into the Android build — actual
+   mDNS advertising is delegated to Android's NsdManager. The license is
+   retained for completeness: LGPLv2.1+.
+
+7. ALAC — Apple Lossless Audio Codec, software decoder fallback for RAOP audio.
+   Source: https://github.com/macosforge/alac — License: Apache-2.0.
+   (Wired into the build from milestone M3.)
+
+8. csrp — SRP-6a (lib/srp.c within UxPlay, by Tom Cocagne), modified for Apple
+   pair-setup-pin. License: MIT.
+
+License texts
+-------------
+GPLv3:          ./LICENSE  and  third_party/UxPlay/LICENSE
+LGPLv2.1:       third_party/libplist/COPYING.LESSER , third_party/UxPlay/lib (per-file headers)
+Apache-2.0:     third_party/alac/LICENSE , (OpenSSL 3.x)
+MIT:            third_party/UxPlay/lib/llhttp/LICENSE-MIT , third_party/UxPlay/lib/srp.c (header)

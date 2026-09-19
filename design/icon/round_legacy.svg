@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108">
+  <!-- Legacy round launcher icon: circular-cropped dark disc + glyph -->
+  <defs>
+    <radialGradient id="bg" gradientUnits="userSpaceOnUse" cx="54" cy="36" r="82">
+      <stop offset="0" stop-color="#141C2E"/>
+      <stop offset="1" stop-color="#07090D"/>
+    </radialGradient>
+    <linearGradient id="acc" gradientUnits="userSpaceOnUse" x1="24" y1="28" x2="84" y2="80">
+      <stop offset="0" stop-color="#7FB3FF"/>
+      <stop offset="1" stop-color="#A78BFA"/>
+    </linearGradient>
+    <clipPath id="disc"><circle cx="54" cy="54" r="54"/></clipPath>
+  </defs>
+  <g clip-path="url(#disc)">
+    <rect x="0" y="0" width="108" height="108" fill="url(#bg)"/>
+    <rect x="30" y="34" width="48" height="40" rx="7" fill="none" stroke="url(#acc)" stroke-width="4.5"/>
+    <path d="M 54 44.5 L 64.5 63.5 L 43.5 63.5 Z" fill="url(#acc)"/>
+  </g>
+</svg>
