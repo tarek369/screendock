@@ -114,6 +114,8 @@ dependencies {
     implementation(libs.androidx.core.splashscreen) // Launch splash (system splash on 31+, compat below)
     implementation(libs.billing.ktx) // Google Play Billing (Pro unlock IAP)
     implementation(libs.play.review.ktx) // Play In-App Review
+    // Play Services pulls fragment 1.1.0 transitively; Play Console flags it as outdated.
+    implementation(libs.androidx.fragment)
     implementation(libs.androidx.media3.exoplayer) // AirPlay video (HLS) playback
     implementation(libs.androidx.media3.exoplayer.hls)
     implementation(libs.androidx.media3.ui)
