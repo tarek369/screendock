@@ -1,113 +1,143 @@
-# ScreenDock — Android AirPlay Receiver
+<p align="center">
+  <img src="store/store_icon_512.png" alt="ScreenDock icon" width="128" height="128">
+</p>
 
-An open-source Android AirPlay / RAOP receiver that wraps the [UxPlay](https://github.com/FDH2/UxPlay)
-C core via JNI. Screen mirroring (H.264/H.265) and audio streaming (AAC/ALAC)
-from iOS, iPadOS, and macOS senders, decoded with Android platform codecs.
+<h1 align="center">ScreenDock: AirPlay Receiver for Android</h1>
 
-> **Status: M0 — skeleton & native build.** The native library (UxPlay core +
-> mDNS shim + JNI bridge) compiles for all target ABIs and loads at runtime;
-> the app launches and runs a native self-test. Discovery, handshake, and media
-> pipelines land in M1–M3 (see `docs/DESIGN.md` §10).
+<p align="center">
+  Turn your Android phone, tablet or TV into an AirPlay receiver.<br>
+  Mirror your Mac, iPhone or iPad over Wi-Fi, with no cables and no ads.
+</p>
 
-## License
+<p align="center">
+  <a href="https://play.google.com/store/apps/details?id=com.cressu.screendock&utm_source=github&utm_campaign=readme">
+    <img alt="Get it on Google Play" height="80"
+         src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png">
+  </a>
+</p>
 
-This project is licensed under the **GNU General Public License v3.0 or later**
-(see [LICENSE](./LICENSE) and [NOTICE](./NOTICE)). It statically links UxPlay
-(GPLv3), so the whole application is a GPLv3 derivative: source must accompany
-any distribution. It is **not** affiliated with Apple Inc.; "AirPlay" is an
-Apple trademark. No Apple trademarks or artwork are shipped.
+<p align="center">
+  <img src="store/screenshots/v030/tablet_1.png" alt="Mac mirrored to an Android tablet" width="720">
+</p>
 
-## What works (M0)
+<p align="center">
+  <img src="store/screenshots/v030/phone_1.png" alt="Idle screen" width="230">
+  <img src="store/screenshots/v030/phone_2.png" alt="Settings" width="230">
+  <img src="store/screenshots/v030/phone_3.png" alt="Security settings" width="230">
+</p>
 
-- ✅ Android Studio (Gradle + CMake) project building `libairplay_native.so`
-- ✅ UxPlay protocol core (`lib/*.c`) compiled with the NDK
-- ✅ mDNS shim that constructs the AirPlay/RAOP TXT records in C (advertising
-  via Android `NsdManager` lands in M1)
-- ✅ JNI bridge skeleton (`nativeInit`/`Destroy`, version, self-test) + the
-  full callback contract declared for later milestones
-- ✅ Stubbed idle UI loads the lib, logs its version, runs a native self-test
-- ✅ Builds for `arm64-v8a`, `armeabi-v7a`, and `x86_64`
+## Features
 
-## What does not work yet (M1–M4)
+- **Screen mirroring** from macOS, iOS and iPadOS. H.264 and H.265 (HEVC), up to
+  4K at 60 fps, at your display's native resolution.
+- **Second display for your Mac.** Use a spare Android tablet as a wireless monitor.
+- **AirPlay audio** with AAC and Apple Lossless (ALAC). The Now Playing screen shows
+  the title, artist and cover art.
+- **AirPlay video.** Send YouTube and web videos with the AirPlay button; they play on
+  Android using Media3.
+- **Security:** an optional PIN (random or fixed) and "ask before allowing" for each
+  new device.
+- **Fit, Fill or Stretch** picture modes.
+- **Android TV and Google TV** support, with D-pad navigation.
+- **Receiver controls:** stop from the notification, optional start at boot, and a
+  Wi-Fi low-latency lock while a session is active.
+- **No ads, no tracking.** Open source under GPLv3.
 
-- mDNS advertising / sender discovery (M1)
-- RTSP + FairPlay session establishment (M1)
-- Video decode + render (M2)
-- Audio decode + A/V sync + reconnect lifecycle (M3)
-- Foreground service, settings, D-pad/touch polish, stability pass (M4)
+## Free and Pro
+
+The app on Google Play is free. It gives you 10 minutes of mirroring or video, then a
+30-minute break. Music streaming is always free. **ScreenDock Pro** is a single
+one-time in-app purchase that removes the limit. There's no subscription.
+
+The source code here is the full app (GPLv3). You're free to build it yourself.
+Buying Pro on Google Play supports development.
 
 ## Requirements
 
-- Android Studio with NDK 27.0.12077973 and CMake 3.22.1 (the SDK install
-  must contain both)
-- JDK 17+ (Android Studio's bundled JBR works)
-- Host build tools for OpenSSL: `perl`, `python3`, `make`, `patch`
-- Tested on macOS (arm64); other Unix hosts should work
+- An Android device running Android 7.0 or later
+- The sender and the receiver on the **same Wi-Fi network** (5 GHz recommended)
+- A Mac, iPhone or iPad with Screen Mirroring or AirPlay
 
-## Build
+## Known limitations
 
-The native dependencies are git submodules. Initialize them first (needed once,
-and after any clone):
+- **DRM-protected content** (Netflix, Disney+, Apple TV+ and similar) cannot be
+  mirrored. This is a technical limitation of FairPlay DRM, not a bug.
+- The app implements AirPlay mirroring, audio and video. AirPlay 2 multi-room and
+  HomeKit are out of scope.
+- Touch forwarding back to the sender is not supported.
+
+## Tested
+
+| Receiver | Sender |
+|---|---|
+| OnePlus Pad 3 | Mac (macOS), mirroring + audio |
+| Samsung Galaxy S23+ (Android 16) | Mac (macOS), mirroring |
+
+Open-source AirPlay receivers are sensitive to sender OS versions.
+[Open an issue](https://github.com/tarek369/screendock/issues) with your device and
+sender version if something doesn't work.
+
+## How it works
+
+ScreenDock wraps the [UxPlay](https://github.com/FDH2/UxPlay) C core (RAOP/AirPlay
+protocol, FairPlay handshake) through JNI. Kotlin handles the rest:
+
+- **Discovery:** the `_airplay._tcp` and `_raop._tcp` services are advertised with
+  Android `NsdManager`. TXT records are built in C.
+- **Video:** `MediaCodec`, in async low-latency mode, decodes to an EGL/OES pipeline
+  that draws onto a `SurfaceView`.
+- **Audio:** `MediaCodec` (AAC-ELD/LC) or a hardened Apple ALAC decoder plays through
+  `AudioTrack`, paced to the sender's NTP timeline.
+- **AirPlay video (HLS):** UxPlay serves the playlist locally, and Media3 ExoPlayer
+  plays it.
+- **UI:** Jetpack Compose, with a foreground service that owns the receiver lifecycle.
+
+See [`docs/DESIGN.md`](./docs/DESIGN.md) for the full design.
+
+## Build from source
+
+Requirements:
+- Android Studio with NDK 27.0.12077973 and CMake 3.22.1
+- JDK 17
+- `perl`, `python3`, `make` and `patch` (needed to build OpenSSL)
 
 ```sh
-git submodule update --init --recursive
-```
-
-Then build the debug APK (uses the Android Studio JBR for Gradle):
-
-```sh
-export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+git clone https://github.com/tarek369/screendock.git
+cd screendock
+git submodule update --init --recursive   # libplist + openssl-cmake (UxPlay and ALAC are vendored)
+export JAVA_HOME=/path/to/jdk-17
 ./gradlew :app:assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-The APK is emitted at `app/build/outputs/apk/debug/app-debug.apk`.
+The first build compiles OpenSSL for each ABI, which takes 2–3 minutes per ABI.
 
-> **First build is slow:** it downloads and compiles OpenSSL from source for
-> each ABI (~2–3 min/ABI). Subsequent builds are incremental.
-
-### Run on a device/emulator
+To run the tests:
 
 ```sh
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb shell am start -n com.cressu.screendock/.ui.MainActivity
-adb logcat -s AirplayNative AirplayMainActivity
+./gradlew :app:testDebugUnitTest          # JVM unit tests
+sh app/src/test/native/run_tests.sh       # native tests (ASan/UBSan), macOS/Linux host
 ```
-
-Expect on launch:
-```
-I AirplayMainActivity: Native version: Airplay 0.1.0-m0 (UxPlay core 220.68)
-I AirplayNative: nativeSelfTest: OK (raop_txt=... bytes, airplay_txt=... bytes, raop_name=...@Airplay._raop._tcp.local)
-I AirplayMainActivity: selfTest passed=true
-```
-
-## Targets
 
 | | |
 |---|---|
 | `minSdk` | 24 (Android 7.0) |
-| `compileSdk` / `targetSdk` | 35 |
-| ABIs | `arm64-v8a`, `armeabi-v7a`, `x86_64` |
-| NDK | 27.0.12077973 |
+| `targetSdk` | 36 |
+| ABIs | `arm64-v8a`, `armeabi-v7a` (release); `x86_64` is debug-only, for the emulator |
 
-## Known limitations
+## Privacy
 
-- **DRM-protected content** (e.g. the Apple TV app) cannot be decrypted by the
-  open-source stack. This is permanent, not a bug — FairPlay-DRM streams are
-  out of scope. The app will fail such sessions gracefully once M1 lands.
-- **AirPlay 2 buffered / HomeKit / multi-room** paths are out of scope (v1 uses
-  the APv1 / NTP-timing legacy mirroring path, which Apple has maintained as a
-  fallback iOS 9→current).
-- **Protocol drift:** Apple may change the handshake in a future iOS release.
-  UxPlay is vendored as an updatable submodule for exactly this reason.
+ScreenDock does not collect personal data. Streams go directly from your Apple device
+to your Android device over your local network. Privacy policy:
+<https://screendock.cressu.com/privacy>
 
-## Tested sender OS versions
+## License
 
-*(To be filled in during the M4 acceptance run per the test plan. Open-source
-AirPlay receivers are version-sensitive; a passing test is only valid for the
-versions listed here.)*
+**GPL-3.0-or-later.** See [LICENSE](./LICENSE) and [NOTICE](./NOTICE). The app
+statically links UxPlay (GPLv3), so the whole app is a GPLv3 derivative. Bundled
+third-party code: UxPlay (GPLv3), playfair, llhttp (MIT), libplist (LGPL-2.1),
+OpenSSL (Apache-2.0), Apple ALAC (Apache-2.0).
 
-## Architecture
-
-See [`docs/DESIGN.md`](./docs/DESIGN.md) for the full technical design: layering,
-module layout, the frozen JNI surface, mDNS strategy, media pipelines, threading
-model, and milestone mapping.
+ScreenDock is an independent project. It is not affiliated with or endorsed by Apple
+Inc. AirPlay, Mac, iPhone and iPad are trademarks of Apple Inc. Google Play and the
+Google Play logo are trademarks of Google LLC.
