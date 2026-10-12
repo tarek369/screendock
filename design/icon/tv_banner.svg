@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" width="640" height="360">
+  <!-- Android TV banner master (320x180dp, rendered to drawable-xhdpi/tv_banner.png).
+       Same palette as ui/theme/Theme.kt; glyph geometry from glyph.svg. -->
+  <defs>
+    <linearGradient id="acc" gradientUnits="userSpaceOnUse" x1="24" y1="28" x2="84" y2="80">
+      <stop offset="0" stop-color="#7FB3FF"/>
+      <stop offset="1" stop-color="#A78BFA"/>
+    </linearGradient>
+    <radialGradient id="bg" cx="0.22" cy="0.2" r="1.0">
+      <stop offset="0" stop-color="#16203A"/>
+      <stop offset="1" stop-color="#07090D"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#7FB3FF" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#7FB3FF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="320" height="180" fill="url(#bg)"/>
+  <circle cx="84" cy="90" r="78" fill="url(#glow)"/>
+  <!-- broadcast rings -->
+  <circle cx="84" cy="90" r="50" fill="none" stroke="#7FB3FF" stroke-opacity="0.22" stroke-width="1.2"/>
+  <circle cx="84" cy="90" r="66" fill="none" stroke="#7FB3FF" stroke-opacity="0.12" stroke-width="1"/>
+  <!-- glyph (108-unit space, scaled and centred on the rings) -->
+  <g transform="translate(36 36) scale(1.0)">
+    <rect x="30" y="34" width="48" height="40" rx="7" fill="none" stroke="url(#acc)" stroke-width="4.5"/>
+    <path d="M 54 44.5 L 64.5 63.5 L 43.5 63.5 Z" fill="url(#acc)"/>
+  </g>
+  <text x="142" y="94" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-weight="300"
+        font-size="29" letter-spacing="-0.5" fill="#F2F5FA">ScreenDock</text>
+  <text x="143" y="115" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-weight="400"
+        font-size="13" letter-spacing="0.4" fill="#A7B0C0">AirPlay receiver</text>
+</svg>

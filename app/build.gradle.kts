@@ -21,8 +21,8 @@ android {
         applicationId = "com.cressu.screendock"
         minSdk = 24
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.2.0"
+        versionCode = 4
+        versionName = "0.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -37,7 +37,7 @@ android {
         externalNativeBuild {
             cmake {
                 // Match jqssun/UxPlay Android convention.
-                arguments += "-DANDROID_STL=c++_shared"
+                arguments += "-DANDROID_STL=c++_static" // single .so → no libc++_shared.so in the APK
                 arguments += "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
                 // Pin the platform to minSdk so the NDK toolchain AND the
                 // OpenSSL sub-build both target API 24 (NFR-3). Without this the
@@ -62,7 +62,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -71,12 +72,6 @@ android {
             ndk { debugSymbolLevel = "SYMBOL_TABLE" }
             if (keystoreProperties.isNotEmpty()) {
                 signingConfig = signingConfigs.getByName("release")
-            }
-        }
-        debug {
-            // Keep native symbols usable in tombstones during M0.
-            packaging {
-                jniLibs.keepDebugSymbols += setOf("*/arm64-v8a/*.so", "*/armeabi-v7a/*.so", "*/x86_64/*.so")
             }
         }
     }
@@ -112,6 +107,10 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen) // Launch splash (system splash on 31+, compat below)
     implementation(libs.billing.ktx) // Google Play Billing (Pro unlock IAP)
+    implementation(libs.play.review.ktx) // Play In-App Review
+    implementation(libs.androidx.media3.exoplayer) // AirPlay video (HLS) playback
+    implementation(libs.androidx.media3.exoplayer.hls)
+    implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.service)
     implementation(libs.androidx.activity.compose)

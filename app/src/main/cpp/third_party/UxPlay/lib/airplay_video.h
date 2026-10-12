@@ -27,23 +27,23 @@
 typedef struct airplay_video_s airplay_video_t;
 typedef struct media_item_s media_item_t;
 
-void set_apple_session_id(airplay_video_t *airplay_video, const char *apple_session_id, size_t len);
+int set_apple_session_id(airplay_video_t *airplay_video, const char *apple_session_id, size_t len);
 const char *get_apple_session_id(airplay_video_t *airplay_video);
 void set_start_position_seconds(airplay_video_t *airplay_video, float start_position_seconds);
 void set_resume_position_seconds(airplay_video_t *airplay_video, float resume_position_seconds);
 float get_duration(airplay_video_t *airplay_video);
 float get_start_position_seconds(airplay_video_t *airplay_video);
 float get_resume_position_seconds(airplay_video_t *airplay_video);
-void set_playback_uuid(airplay_video_t *airplay_video, const char *playback_uuid, size_t len);
+int set_playback_uuid(airplay_video_t *airplay_video, const char *playback_uuid, size_t len);
 const char *get_playback_uuid(airplay_video_t *airplay_video);
-void set_uri_prefix(airplay_video_t *airplay_video, const char *uri_prefix, size_t len);
+int set_uri_prefix(airplay_video_t *airplay_video, const char *uri_prefix, size_t len);
 const char *get_uri_prefix(airplay_video_t *airplay_video);
 char *get_uri_local_prefix(airplay_video_t *airplay_video);
-void set_playback_location(airplay_video_t *airplay_video, const char *location, size_t len);
+int set_playback_location(airplay_video_t *airplay_video, const char *location, size_t len);
 const char *get_playback_location(airplay_video_t *airplay_video);
-void set_language_code(airplay_video_t *airplay_video, const char *language_code, size_t len);
+int set_language_code(airplay_video_t *airplay_video, const char *language_code, size_t len);
 const char *get_language_code(airplay_video_t *airplay_video);
-void set_language_name(airplay_video_t *airplay_video, const char *language_name, size_t len);
+int set_language_name(airplay_video_t *airplay_video, const char *language_name, size_t len);
 const char *get_language_name(airplay_video_t *airplay_video);
 
 int get_next_FCUP_RequestID(airplay_video_t *airplay_video);    
@@ -62,7 +62,13 @@ char *get_master_playlist(airplay_video_t *airplay_video);
 char *get_media_playlist(airplay_video_t *airplay_video, int *count, float *duration, const char *uri);
 
 void destroy_media_data_store(airplay_video_t *airplay_video);
-void create_media_data_store(airplay_video_t * airplay_video, char ** media_data_store, int num_uri);
+
+/* live (no #EXT-X-ENDLIST) media playlists: re-request from the sender, see airplay_video.c */
+int airplay_video_live_refresh_begin(airplay_video_t *airplay_video, const char *uri);   /* returns store index or -1 */
+void airplay_video_live_refresh_cancel(airplay_video_t *airplay_video);
+int airplay_video_live_refresh_pending(airplay_video_t *airplay_video);                  /* store index or -1 */
+int airplay_video_live_refresh_complete(airplay_video_t *airplay_video, char *media_playlist);
+int create_media_data_store(airplay_video_t * airplay_video, char ** media_data_store, int num_uri);
 
 void airplay_video_destroy(airplay_video_t *airplay_video);
 

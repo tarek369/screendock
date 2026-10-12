@@ -21,10 +21,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
-#include <assert.h>
+#include <time.h>
 
 #include "raop.h"
 #include "airplay_video.h"
+#include "hls_playlist.h"
 
 typedef enum playlist_type_e {
     NONE,
@@ -62,13 +63,19 @@ struct airplay_video_s {
     char *master_playlist;
     media_item_t *media_data_store;
     int num_uri;
+    /* live playlists: index of the media playlist being re-requested from the sender (-1: none) */
+    int refresh_index;
+    time_t refresh_started;
+    time_t last_refresh;
 };
 
 //  initialize airplay_video service.
 airplay_video_t *airplay_video_init(raop_t *raop, unsigned short http_port, const char *lang) {
     char uri[] = "http://localhost:";
     char port[6] = { '\0' };
-    assert(raop);
+    if (!raop) {
+        return NULL;
+    }
 
     /* calloc guarantees that the 36-character strings apple_session_id and 
        playback_uuid are null-terminated */
@@ -83,6 +90,10 @@ airplay_video_t *airplay_video_init(raop_t *raop, unsigned short http_port, cons
     snprintf(port, sizeof(port), "%u", http_port);
     size_t len = strlen(uri) + strlen(port);
     airplay_video->local_uri_prefix = (char *) calloc (len + 1, sizeof(char));
+    if (!airplay_video->local_uri_prefix) {
+        free(airplay_video);
+        return NULL;
+    }
     strcat(airplay_video->local_uri_prefix, uri);
     strcat(airplay_video->local_uri_prefix, port);
 
@@ -99,12 +110,18 @@ airplay_video_t *airplay_video_init(raop_t *raop, unsigned short http_port, cons
     airplay_video->master_playlist = NULL;
     airplay_video->num_uri = 0;
     airplay_video->next_uri = 0;
+    airplay_video->refresh_index = -1;
+    airplay_video->refresh_started = 0;
+    airplay_video->last_refresh = 0;
     return airplay_video;
 }
 
 // destroy the airplay_video service
 void
 airplay_video_destroy(airplay_video_t *airplay_video) {
+    if (!airplay_video) {
+        return;
+    }
     if (airplay_video->apple_session_id) {
         free(airplay_video->apple_session_id);
     }
@@ -133,99 +150,52 @@ airplay_video_destroy(airplay_video_t *airplay_video) {
         free (airplay_video->master_playlist);
     }
     free (airplay_video);
-    airplay_video = NULL;
 }
 
-void set_apple_session_id(airplay_video_t *airplay_video, const char * apple_session_id, size_t len) {
-    assert(apple_session_id && len == 36);
+/* Replace *dst by a copy of the first len bytes of src.  Returns 0, or -1 (and leaves
+   *dst untouched) if src is NULL, len is 0 or exceeds max_len, or allocation fails. */
+static int replace_string(char **dst, const char *src, size_t len, size_t max_len) {
+    if (!src || len == 0 || len > max_len) {
+        return -1;
+    }
     char *str = (char *) calloc(len + 1, sizeof(char));
     if (!str) {
-        printf("Memory allocation failed (str)\n");
-        exit(1);
+        return -1;
     }
-    strncpy(str, apple_session_id, len);
-    if (airplay_video->apple_session_id) {
-        free(airplay_video->apple_session_id);
-    }
-    airplay_video->apple_session_id = str;
-    str = NULL;
+    memcpy(str, src, len);
+    str[strnlen(str, len)] = '\0';
+    free(*dst);
+    *dst = str;
+    return 0;
 }
 
-void set_playback_uuid(airplay_video_t *airplay_video, const char *playback_uuid, size_t len) {
-    assert(playback_uuid && len == 36);
-    char *str = (char *) calloc(len + 1, sizeof(char));
-    if (!str) {
-        printf("Memory allocation failed (str)\n");
-        exit(1);
-    }
-    strncpy(str, playback_uuid, len);
-    if (airplay_video->playback_uuid) {
-        free(airplay_video->playback_uuid);
-    }
-    airplay_video->playback_uuid = str;
-    str = NULL;
+#define MAX_ID_LEN 64
+#define MAX_URL_LEN 8192
+#define MAX_NAME_LEN 256
+
+int set_apple_session_id(airplay_video_t *airplay_video, const char *apple_session_id, size_t len) {
+    return airplay_video ? replace_string(&airplay_video->apple_session_id, apple_session_id, len, MAX_ID_LEN) : -1;
 }
 
-void set_uri_prefix(airplay_video_t *airplay_video, const char *uri_prefix, size_t len) {
-    assert(uri_prefix && len );
-    char *str = (char *) calloc(len + 1, sizeof(char));
-    if (!str) {
-        printf("Memory allocation failed (str)\n");
-        exit(1);
-    }
-    strncpy(str, uri_prefix, len);
-    if (airplay_video->uri_prefix) {
-        free(airplay_video->uri_prefix);
-    }
-    airplay_video->uri_prefix = str;
-    str = NULL;
+int set_playback_uuid(airplay_video_t *airplay_video, const char *playback_uuid, size_t len) {
+    return airplay_video ? replace_string(&airplay_video->playback_uuid, playback_uuid, len, MAX_ID_LEN) : -1;
 }
 
-void set_playback_location(airplay_video_t *airplay_video, const char *location, size_t len) {
-    assert(location && len );
-    char *str = (char *) calloc(len + 1, sizeof(char));
-    if (!str) {
-        printf("Memory allocation failed (str)\n");
-        exit(1);
-    }
-    strncpy(str, location, len);
-    if (airplay_video->playback_location) {
-        free(airplay_video->playback_location);
-    }
-    airplay_video->playback_location = str;
-    str = NULL;
+int set_uri_prefix(airplay_video_t *airplay_video, const char *uri_prefix, size_t len) {
+    return airplay_video ? replace_string(&airplay_video->uri_prefix, uri_prefix, len, MAX_URL_LEN) : -1;
 }
 
-void set_language_name(airplay_video_t *airplay_video, const char *language_name, size_t len) {
-    assert(language_name && len );
-    char *str = (char *) calloc(len + 1, sizeof(char));
-    if (!str) {
-        printf("Memory allocation failed (str)\n");
-        exit(1);
-    }
-    strncpy(str, language_name, len);
-    if (airplay_video->language_name) {
-        free(airplay_video->language_name);
-    }
-    airplay_video->language_name = str;
-    str = NULL;
+int set_playback_location(airplay_video_t *airplay_video, const char *location, size_t len) {
+    return airplay_video ? replace_string(&airplay_video->playback_location, location, len, MAX_URL_LEN) : -1;
 }
 
-void set_language_code(airplay_video_t *airplay_video, const char *language_code, size_t len) {
-    assert(language_code && len );
-    char *str = (char *) calloc(len + 1, sizeof(char));
-    if (!str) {
-        printf("Memory allocation failed (str)\n");
-        exit(1);
-    }
-    strncpy(str, language_code, len);
-    if (airplay_video->language_code) {
-        free(airplay_video->language_code);
-    }
-    airplay_video->language_code = str;
-    str = NULL;
+int set_language_name(airplay_video_t *airplay_video, const char *language_name, size_t len) {
+    return airplay_video ? replace_string(&airplay_video->language_name, language_name, len, MAX_NAME_LEN) : -1;
 }
 
+int set_language_code(airplay_video_t *airplay_video, const char *language_code, size_t len) {
+    return airplay_video ? replace_string(&airplay_video->language_code, language_code, len, MAX_NAME_LEN) : -1;
+}
 
 const char *get_apple_session_id(airplay_video_t *airplay_video) {
     if (!airplay_video || !airplay_video->apple_session_id) {
@@ -300,227 +270,30 @@ void store_master_playlist(airplay_video_t *airplay_video, char *master_playlist
     airplay_video->master_playlist = master_playlist;
 }
 
-typedef struct language_s {
-    const char *start;
-    int len;
-    bool is_default;
-    char code[6];
-    char *name;
-} language_t;
-
-language_t* master_playlist_process_language(const char * data, int *slices, int *language_count) {
-    *language_count = 0;
-    const char *ptr = data;
-    int count = 0, count1 = 0;
-    while (ptr) {
-        ptr = strstr(ptr,"#EXT-X-MEDIA:URI=");
-        if(!ptr) {
-            break;
-        }
-        ptr = strstr(ptr, "LANGUAGE=");
-        if(!ptr) {
-            break;
-        }
-        ptr = strstr(ptr,"YT-EXT-AUDIO-CONTENT-ID=");
-        if(!ptr) {
-            break;
-        }
-        count++;
-    }
-    if (count == 0) {
-        return NULL;
-    }
-    language_t *languages = (language_t *) calloc(count + 2, sizeof(language_t));
-    size_t length = 0;
-    ptr = data;
-    for (int i = 1; i <= count; i++) {
-        const char *end;
-        int len_name;
-        if (!(ptr = strstr(ptr, "#EXT-X-MEDIA"))) {
-            break;
-        }
-        if (i == 1) {
-            length = (int) (ptr - data);
-            languages[0].start = data;
-            languages[0].len = length;
-            *languages[0].code = '\0';
-            languages[0].name = NULL;
-        }
-        languages[i].start = ptr;
-
-	    if (!(ptr = strstr(ptr, "DEFAULT="))) {
-            break;
-        }
-	    ptr += strlen("DEFAULT=");
-	    languages[i].is_default = !strncmp(ptr, "YES", strlen("YES"));
-	    if (!(ptr = strstr(ptr, "NAME="))) {
-            break;
-        }
-	    ptr += strlen("NAME=");
-	    end = strchr(++ptr,'"');
-	    if (!end) {
-            break;
-        }
-	    len_name = end - ptr;
-	    languages[i].name = (char *) calloc(len_name + 1, sizeof(char));
-	    memcpy(languages[i].name, ptr, len_name *sizeof(char));
-	    if (!(ptr = strstr(ptr, "LANGUAGE="))) {
-            break;
-        }
-        if (!(ptr = strchr(ptr,'"'))) {
-            break;
-        }
-        if (!(end = strchr(++ptr,'"'))) {
-            break;
-        }
-        strncpy(languages[i].code, ptr, end - ptr);
-        if (!(ptr = strchr(ptr,'\n'))) {
-            break;
-        }
-        count1++;
-        languages[i].len = (int) (ptr + 1 - languages[i].start);
-	    length += languages[i].len;
-    }
-    assert (count1 == count);
-    
-    languages[count + 1].start = ++ptr;
-    languages[count + 1].len = strlen(ptr);
-    *languages[count + 1].code = '\0';
-    languages[count + 1].name = NULL;
-
-    length += languages[count + 1].len;
-    assert(length == strlen(data));
-    *slices = count + 2;
-
-    int copies = 0;
-    for (int i = 1; i < count; i++) {
-        if (!strcmp(languages[i].code, languages[1].code)) {
-            copies++;
-        }
-     }
-
-    *language_count = count/copies;
-    assert(count == *language_count * copies);
-
-    /* verify expected structure of language choice information */
-    for (int i = 1; i <= count; i++) {
-  	int j = i - *language_count;
-        if (j > 0) {
-            assert (!strcmp(languages[i].code, languages[j].code));
-        }
-    }
-    return languages;
-}
-
-char * select_master_playlist_language(airplay_video_t *airplay_video, char *master_playlist) {
-    int language_count, slices;  
-    language_t *languages;
-    assert(master_playlist);
-    if (!(languages = master_playlist_process_language(master_playlist,
-                                                       &slices, &language_count))) {
+/* Pick the audio language in a master playlist that offers several; returns the (possibly
+   new) master playlist, taking ownership of master_playlist.  Never fails: on any problem
+   the original playlist is returned unchanged. */
+char *select_master_playlist_language(airplay_video_t *airplay_video, char *master_playlist) {
+    char *new_master = NULL, *code = NULL, *name = NULL;
+    if (!master_playlist || !airplay_video) {
         return master_playlist;
     }
-
-    /* audio is offered in multiple languages */ 
-
-    char *code = NULL;
-    char *name = NULL;
-
-    assert(airplay_video);
-    printf("%d available languages:\n\n", language_count);
-    int i_default = -1;
-    
-    const char *language_name = get_language_name(airplay_video);
-    for (int i = 1; i <= language_count; i ++) {
-        if (language_name) {
-            if (!strcmp(language_name, languages[i].name)) {
-                i_default = i;
-            }
-        } else if (languages[i].is_default) {
-            i_default = i;
-        }
-        printf("%2d %-5.5s \"%s\" %s\n",i, languages[i].code, languages[i].name, (languages[i].is_default ? "(DEFAULT)" : ""));
+    int ret = hls_select_language(master_playlist, airplay_video->language_name, airplay_video->lang,
+                                  &new_master, &code, &name);
+    if (ret != 1) {
+        return master_playlist;
     }
-    printf("\n");
-    assert(i_default >= 0);
-
-    const char *ptrc = airplay_video->lang;;
-    code = NULL;
-    name = NULL;
-    while (ptrc){
-        for (int i = 1; i <= language_count; i++) {
-            if (!strncmp(languages[i].code, ptrc, 2)) {
-                code = languages[i].code;
-                name = languages[i].name;
-                printf("language choice: %s \"%s\" (based on prefered languages list %s)\n\n",
-                       code, name,  airplay_video->lang);
-                break;
-            }
-        }
-        if (code) {
-            break;
-        }
-        ptrc = strchr(ptrc,':');
-        if(ptrc) {
-            ptrc++;
-            if (strlen(ptrc) < 2) {
-                break;
-            }
-        }
-    }
-
-    if (!code) {
-        code = languages[i_default].code;
-        name = languages[i_default].name; 
-        if (airplay_video->lang) {
-            printf("no match with prefered language list %s\n", airplay_video->lang);
-        }
-        if (language_name) {
-            printf("using HLS-specified language choice: %s \"%s\"\n\n", code, name); 
-        } else {
-            printf("using default language choice: %s \"%s\"\n\n", code, name);
-        }
-    } 
-
     /* update stored language code, name if changed */
-    if (name != language_name) {   /* compare addresses */
-        size_t len = strlen(name);
-        char *new_language_name = (char *) calloc(len + 1, sizeof(char));
-        char *new_language_code = (char *) calloc(len + 1, sizeof(char));
-        if (!new_language_name || !new_language_code) {
-            printf("Memory allocation failure (new_language_name/code\n");
-            exit (1);
-        }
-        memcpy(new_language_name, name, len);
-        set_language_name(airplay_video, new_language_name, len);
-        len = strlen(code);
-        memcpy(new_language_code, code, len);
-        set_language_code(airplay_video, new_language_code, len);
+    if (!airplay_video->language_name || strcmp(airplay_video->language_name, name)) {
+        set_language_name(airplay_video, name, strlen(name));
     }
-    
-    int len = 0;
-    for (int i = 0; i < slices; i++) {
-        if (strlen(languages[i].code) == 0 || !strcmp(languages[i].code, code)) {
-            len += languages[i].len;	
-        }
+    if (!airplay_video->language_code || strcmp(airplay_video->language_code, code)) {
+        set_language_code(airplay_video, code, strlen(code));
     }
-    char *new_master_playlist = (char *) calloc(len + 1, sizeof(char));
-
-    char *ptr = new_master_playlist;
-    for (int i = 0; i < slices; i++) {
-        if (strlen(languages[i].code) == 0 || !strcmp(languages[i].code, code)) {
-            strncpy(ptr, languages[i].start, languages[i].len);
-            ptr += languages[i].len;
-        }
-    }
-
-    for (int i = 1; i <= slices - 2 ; i++) {
-        free (languages[i].name);
-    }
-    free (languages);
-    free (master_playlist);
-    
-    return new_master_playlist;
+    free(code);
+    free(name);
+    free(master_playlist);
+    return new_master;
 }
 
 char *get_master_playlist(airplay_video_t *airplay_video) {
@@ -537,24 +310,28 @@ void destroy_media_data_store(airplay_video_t *airplay_video) {
     media_item_t *media_data_store = airplay_video->media_data_store; 
     if (media_data_store) {
         for (int i = 0; i < airplay_video->num_uri ; i ++ ) {
-            if (media_data_store[i].uri) {
-                free (media_data_store[i].uri);
-            }
-            if (media_data_store[i].playlist) {
-                free (media_data_store[i].playlist);
-            }
+            free(media_data_store[i].uri);
+            free(media_data_store[i].playlist);
         }
     }
     free (media_data_store);
+    airplay_video->media_data_store = NULL;
     airplay_video->num_uri = 0;
+    airplay_video->refresh_index = -1;
 }
 
-void create_media_data_store(airplay_video_t * airplay_video, char ** uri_list, int num_uri) {  
+/* takes ownership of the strings in uri_list (but not of the array itself), also on failure */
+int create_media_data_store(airplay_video_t * airplay_video, char ** uri_list, int num_uri) {  
     destroy_media_data_store(airplay_video);
-    media_item_t *media_data_store = calloc(num_uri, sizeof(media_item_t));
+    if (num_uri <= 0 || !uri_list) {
+        return 0;
+    }
+    media_item_t *media_data_store = calloc((size_t) num_uri, sizeof(media_item_t));
     if (!media_data_store) {
-        printf("Memory allocation failure (media_data_store)\n");
-        exit(1);
+        for (int i = 0; i < num_uri; i++) {
+            free(uri_list[i]);
+        }
+        return -1;
     }
     for (int i = 0; i < num_uri; i++) {
         media_data_store[i].uri = uri_list[i];
@@ -569,8 +346,8 @@ void create_media_data_store(airplay_video_t * airplay_video, char ** uri_list, 
     }
     airplay_video->media_data_store = media_data_store;
     airplay_video->num_uri = num_uri;
+    return 0;
 }
-
 
 static int parse_media_playlist(media_item_t *media_item) {
     const char *ptr = media_item->playlist;
@@ -580,6 +357,9 @@ static int parse_media_playlist(media_item_t *media_item) {
     char playlist_type[] = "PLAYLIST-TYPE:";
     char version[] = "VERSION:";
     char media_sequence[] = "MEDIA-SEQUENCE:";
+    if (!ptr) {
+        return -1;
+    }
     ptr = strstr(ptr, extm3u);
     if (!ptr) {
         return -1;
@@ -621,17 +401,21 @@ static int parse_media_playlist(media_item_t *media_item) {
     return 0;
 }
 
+/* Store the media playlist received for the uri with index num.  Takes ownership of
+   media_playlist when it returns 0 or 1 (the caller must free it on a negative return).
+   returns: 0 stored, 1 duplicate of an earlier identical playlist (freed), -1 bad index, -2 already stored */
 int store_media_playlist(airplay_video_t *airplay_video, char * media_playlist, int *count, float *duration, bool *endlist, int num) {
     media_item_t *media_data_store = airplay_video->media_data_store;
-    if ( num < 0 ||  num >= airplay_video->num_uri) {
+    if (!media_data_store || num < 0 ||  num >= airplay_video->num_uri) {
         return -1;
     } else if (media_data_store[num].playlist) {
         return -2;
     }
-    /* dont store duplicate media paylists */
+    /* dont store duplicate media paylists (same uri, identical content) */
     for (int i = 0; i < num ; i++) {
-        if (strcmp(media_data_store[i].uri, media_data_store[num].uri) == 0) {
-            assert(strcmp(media_data_store[i].playlist, media_playlist) == 0);
+        if (media_data_store[i].playlist && media_data_store[i].uri && media_data_store[num].uri &&
+            strcmp(media_data_store[i].uri, media_data_store[num].uri) == 0 &&
+            strcmp(media_data_store[i].playlist, media_playlist) == 0) {
             media_data_store[num].num = i;
             free (media_playlist);
             return 1;
@@ -646,336 +430,127 @@ int store_media_playlist(airplay_video_t *airplay_video, char * media_playlist, 
     return 0;
 }
 
-char * get_media_playlist(airplay_video_t *airplay_video, int *count, float *duration, const char *uri) {
+/* resolve uri (as requested by the media player) to the canonical store index, or -1 */
+static int find_media_index(airplay_video_t *airplay_video, const char *uri) {
     media_item_t *media_data_store = airplay_video->media_data_store;
-    if (media_data_store == NULL) {
-        return NULL;
+    if (!media_data_store || !uri) {
+        return -1;
     }
     for (int i = 0; i < airplay_video->num_uri; i++) {
-        if (strstr(media_data_store[i].uri, uri)) {
-            *count = media_data_store[media_data_store[i].num].count;
-            *duration = media_data_store[media_data_store[i].num].duration;
-            return media_data_store[media_data_store[i].num].playlist;
+        if (media_data_store[i].uri && strstr(media_data_store[i].uri, uri)) {
+            int canonical = media_data_store[i].num;
+            if (canonical < 0 || canonical >= airplay_video->num_uri) {
+                return -1;
+            }
+            return canonical;
         }
     }
-    return NULL;
+    return -1;
+}
+
+char * get_media_playlist(airplay_video_t *airplay_video, int *count, float *duration, const char *uri) {
+    int idx = find_media_index(airplay_video, uri);
+    if (idx < 0) {
+        return NULL;
+    }
+    *count = airplay_video->media_data_store[idx].count;
+    *duration = airplay_video->media_data_store[idx].duration;
+    return airplay_video->media_data_store[idx].playlist;
 }
 
 char * get_media_uri_by_num(airplay_video_t *airplay_video, int num) {
     media_item_t * media_data_store = airplay_video->media_data_store;
-    if (num >= 0 && num < airplay_video->num_uri) {
+    if (media_data_store && num >= 0 && num < airplay_video->num_uri) {
         return  media_data_store[num].uri;
     }
     return NULL;
 }
 
-int analyze_media_playlist(char *playlist, float *duration, bool *endlist) {
-    float next;
-    int count = 0;
-    char *ptr = strstr(playlist, "#EXTINF:");
-    *duration = 0.0f;
-    *endlist = false;
-    char *end = NULL;
-    while (ptr != NULL) {
-        ptr += strlen("#EXTINF:");
-        next = strtof(ptr, &end);
-        *duration += next;
-        count++;
-        ptr = strstr(end, "#EXTINF:");
-    }
-    if (end) {
-        *endlist = (strstr(end, "#EXT-X-ENDLIST"));
-    }
-    return count;
-}
+/* ---- live playlists (no #EXT-X-ENDLIST) ----
+   The sender (not the Android player) is the origin of all playlists and only hands them over
+   when asked via an "FCUP" request on the reverse channel; that request is asynchronous.  For a
+   live stream the player polls the media playlist, so each poll (rate limited) triggers one FCUP
+   re-request.  The poll itself is answered immediately with the newest stored copy; the refreshed
+   copy arrives in a later POST /action and replaces the stored one. */
+#define LIVE_REFRESH_MIN_INTERVAL_SEC 1
+#define LIVE_REFRESH_TIMEOUT_SEC 10
 
-/* parse Master Playlist, make table of Media Playlist uri's that it lists */
-int create_media_uri_table(const char *url_prefix, const char *master_playlist_data,
-                           int datalen, char ***media_uri_table, int *num_uri) {
-    const char *ptr = strstr(master_playlist_data, url_prefix);
-    char ** table = NULL;
-    if (ptr == NULL) {
+int airplay_video_live_refresh_begin(airplay_video_t *airplay_video, const char *uri) {
+    int idx = find_media_index(airplay_video, uri);
+    time_t now = time(NULL);
+    if (idx < 0) {
         return -1;
     }
-    int count = 0;
-    while (ptr != NULL) {
-        const char *end = strstr(ptr, "m3u8");
-        if (end == NULL) {
-            return 1;
-        }
-        end += sizeof("m3u8");
-        count++;
-        ptr = strstr(end, url_prefix);
+    media_item_t *item = &airplay_video->media_data_store[idx];
+    if (!item->playlist || item->endlist) {
+        return -1;
     }
-    table  = (char **)  calloc(count, sizeof(char *));
-    if (!table) {
-      return -1;
+    if (airplay_video->refresh_index >= 0 &&
+        now - airplay_video->refresh_started < LIVE_REFRESH_TIMEOUT_SEC) {
+        return -1;   /* a request is still outstanding */
     }
-    for (int i = 0; i < count; i++) {
-        table[i] = NULL;
+    if (now - airplay_video->last_refresh < LIVE_REFRESH_MIN_INTERVAL_SEC) {
+        return -1;
     }
-    ptr = strstr(master_playlist_data, url_prefix);
-    count = 0;
-    while (ptr != NULL) {
-        const char *end = strstr(ptr, "m3u8");
-        char *uri;
-        if (end == NULL) {
-            return 0;
-        }
-        end += sizeof("m3u8");
-        size_t len = end - ptr - 1;
-	    uri  = (char *) calloc(len + 1, sizeof(char));
-        if (!uri) {
-            printf("Memory allocation failure (uri)\n");
-            exit(1);
-        }
-	    memcpy(uri , ptr, len);
-        table[count] = uri;
-        uri =  NULL;	
-	    count ++;
-	    ptr = strstr(end, url_prefix);
-    }
-    *num_uri = count;
+    airplay_video->refresh_index = idx;
+    airplay_video->refresh_started = now;
+    airplay_video->last_refresh = now;
+    return idx;
+}
 
-    *media_uri_table = table;
+void airplay_video_live_refresh_cancel(airplay_video_t *airplay_video) {
+    airplay_video->refresh_index = -1;
+}
+
+int airplay_video_live_refresh_pending(airplay_video_t *airplay_video) {
+    return airplay_video->refresh_index;
+}
+
+/* Replace the stored playlist of the pending refresh with the one just received.
+   Takes ownership of media_playlist (freed on failure too).  Returns 0 on success. */
+int airplay_video_live_refresh_complete(airplay_video_t *airplay_video, char *media_playlist) {
+    int idx = airplay_video->refresh_index;
+    airplay_video->refresh_index = -1;
+    if (idx < 0 || idx >= airplay_video->num_uri || !media_playlist) {
+        free(media_playlist);
+        return -1;
+    }
+    media_item_t *item = &airplay_video->media_data_store[idx];
+    int count = 0;
+    float duration = 0.0f;
+    bool endlist = false;
+    count = hls_analyze_media_playlist(media_playlist, &duration, &endlist);
+    free(item->playlist);
+    item->playlist = media_playlist;
+    item->count = count;
+    item->duration = duration;
+    item->endlist = endlist;
+    parse_media_playlist(item);
     return 0;
 }
 
-/* Adjust uri prefixes in the Master Playlist, for sending to the Media Player */
+/* thin wrappers kept for the existing API */
+int analyze_media_playlist(char *playlist, float *duration, bool *endlist) {
+    return hls_analyze_media_playlist(playlist, duration, endlist);
+}
+
+int create_media_uri_table(const char *url_prefix, const char *master_playlist_data,
+                           int datalen, char ***media_uri_table, int *num_uri) {
+    (void) datalen;
+    return hls_create_media_uri_table(url_prefix, master_playlist_data, media_uri_table, num_uri);
+}
+
+/* Adjust uri prefixes in the Master Playlist, for sending to the Media Player.
+   Returns a new string (or NULL on failure). */
 char *adjust_master_playlist (char *fcup_response_data, int fcup_response_datalen,
                               const char *uri_prefix, char *uri_local_prefix) {
-    size_t uri_prefix_len = strlen(uri_prefix);
-    size_t uri_local_prefix_len = strlen(uri_local_prefix);
-    int counter = 0;
-    char *ptr = strstr(fcup_response_data, uri_prefix);
-    while (ptr != NULL) {
-        counter++;
-        ptr++;
-        ptr = strstr(ptr, uri_prefix);
+    if (fcup_response_datalen < 0) {
+        return NULL;
     }
-
-    size_t len = uri_local_prefix_len - uri_prefix_len;
-    len *= counter;
-    len += fcup_response_datalen;
-    int byte_count = 0;
-    int new_len = (int) len;
-    char *new_master = (char *) malloc(new_len + 1);
-    if (!new_master) {
-        printf("Memory allocation failure (new_master)\n");
-        exit(1);
-    }
-    new_master[new_len] = '\0';
-    char *first = fcup_response_data;
-    char *new = new_master;
-    char *last = strstr(first, uri_prefix);
-    counter  = 0;
-    while (last != NULL) {
-        counter++;
-        len = last - first;
-        memcpy(new, first, len);
-        byte_count += len;
-        first = last + uri_prefix_len;
-        new += len;
-        memcpy(new, uri_local_prefix, uri_local_prefix_len);
-        byte_count += uri_local_prefix_len;
-        new += uri_local_prefix_len;
-        last = strstr(last + uri_prefix_len, uri_prefix);
-        if (last  == NULL) {
-            len = fcup_response_data  + fcup_response_datalen  - first;
-            memcpy(new, first, len);
-            byte_count += len;
-            break;
-        }
-    }
-    assert(byte_count == new_len); 
-    return new_master;
+    return hls_adjust_master_playlist(fcup_response_data, (size_t) fcup_response_datalen,
+                                      uri_prefix, uri_local_prefix);
 }
 
 char *adjust_yt_condensed_playlist(const char *media_playlist) {
-/* this copies a Media Playlist into a null-terminated string. 
-   If it has the "#YT-EXT-CONDENSED-URI" header, it is also expanded into 
-   the full Media Playlist format.
-   It  returns a pointer to the expanded playlist, WHICH MUST BE FREED AFTER USE */
-
-    const char *base_uri_begin;
-    const char *params_begin;
-    const char *prefix_begin;
-    size_t base_uri_len;
-    size_t params_len;
-    size_t prefix_len;
-    const char* ptr = strstr(media_playlist, "#EXTM3U\n");
-
-    ptr += strlen("#EXTM3U\n");
-    assert(ptr);
-    if (strncmp(ptr, "#YT-EXT-CONDENSED-URL", strlen("#YT-EXT-CONDENSED-URL"))) {
-        size_t len = strlen(media_playlist);
-        char * playlist_copy = (char *) malloc(len + 1);
-        if (!playlist_copy) {
-            printf("Memory allocation failure (playlist_copy)\n");
-            exit(1);
-        }
-        memcpy(playlist_copy, media_playlist, len);
-        playlist_copy[len] = '\0';
-        return playlist_copy;
-    }
-    ptr = strstr(ptr, "BASE-URI=");
-    base_uri_begin = strchr(ptr, '"');
-    base_uri_begin++;
-    ptr = strchr(base_uri_begin, '"');
-    base_uri_len = ptr - base_uri_begin;
-    char *base_uri = (char *) calloc(base_uri_len + 1, sizeof(char));
-    assert(base_uri);
-    memcpy(base_uri, base_uri_begin, base_uri_len);  //must free
-
-    ptr = strstr(ptr, "PARAMS=");
-    params_begin = strchr(ptr, '"');
-    params_begin++;
-    ptr = strchr(params_begin,'"');
-    params_len = ptr - params_begin;
-    char *params = (char *) calloc(params_len + 1, sizeof(char));
-    assert(params);
-    memcpy(params, params_begin, params_len);  //must free
-
-    ptr = strstr(ptr, "PREFIX=");
-    prefix_begin = strchr(ptr, '"');
-    prefix_begin++;
-    ptr = strchr(prefix_begin,'"');
-    prefix_len = ptr - prefix_begin;
-    char *prefix = (char *) calloc(prefix_len + 1, sizeof(char));
-    assert(prefix);
-    memcpy(prefix, prefix_begin, prefix_len);  //must free
-
-    /* expand params */
-    int nparams = 0;
-    int *params_size = NULL;
-    const char **params_start = NULL;
-    if (strlen(params)) {
-        nparams = 1;
-        const char * comma = strchr(params, ',');
-        while (comma) {
-            nparams++;
-            comma++;
-            comma = strchr(comma, ',');
-        }
-        params_start = (const char **) calloc(nparams, sizeof(char *));  //must free
-        params_size = (int *)  calloc(nparams, sizeof(int));     //must free
-        if (!params_start || !params_size) {
-            printf("Memory allocation failure (params_start/size)\n");
-            exit(1);
-        }
-        ptr = params;
-        for (int i = 0; i < nparams; i++) {
-            comma = strchr(ptr, ',');
-            params_start[i] = ptr;
-            if (comma) {
-                params_size[i] = (int) (comma - ptr);
-                ptr = comma;
-                ptr++;
-            } else {
-                params_size[i] = (int) (params + params_len - ptr);
-                break;
-            }
-        }
-    }
-
-    int count = 0;
-    ptr = strstr(media_playlist, "#EXTINF");
-    while (ptr) {
-        count++;
-        ptr = strstr(++ptr, "#EXTINF");
-    }
-
-    size_t old_size = strlen(media_playlist);
-    size_t new_len = old_size;
-    new_len += count * (base_uri_len + params_len);
-
-    int byte_count = 0;
-    char * new_playlist = (char *) malloc(new_len + 1);
-    if (!new_playlist) {
-        printf("Memory allocation failure (new_playlist)\n");
-        exit(1);
-    }
-    new_playlist[new_len] = '\0';
-    const char *old_pos = media_playlist;
-    char *new_pos = new_playlist;
-    ptr = old_pos;
-    ptr = strstr(old_pos, "#EXTINF:");
-    size_t len = ptr - old_pos;
-    /* copy header section before chunks */
-    memcpy(new_pos, old_pos, len);
-    byte_count += len;
-    old_pos += len;
-    new_pos += len;
-    while (ptr) {
-        /* for each chunk */
-        const char *end = NULL;
-        const char *start = strstr(ptr, prefix);
-        len = start - ptr;
-        /* copy first line of chunk entry */
-        memcpy(new_pos, old_pos, len);
-        byte_count += len;
-        old_pos += len;
-        new_pos += len;
-	
-	    /* copy base uri  to replace prefix*/
-        memcpy(new_pos, base_uri, base_uri_len);
-        byte_count += base_uri_len;
-        new_pos += base_uri_len;
-        old_pos += prefix_len;
-        ptr = strstr(old_pos, "#EXTINF:");
-
-        /* insert the PARAMS separators on the slices line  */
-        end = old_pos;
-        int last = nparams - 1;
-        for (int i = 0; i < nparams; i++) {
-            if (i != last) {
-                end = strchr(end, '/');
-            } else {
-                /* the next line starts with either #EXTINF (usually) 
-                or #EXT-X-ENDLIST (at last chunk)*/
-	            end = strstr(end, "#EXT");
-            }
-            *new_pos = '/';
-            byte_count++;
-            new_pos++;
-            memcpy(new_pos, params_start[i], params_size[i]);
-            byte_count += params_size[i];
-            new_pos += params_size[i];
-            *new_pos = '/';
-            byte_count++;
-            new_pos++;
-
-            len = end - old_pos;
-            end++;
-
-            memcpy (new_pos, old_pos, len);
-            byte_count += len;
-            new_pos += len;
-            old_pos += len;
-            if (i != last) {
-                old_pos++; /* last entry is not followed by "/" separator */
-            }
-        }
-    }
-    /* copy tail */
-     
-    len = media_playlist + strlen(media_playlist) - old_pos;
-    memcpy(new_pos, old_pos, len);
-    byte_count += len;
-    new_pos += len;
-    old_pos += len;
-
-    assert(byte_count == (int) new_len);
-
-    free (prefix);
-    free (base_uri);
-    free (params);
-    if (params_size) {
-        free (params_size);
-    }
-    if (params_start) {
-        free (params_start);
-    }  
-
-    return new_playlist;
+    return hls_expand_condensed_playlist(media_playlist);
 }

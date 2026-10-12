@@ -40,6 +40,7 @@ object NativeBridge {
     // ---- Full surface (stable contract; M1+) ------------------------------
     // Kept here so the Kotlin<->C signature pair is reviewable in one place.
 
+    /** [name] is the receiver's display name: used as the mDNS/RAOP instance name at [start]. */
     fun init(
         handler: RaopCallbackHandler,
         hwAddr: ByteArray,
@@ -70,6 +71,33 @@ object NativeBridge {
 
     /** RAOP instance name "<hexmac>@<name>" (NsdManager registers this as the service name). */
     fun getRaopServiceName(handle: Long): String = nativeGetRaopServiceName(handle)
+
+    // ---- PIN + HLS (call BEFORE [start]; changing them later needs a restart) ----
+
+    /**
+     * Require a PIN on the sender. null/empty = no PIN. A 4-digit string (e.g. "1234") = fixed PIN.
+     * Any other non-empty value is rejected (treated as no PIN, logged). With [init]'s
+     * requirePin=true and no fixed PIN, a random 4-digit PIN is generated per pairing and reported
+     * through [RaopCallbackHandler.onDisplayPin]; a fixed PIN is also reported there.
+     * Advertises the PIN flags in the mDNS TXT records.
+     */
+    fun setPin(handle: Long, pin: String?) = nativeSetPin(handle, pin)
+
+    /** Enable AirPlay video (HLS / YouTube): advertises the video feature bits and accepts /play. */
+    fun setHlsEnabled(handle: Long, enabled: Boolean) = nativeSetHlsEnabled(handle, enabled)
+
+    /**
+     * Push the local video player's state; native answers the sender's ~1 Hz /playback-info from
+     * this snapshot. Call every ~250 ms while a video plays and on every state change.
+     * @param durationSec total seconds (0 if unknown yet, NEVER negative while playing)
+     * @param positionSec current position
+     * @param rate 1f playing, 0f paused/buffering
+     * @param ready true once the player is prepared and the duration is known
+     * Pass durationSec = -1 when playback ended or failed (sender then ends the session).
+     */
+    fun updateHlsPlaybackInfo(handle: Long, durationSec: Double, positionSec: Double, rate: Float, ready: Boolean) {
+        if (loaded && handle != 0L) nativeUpdateHlsPlaybackInfo(handle, durationSec, positionSec, rate, ready)
+    }
 
     // ---- caps (M1) --------------------------------------------------------
 
@@ -122,6 +150,12 @@ object NativeBridge {
     ): Long
 
     @JvmStatic private external fun nativeDestroy(handle: Long)
+
+    @JvmStatic private external fun nativeSetPin(handle: Long, pin: String?)
+    @JvmStatic private external fun nativeSetHlsEnabled(handle: Long, enabled: Boolean)
+    @JvmStatic private external fun nativeUpdateHlsPlaybackInfo(
+        handle: Long, durationSec: Double, positionSec: Double, rate: Float, ready: Boolean,
+    )
 
     @JvmStatic private external fun nativeStart(handle: Long, requestedPort: Int): Int
     @JvmStatic private external fun nativeStop(handle: Long)

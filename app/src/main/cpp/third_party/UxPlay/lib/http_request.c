@@ -48,8 +48,11 @@ on_url(llhttp_t *parser, const char *at, size_t length)
     http_request_t *request = parser->data;
     int urllen = request->url ? strlen(request->url) : 0;
 
-    request->url = realloc(request->url, urllen+length+1);
-    assert(request->url);
+    char *new_url = realloc(request->url, urllen+length+1);
+    if (!new_url) {
+        return -1;   /* OOM: fail the parse, connection gets closed */
+    }
+    request->url = new_url;
 
     request->url[urllen] = '\0';
     strncat(request->url, at, length);
@@ -71,10 +74,13 @@ on_header_field(llhttp_t *parser, const char *at, size_t length)
 
     /* Allocate space for new field-value pair */
     if (request->headers_index == request->headers_size) {
+        char **new_headers = realloc(request->headers,
+                                     (request->headers_size + 2)*sizeof(char*));
+        if (!new_headers) {
+            return -1;
+        }
+        request->headers = new_headers;
         request->headers_size += 2;
-        request->headers = realloc(request->headers,
-                                   request->headers_size*sizeof(char*));
-        assert(request->headers);
         request->headers[request->headers_index] = NULL;
         request->headers[request->headers_index+1] = NULL;
     }
@@ -82,13 +88,19 @@ on_header_field(llhttp_t *parser, const char *at, size_t length)
     /* Allocate space in the current header string */
     if (request->headers[request->headers_index] == NULL) {
         request->headers[request->headers_index] = calloc(1, length + 1);
+        if (!request->headers[request->headers_index]) {
+            return -1;
+        }
     } else {
-        request->headers[request->headers_index] = realloc(
+        char *grown = realloc(
                 request->headers[request->headers_index],
                 strlen(request->headers[request->headers_index]) + length + 1
         );
+        if (!grown) {
+            return -1;
+        }
+        request->headers[request->headers_index] = grown;
     }
-    assert(request->headers[request->headers_index]);
 
     strncat(request->headers[request->headers_index], at, length);
     return 0;
@@ -107,13 +119,19 @@ on_header_value(llhttp_t *parser, const char *at, size_t length)
     /* Allocate space in the current header string */
     if (request->headers[request->headers_index] == NULL) {
         request->headers[request->headers_index] = calloc(1, length + 1);
+        if (!request->headers[request->headers_index]) {
+            return -1;
+        }
     } else {
-        request->headers[request->headers_index] = realloc(
+        char *grown = realloc(
                 request->headers[request->headers_index],
                 strlen(request->headers[request->headers_index]) + length + 1
         );
+        if (!grown) {
+            return -1;
+        }
+        request->headers[request->headers_index] = grown;
     }
-    assert(request->headers[request->headers_index]);
 
     strncat(request->headers[request->headers_index], at, length);
     return 0;
@@ -124,8 +142,11 @@ on_body(llhttp_t *parser, const char *at, size_t length)
 {
     http_request_t *request = parser->data;
 
-    request->data = realloc(request->data, request->datalen + length);
-    assert(request->data);
+    char *new_data = realloc(request->data, request->datalen + length);
+    if (!new_data) {
+        return -1;
+    }
+    request->data = new_data;
 
     memcpy(request->data+request->datalen, at, length);
     request->datalen += length;
@@ -266,7 +287,7 @@ http_request_get_header(http_request_t *request, const char *name)
     }
 
     for (int i = 0; i < request->headers_size; i += 2) {
-        if (!strcmp(request->headers[i], name)) {
+        if (request->headers[i] && !strcmp(request->headers[i], name)) {
             return request->headers[i+1];
         }
     }
@@ -285,11 +306,14 @@ http_request_header_get_size(http_request_t *request, int *num_fields, size_t *m
     if (num_fields) {
         *num_fields = request->headers_size / 2;
     }
-    for (int i = 0; i < request->headers_size; i +=2) {
-        size_t len = strlen(request->headers[i]);
+    /* entries alternate field, value; a value may be NULL if the header had none */
+    for (int i = 0; i < request->headers_size; i++) {
+        size_t len = request->headers[i] ? strlen(request->headers[i]) : 0;
         total += len;
-        if (i % 2 == 0 && max_field_len && len > *max_field_len) {
-            *max_field_len = len;
+        if (i % 2 == 0) {
+            if (max_field_len && len > *max_field_len) {
+                *max_field_len = len;
+            }
         } else if (max_value_len && len > *max_value_len) {
             *max_value_len = len;
         }
@@ -320,7 +344,7 @@ http_request_get_header_string(http_request_t *request, char **header_str)
     }    
     int len = 0;
     for (int i = 0; i < request->headers_size; i++) {
-        len += strlen(request->headers[i]);
+        len += request->headers[i] ? strlen(request->headers[i]) : 0;
         if (i % 2 == 0) {
             len += 2;
         } else {
@@ -328,13 +352,17 @@ http_request_get_header_string(http_request_t *request, char **header_str)
         }
     }
     char *str = (char *) calloc(len+1, sizeof(char));
-    assert(str);
+    if (!str) {
+        *header_str = NULL;
+        return 0;
+    }
     *header_str = str;
     char *p = str;
     int n = len + 1;
     for (int i = 0; i < request->headers_size; i++) {
-        int hlen = strlen(request->headers[i]); 
-        snprintf(p, n, "%s", request->headers[i]);
+        const char *item = request->headers[i] ? request->headers[i] : "";
+        int hlen = (int) strlen(item);
+        snprintf(p, n, "%s", item);
         n -= hlen;
         p += hlen;
         if (i % 2 == 0) {
@@ -347,7 +375,6 @@ http_request_get_header_string(http_request_t *request, char **header_str)
             p++;
         }
     }
-    assert(p == &(str[len]));
     return len;
 }
 

@@ -162,11 +162,18 @@ conn_init(void *opaque, unsigned char *local, int locallen, unsigned char *remot
     logger_log(raop->logger, LOGGER_INFO, "Remote: %s", ip_address);
 
     conn->local = (unsigned char *) malloc(locallen);
-    assert(conn->local);
-    memcpy(conn->local, local, locallen);
-
     conn->remote = (unsigned char *) malloc(remotelen);
-    assert(conn->remote);
+    if (!conn->local || !conn->remote) {
+        /* out of memory: refuse the connection instead of aborting the process */
+        logger_log(raop->logger, LOGGER_ERR, "conn_init: memory allocation failed");
+        free(conn->local);
+        free(conn->remote);
+        pairing_session_destroy(conn->session);
+        fairplay_destroy(conn->fairplay);
+        free(conn);
+        return NULL;
+    }
+    memcpy(conn->local, local, locallen);
     memcpy(conn->remote, remote, remotelen);
 
     conn->zone_id = zone_id;
@@ -295,7 +302,12 @@ conn_request(void *ptr, http_request_t *request, http_response_t **response) {
             httpd_set_connection_type(raop->httpd, ptr, CONNECTION_TYPE_AIRPLAY);
             conn->connection_type = CONNECTION_TYPE_AIRPLAY;
             conn->client_session_id = (char *) calloc(strlen(client_session_id) + 1, sizeof(char));
-            assert(conn->client_session_id);
+            if (!conn->client_session_id) {
+                logger_log(raop->logger, LOGGER_ERR, "conn_request: memory allocation failed");
+                *response = http_response_create();
+                http_response_init(*response, protocol, 500, "Internal Server Error");
+                goto finish;
+            }
             memcpy(conn->client_session_id, client_session_id, strlen(client_session_id));
             /* airplay video has been requested: shut down any running RAOP udp services */
             raop_conn_t *raop_conn = (raop_conn_t *) httpd_get_connection_by_type(raop->httpd, CONNECTION_TYPE_RAOP, 1);
@@ -397,8 +409,11 @@ conn_request(void *ptr, http_request_t *request, http_response_t **response) {
         free(header_str);
     }
     
-    if (client_session_id) {
-        assert(!strcmp(client_session_id, conn->client_session_id));
+    if (client_session_id && conn->client_session_id && strcmp(client_session_id, conn->client_session_id)) {
+        /* sender-controlled header changed mid-connection: reject rather than abort */
+        logger_log(raop->logger, LOGGER_ERR, "rejecting request: X-Apple-Session-ID changed on connection");
+        http_response_init(*response, protocol, 400, "Bad Request");
+        goto finish;
     }
 
     logger_log(raop->logger, LOGGER_DEBUG, "Handling request %s with URL %s", method, url);
@@ -878,7 +893,9 @@ void raop_remove_hls_connections(raop_t * raop) {
 }
 
 void raop_destroy_airplay_video(raop_t *raop, int id) {
-    assert (id < MAX_AIRPLAY_VIDEO);
+    if (id >= MAX_AIRPLAY_VIDEO) {
+        return;
+    }
     for (int i = 0; i < MAX_AIRPLAY_VIDEO; i++) {
         if (id >= 0 && id != i) {
             continue;
@@ -895,7 +912,9 @@ void raop_destroy_airplay_video(raop_t *raop, int id) {
 
 void raop_handle_eos(raop_t *raop) {
     int id = raop->current_video;
-    assert (id >= 0);
+    if (id < 0) {
+        return;   /* no current video (already stopped): nothing to destroy */
+    }
     raop_destroy_airplay_video(raop, id);
     raop->current_video = -1;
     /* reset video without deleting raop->airplay_video */

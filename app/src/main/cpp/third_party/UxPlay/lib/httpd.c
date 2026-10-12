@@ -29,6 +29,12 @@
 #include "logger.h"
 #include "utils.h"
 
+#ifdef MSG_NOSIGNAL
+#define HTTPD_SEND_FLAGS MSG_NOSIGNAL   /* never raise SIGPIPE when a sender disconnects */
+#else
+#define HTTPD_SEND_FLAGS 0
+#endif
+
 static const char *typename[] = {
     [CONNECTION_TYPE_UNKNOWN] = "Unknown",
     [CONNECTION_TYPE_RAOP]    = "RAOP",
@@ -318,7 +324,6 @@ httpd_accept_connection(httpd_t *httpd, int server_fd, int is_ipv6)
         logger_log(httpd->logger, LOGGER_INFO, "ipv6 zone_id mismatch: local_zone_id = %u, remote_zone_id = %u",
 		   local_zone_id, remote_zone_id);
     }      
-    assert (local_zone_id == remote_zone_id);
 
     ret = httpd_add_connection(httpd, fd, local, local_len, remote, remote_len, local_zone_id);
     if (ret == -1) {
@@ -462,7 +467,11 @@ httpd_thread(void *arg)
             /* If not in the middle of request, allocate one */
             if (!connection->request) {
                 connection->request = http_request_init();
-                assert(connection->request);
+                if (!connection->request) {
+                    logger_log(httpd->logger, LOGGER_ERR, "httpd: memory allocation failed for request, closing connection");
+                    httpd_remove_connection(httpd, connection, 0);
+                    continue;
+                }
                 new_request = 1;
                 if (connection->type == CONNECTION_TYPE_PTTH) {
                     http_request_is_reverse(connection->request);
@@ -595,7 +604,7 @@ httpd_thread(void *arg)
 
                     written = 0;
                     while (written < datalen) {
-                        ret = send(connection->socket_fd, data+written, datalen-written, 0);
+                        ret = send(connection->socket_fd, data+written, datalen-written, HTTPD_SEND_FLAGS);
                         if (ret == -1) {
                             logger_log(httpd->logger, LOGGER_ERR, "httpd error in sending data");
                             break;

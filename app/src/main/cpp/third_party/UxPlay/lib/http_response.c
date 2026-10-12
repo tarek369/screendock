@@ -33,17 +33,21 @@ struct http_response_s {
 static void
 http_response_add_data(http_response_t *response, const char *data, int datalen)
 {
-    assert(response);
-    assert(data);
-    assert(datalen > 0);
+    /* empty / NULL additions (e.g. an empty header value supplied by the sender) are no-ops */
+    if (!response || !data || datalen <= 0) {
+        return;
+    }
 
     size_t newbufsize = response->buffer_size;
     while (response->data_length + datalen > newbufsize) {
         newbufsize *= 2;
     }
     if (newbufsize != response->buffer_size) {
-        response->data = realloc(response->data, newbufsize);
-        assert(response->data);
+        char *grown = realloc(response->data, newbufsize);
+        if (!grown) {
+            return;   /* OOM: drop this fragment rather than abort the process */
+        }
+        response->data = grown;
         response->buffer_size = newbufsize;
     }
     memcpy(response->data+response->data_length, data, datalen);
@@ -118,8 +122,9 @@ void
 http_response_add_header(http_response_t *response, const char *name, const char *value)
 {
     assert(response);
-    assert(name);
-    assert(value);
+    if (!name || !value) {
+        return;
+    }
 
     http_response_add_data(response, name, strlen(name));
     http_response_add_data(response, ": ", 2);
@@ -131,7 +136,10 @@ void
 http_response_finish(http_response_t *response, const char *data, int datalen)
 {
     assert(response);
-    assert(datalen==0 || (data && datalen > 0));
+    if (datalen < 0 || (datalen > 0 && !data)) {
+        datalen = 0;   /* inconsistent caller input: send an empty body */
+        data = NULL;
+    }
 
     if (data && datalen > 0) {
         const char *hdrname = "Content-Length";

@@ -34,12 +34,17 @@
 #define LOGW(...) __android_log_print(ANDROID_LOG_WARN,  TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 
+#define SEND_TIMEOUT_SEC 2   /* a stalled sender must not wedge the touch/UI thread */
+
 struct event_channel_s {
     int listen_fd;
     int conn_fd;                 /* sender's connection, -1 until accepted */
     int reversed;                /* 1 after the PTTH upgrade completed */
     int cseq;                    /* RTSP sequence number for our requests */
-    pthread_mutex_t mu;          /* guards conn_fd + sends */
+    pthread_mutex_t mu;          /* guards conn_fd, reversed, cseq + every send.
+                                  * Only the event thread ever close()s conn_fd (under
+                                  * mu); senders merely shutdown() a broken socket so
+                                  * the thread notices — avoids fd-reuse races. */
     volatile int running;
     pthread_t thread;
 };
@@ -84,10 +89,13 @@ static void *event_channel_thread(void *arg)
                         "HTTP/1.1 101 Switching Protocols\r\n"
                         "Upgrade: PTTH/1.0\r\n"
                         "Connection: Upgrade\r\n\r\n";
-                    if (send(cfd, upgrade, sizeof(upgrade) - 1, 0) > 0) {
+                    pthread_mutex_lock(&ch->mu);
+                    if (ch->conn_fd == cfd &&
+                        send(cfd, upgrade, sizeof(upgrade) - 1, MSG_NOSIGNAL) > 0) {
                         ch->reversed = 1;
                         LOGI("event channel: PTTH upgrade complete (101)");
                     }
+                    pthread_mutex_unlock(&ch->mu);
                 }
             }
         }
@@ -98,6 +106,8 @@ static void *event_channel_thread(void *arg)
             if (nfd >= 0) {
                 int one = 1;
                 setsockopt(nfd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
+                struct timeval snd = { SEND_TIMEOUT_SEC, 0 };
+                setsockopt(nfd, SOL_SOCKET, SO_SNDTIMEO, &snd, sizeof(snd));
                 char ip[INET6_ADDRSTRLEN] = { 0 };
                 if (ss.ss_family == AF_INET6) {
                     inet_ntop(AF_INET6, &((struct sockaddr_in6 *) &ss)->sin6_addr, ip, sizeof(ip));
@@ -220,12 +230,12 @@ int event_channel_send_touch(event_channel_t *ch, int phase, double x, double y,
     int reqlen = 0;
     const char *data = http_response_get_data(req, &reqlen);
     int rc = 0;
-    if (!data || reqlen <= 0 || send(fd, data, reqlen, 0) != reqlen) {
+    if (!data || reqlen <= 0 || send(fd, data, reqlen, MSG_NOSIGNAL) != reqlen) {
         LOGW("event channel: send failed errno=%d", errno);
-        /* Connection is unhealthy — drop it so the sender can reconnect. */
-        close(fd);
-        ch->conn_fd = -1;
-        ch->reversed = 0;
+        /* Connection is unhealthy. Do NOT close(fd) here: the event thread owns
+         * the fd and would later close a recycled descriptor. shutdown() makes
+         * its recv() return 0, and it closes + clears conn_fd under the lock. */
+        shutdown(fd, SHUT_RDWR);
         rc = -1;
     } else {
         if (ch->cseq <= 2) {
@@ -250,13 +260,12 @@ void event_channel_stop(event_channel_t **chp)
     if (!chp || !*chp) return;
     event_channel_t *ch = *chp;
     ch->running = 0;
-    if (ch->listen_fd >= 0) {
-        shutdown(ch->listen_fd, SHUT_RDWR);
-        close(ch->listen_fd);
-    }
-    pthread_join(ch->thread, NULL);
+    if (ch->listen_fd >= 0) shutdown(ch->listen_fd, SHUT_RDWR);
+    pthread_join(ch->thread, NULL);          /* thread exits within its 1 s select timeout */
+    if (ch->listen_fd >= 0) close(ch->listen_fd);
     pthread_mutex_lock(&ch->mu);
     if (ch->conn_fd >= 0) close(ch->conn_fd);
+    ch->conn_fd = -1;
     pthread_mutex_unlock(&ch->mu);
     pthread_mutex_destroy(&ch->mu);
     free(ch);

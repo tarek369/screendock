@@ -17,6 +17,12 @@
 /* this file is part of raop.c via http_handlers.h and should not be included in any other file */
 
 
+#ifdef MSG_NOSIGNAL
+#define FCUP_SEND_FLAGS MSG_NOSIGNAL   /* a vanished sender must not raise SIGPIPE */
+#else
+#define FCUP_SEND_FLAGS 0
+#endif
+
 //produces the fcup request plist in xml format as a null-terminated string
 char *create_fcup_request(const char *url, int request_id, const char *client_session_id, int *datalen) {
     char *plist_xml = NULL;
@@ -44,13 +50,13 @@ char *create_fcup_request(const char *url, int request_id, const char *client_se
     plist_dict_set_item(fcup_request_node, "FCUP_Response_ClientRef", client_ref_node);
     plist_t request_id_node = plist_new_uint((int64_t) request_id);
     plist_dict_set_item(fcup_request_node, "FCUP_Response_RequestID", request_id_node);
-    plist_t url_node = plist_new_string(url);
+    plist_t url_node = plist_new_string(url ? url : "");
     plist_dict_set_item(fcup_request_node, "FCUP_Response_URL", url_node);
     plist_t session_id1_node = plist_new_uint((int64_t) sessionID);    
     plist_dict_set_item(fcup_request_node, "sessionID", session_id1_node);
 				    
     plist_t fcup_response_header_node = plist_new_dict();
-    plist_t playback_session_id_node = plist_new_string(client_session_id);       
+    plist_t playback_session_id_node = plist_new_string(client_session_id ? client_session_id : "");       
     plist_dict_set_item(fcup_response_header_node, "X-Playback-Session-Id", playback_session_id_node);
     plist_t user_agent_node = plist_new_string(User_Agent);
     plist_dict_set_item(fcup_response_header_node, "User-Agent", user_agent_node);
@@ -61,9 +67,12 @@ char *create_fcup_request(const char *url, int request_id, const char *client_se
     uint32_t uint_val = 0;
     
     plist_to_xml(req_root_node, &plist_xml, &uint_val);
-    *datalen = (int) uint_val;
     plist_free(req_root_node);
-    assert(plist_xml[*datalen] == '\0');
+    if (!plist_xml) {
+        *datalen = 0;
+        return NULL;
+    }
+    *datalen = (int) uint_val;   /* plist_xml is NUL-terminated by libplist */
     return plist_xml; //needs to be freed after use
 }
 
@@ -78,8 +87,17 @@ int fcup_request(void *conn_opaque, const char *media_url, const char *client_se
     
     logger_log(raop->logger, LOGGER_DEBUG, "fcup_request send socket = %d", socket_fd);
     
+    if (!media_url || !client_session_id || socket_fd < 0) {
+        logger_log(raop->logger, LOGGER_ERR, "fcup_request: no url, session id or reverse connection (socket %d)", socket_fd);
+        return -1;
+    }
+
     /* create xml plist request data */
     char *plist_xml = create_fcup_request(media_url, request_id, client_session_id, &datalen);
+    if (!plist_xml) {
+        logger_log(raop->logger, LOGGER_ERR, "fcup_request: failed to create request plist");
+        return -1;
+    }
 
     /* use http_response tools for creating the reverse http request */
     http_response_t *request = http_response_create();
@@ -91,7 +109,7 @@ int fcup_request(void *conn_opaque, const char *media_url, const char *client_se
     free(plist_xml);
 
     const char *http_request = http_response_get_data(request, &requestlen); 
-    int send_len = send(socket_fd, http_request, requestlen, 0);
+    int send_len = send(socket_fd, http_request, requestlen, FCUP_SEND_FLAGS);
     if (send_len < 0) {
         int sock_err = SOCKET_GET_ERROR();
 	logger_log(raop->logger, LOGGER_ERR, "fcup_request: send  error %d:%s\n",

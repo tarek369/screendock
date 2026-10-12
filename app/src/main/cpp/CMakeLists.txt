@@ -18,6 +18,15 @@ project(airplay_native LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 11)
 
+# ---- size / hardening flags (apply to every target defined below) ----------
+# Per-function/data sections + --gc-sections drop unreferenced UxPlay/OpenSSL/
+# libplist code; hidden visibility means ONLY the JNI entry points (which are
+# JNIEXPORT = default visibility) are exported from libairplay_native.so.
+add_compile_options(-ffunction-sections -fdata-sections -fvisibility=hidden)
+add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fvisibility-inlines-hidden>")
+set(CMAKE_C_FLAGS_RELEASE   "-O2 -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
+
 set(UXPLAY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party/UxPlay)
 set(UXPLAY_LIB ${UXPLAY_DIR}/lib)
 
@@ -109,7 +118,7 @@ add_subdirectory(third_party/openssl-cmake)
 # via dnssd_private_init). Our android_dnssd_shim.c IS that backend — it
 # implements dnssd_private_init/register_*/get_*_txt with TXT construction only.
 # We do NOT glob dns_sd/ or mdnsd/ — those are the networking backends we drop.
-file(GLOB UXPLAY_CORE_SOURCES ${UXPLAY_LIB}/*.c)
+file(GLOB UXPLAY_CORE_SOURCES CONFIGURE_DEPENDS ${UXPLAY_LIB}/*.c)
 
 add_library(airplay_core STATIC ${UXPLAY_CORE_SOURCES})
 target_include_directories(airplay_core PUBLIC ${UXPLAY_LIB})
@@ -150,3 +159,8 @@ add_library(airplay_native SHARED
     android_event_channel.c
 )
 target_link_libraries(airplay_native PRIVATE airplay_core alac log android)
+# gc-sections + identical-code-folding; exclude-libs hides every symbol that
+# comes from the static archives (OpenSSL, libc++, plist, ...). 16 KB page
+# alignment comes from ANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES (build.gradle.kts).
+target_link_options(airplay_native PRIVATE
+    -Wl,--gc-sections -Wl,--icf=safe -Wl,--exclude-libs,ALL)

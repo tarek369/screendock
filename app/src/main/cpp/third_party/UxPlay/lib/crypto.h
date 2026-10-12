@@ -69,7 +69,8 @@ void x25519_key_destroy(x25519_key_t *key);
 int get_random_bytes(unsigned char *buf, int num);
 void pk_to_base64(const unsigned char *pk, int pk_len, char *pk_base64, int len);
   
-void x25519_derive_secret(unsigned char secret[X25519_KEY_SIZE], const x25519_key_t *ours, const x25519_key_t *theirs);
+/* returns 0 on success, -1 if the derivation fails (e.g. a low-order/invalid peer key from the network) */
+int x25519_derive_secret(unsigned char secret[X25519_KEY_SIZE], const x25519_key_t *ours, const x25519_key_t *theirs);
 
 // GCM AES 128
 

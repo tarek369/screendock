@@ -173,7 +173,9 @@ pairing_session_handshake(pairing_session_t *session, const unsigned char ecdh_k
 
     session->ecdh_ours = x25519_key_generate();
 
-    x25519_derive_secret(session->ecdh_secret, session->ecdh_ours, session->ecdh_theirs);
+    if (x25519_derive_secret(session->ecdh_secret, session->ecdh_ours, session->ecdh_theirs) != 0) {
+        return -1;   /* invalid peer key */
+    }
 
     session->status = STATUS_HANDSHAKE;
     return 0;

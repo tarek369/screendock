@@ -87,6 +87,9 @@ class AudioRenderer {
     @Volatile
     private var released: Boolean = false
 
+    /** Reused PCM scratch buffer for the decoder drain (guarded by [codecLock]). */
+    private var drainChunk: ByteArray = ByteArray(0)
+
     // ---- public API --------------------------------------------------------
 
     /**
@@ -130,7 +133,11 @@ class AudioRenderer {
      * @param seqNum RTP-style sequence number (used only for log de-duping).
      */
     fun feedAudio(data: ByteArray, ct: Int, ptsNs: Long, seqNum: Int) {
+        if (released) return
         codecLock.withLock {
+            // Re-check under the lock: an in-flight packet must not resurrect the
+            // codec/AudioTrack after release().
+            if (released) return@withLock
             try {
                 feedAudioLocked(data, ct, ptsNs, seqNum)
             } catch (ise: IllegalStateException) {
@@ -156,6 +163,7 @@ class AudioRenderer {
      */
     fun setVolume(db: Float) {
         codecLock.withLock {
+            if (released) return@withLock
             currentVolumeDb = db.coerceIn(MIN_DB, MAX_DB)
             currentLinearGain = dbToLinear(currentVolumeDb)
             try {
@@ -173,6 +181,7 @@ class AudioRenderer {
      */
     fun reset() {
         codecLock.withLock {
+            if (released) return@withLock
             teardownDecodersLocked()
             stopAndReleaseTrackLocked()
             hwBlacklist.clear()
@@ -191,6 +200,7 @@ class AudioRenderer {
             released = true
             teardownDecodersLocked()
             stopAndReleaseTrackLocked()
+            drainChunk = ByteArray(0)
             hwBlacklist.clear()
             configuredCt = CT_NONE
             configuredSpf = 0
@@ -201,7 +211,7 @@ class AudioRenderer {
     // ---- internals: feed / route ------------------------------------------
 
     private fun feedAudioLocked(data: ByteArray, ct: Int, ptsNs: Long, seqNum: Int) {
-        if (data.isEmpty()) return
+        if (data.isEmpty() || released) return
         ensureConfiguredLocked(ct)
         ensureTrackLocked()
 
@@ -397,9 +407,9 @@ class AudioRenderer {
                     if (outBuf != null && info.size > 0 && track != null) {
                         outBuf.position(info.offset)
                         outBuf.limit(info.offset + info.size)
-                        val chunk = ByteArray(info.size)
-                        outBuf.get(chunk)
-                        writePcmLocked(track, chunk)
+                        if (drainChunk.size < info.size) drainChunk = ByteArray(info.size)
+                        outBuf.get(drainChunk, 0, info.size)
+                        writePcmLocked(track, drainChunk, info.size)
                     }
                     codec.releaseOutputBuffer(outIndex, false)
                     iterations++
@@ -443,13 +453,13 @@ class AudioRenderer {
             Log.e(TAG, "NativeBridge.alacDecode threw", t)
             ByteArray(0)
         }
-        if (pcm.isNotEmpty()) writePcmLocked(track, pcm)
+        if (pcm.isNotEmpty()) writePcmLocked(track, pcm, pcm.size)
     }
 
-    private fun writePcmLocked(track: AudioTrack, pcm: ByteArray) {
-        if (pcm.isEmpty()) return
+    private fun writePcmLocked(track: AudioTrack, pcm: ByteArray, length: Int) {
+        if (length <= 0) return
         try {
-            track.write(pcm, 0, pcm.size, AudioTrack.WRITE_BLOCKING)
+            track.write(pcm, 0, length, AudioTrack.WRITE_BLOCKING)
         } catch (t: Throwable) {
             Log.w(TAG, "AudioTrack.write failed", t)
         }

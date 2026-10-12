@@ -2,12 +2,7 @@ package com.cressu.screendock.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -59,6 +54,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import com.cressu.screendock.ui.rememberLoopPhase
 import com.cressu.screendock.ui.theme.AccentGradient
 import com.cressu.screendock.ui.theme.Palette
 import kotlin.math.PI
@@ -73,14 +71,10 @@ import kotlin.math.sin
  */
 @Composable
 fun AuroraBackground(modifier: Modifier = Modifier) {
-    val transition = rememberInfiniteTransition(label = "aurora")
-    val phase by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(36_000, easing = LinearEasing), RepeatMode.Restart),
-        label = "phase",
-    )
+    // Frame-limited, lifecycle-aware phase (stops when the app is not visible).
+    val phaseState = rememberLoopPhase(36_000)
     Canvas(modifier = modifier.fillMaxSize()) {
+        val phase = phaseState.value
         val w = size.width
         val h = size.height
         drawRect(Palette.bg)
@@ -134,16 +128,11 @@ fun BroadcastHero(
     rings: Boolean = true,
     dim: Boolean = false,
 ) {
-    val transition = rememberInfiniteTransition(label = "hero")
-    val phase by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(2_800, easing = LinearEasing), RepeatMode.Restart),
-        label = "phase",
-    )
+    val phaseState = rememberLoopPhase(2_800)
     val glyphAlpha = if (dim) 0.45f else 1f
 
     Canvas(modifier = modifier.size(260.dp)) {
+        val phase = phaseState.value
         val c = center
         val s = size.minDimension
 
@@ -265,21 +254,21 @@ fun SettingsCard(
 /** Status dot with a soft breathing glow. [pulse] false = steady. */
 @Composable
 fun PulsingDot(color: Color, modifier: Modifier = Modifier, pulse: Boolean = true) {
-    val transition = rememberInfiniteTransition(label = "dot")
-    val a by transition.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(900, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "alpha",
-    )
-    val glow = if (pulse) a else 0.7f
+    val phaseState = rememberLoopPhase(1_800)
+    // Triangle wave 0.35..1 derived from the shared loop phase.
+    fun alpha(): Float {
+        val p = phaseState.value
+        val tri = 1f - kotlin.math.abs(2f * p - 1f)
+        return 0.35f + 0.65f * tri
+    }
     Box(
         modifier = modifier
             .size(10.dp)
             .drawBehind {
+                val glow = if (pulse) alpha() else 0.7f
                 drawCircle(color = color.copy(alpha = 0.30f * glow), radius = size.minDimension * 1.5f)
             }
-            .graphicsLayer { alpha = if (pulse) (0.65f + 0.35f * a) else 1f }
+            .graphicsLayer { alpha = if (pulse) (0.65f + 0.35f * alpha()) else 1f }
             .clip(CircleShape)
             .background(color),
     )
@@ -302,13 +291,14 @@ fun StatusChip(text: String, color: Color, modifier: Modifier = Modifier, pulse:
     }
 }
 
-/** Circular translucent icon button (settings gear, back arrow…). */
+/** Circular translucent icon button (settings gear, back arrow…). 48dp touch target. */
 @Composable
 fun GlassIconButton(
     icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    focusRequester: FocusRequester? = null,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
@@ -319,14 +309,22 @@ fun GlassIconButton(
     )
     Box(
         modifier = modifier
-            .size(44.dp)
+            .size(48.dp)
+            .let { if (focusRequester != null) it.focusRequester(focusRequester) else it }
+            .focusGlow(CircleShape)
             .clip(CircleShape)
             .background(bg)
             .border(1.dp, Palette.white.copy(alpha = 0.12f), CircleShape)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                role = Role.Button,
+                onClickLabel = contentDescription,
+                onClick = onClick,
+            ),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = contentDescription, tint = Palette.textSecondary, modifier = Modifier.size(21.dp))
+        Icon(icon, contentDescription = contentDescription, tint = Palette.textSecondary, modifier = Modifier.size(22.dp))
     }
 }
 
@@ -341,6 +339,7 @@ fun GradientButton(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     muted: Boolean = false,
+    focusRequester: FocusRequester? = null,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
@@ -350,12 +349,14 @@ fun GradientButton(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .let { if (focusRequester != null) it.focusRequester(focusRequester) else it }
+            .focusGlow(shape, focusedScale = 1.03f)
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(shape)
             .background(if (muted) Palette.white.copy(alpha = 0.08f) else Color.Transparent)
             .let { if (muted) it else it.background(AccentGradient, shape) }
             .border(1.dp, if (muted) Palette.white.copy(alpha = 0.10f) else Palette.white.copy(alpha = 0.22f), shape)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
             .height(54.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
@@ -424,6 +425,7 @@ fun <T> SegmentedControl(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
+                        .focusGlow(RoundedCornerShape(12.dp), focusedScale = 1.02f)
                         .selectable(
                             selected = isSelected,
                             role = Role.RadioButton,

@@ -4,6 +4,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import com.cressu.screendock.ui.LocalIsTv
+import com.cressu.screendock.ui.isTelevision
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -27,7 +34,8 @@ object Palette {
 
     val textPrimary = Color(0xFFF2F5FA)
     val textSecondary = Color(0xFFA7B0C0)
-    val textTertiary = Color(0xFF5E6779)
+    /** Lightened from 0xFF5E6779 (3.4:1) to clear WCAG AA 4.5:1 on [bg]. */
+    val textTertiary = Color(0xFF8590A2)
 
     /** Signature accent: soft periwinkle → violet. */
     val accent = Color(0xFF7FB3FF)
@@ -132,11 +140,23 @@ private val DarkScheme = darkColorScheme(
     onError = Color(0xFF2A0A12),
 )
 
+/** Extra text scale on TV: the screen is read from a couch. */
+private const val TV_FONT_BOOST = 1.2f
+
 @Composable
 fun AirplayTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = DarkScheme,
-        typography = AppTypography,
-        content = content,
-    )
+    val context = LocalContext.current
+    val tv = remember(context) { context.isTelevision() }
+    val density = LocalDensity.current
+    val boosted = if (tv) Density(density.density, density.fontScale * TV_FONT_BOOST) else density
+    CompositionLocalProvider(
+        LocalDensity provides boosted,
+        LocalIsTv provides tv,
+    ) {
+        MaterialTheme(
+            colorScheme = DarkScheme,
+            typography = AppTypography,
+            content = content,
+        )
+    }
 }

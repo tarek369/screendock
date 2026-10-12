@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- UI strings (owned by the UI layer). Service/notification strings live in strings.xml. -->
+<resources>
+    <!-- Idle -->
+    <string name="idle_status_core_failed">Native core failed</string>
+    <string name="idle_status_stopped">Receiver stopped</string>
+    <string name="idle_status_waking">Waking receiver…</string>
+    <string name="idle_status_cooldown">Free-tier cooldown</string>
+    <string name="idle_status_ready">Ready to receive</string>
+    <string name="idle_status_starting">Starting receiver…</string>
+    <string name="stopped_title">Receiver is stopped</string>
+    <string name="stopped_body">Senders cannot see this device until you start the receiver.</string>
+    <string name="action_start_receiver">Start receiver</string>
+    <string name="error_core_title">Native core failed to start</string>
+    <string name="error_core_body">Try reinstalling the app — this device may be missing required ABI support.</string>
+    <string name="mirroring_active">Mirroring active</string>
+
+    <!-- Guide -->
+    <string name="guide_overline">HOW TO CONNECT</string>
+    <string name="guide_step1_title">Control Center</string>
+    <string name="guide_step1_body">Swipe down from the top-right corner of your iPhone or iPad. On a Mac, click the Control Center icon in the menu bar.</string>
+    <string name="guide_step2_title">Screen Mirroring</string>
+    <string name="guide_step2_body">Tap the Screen Mirroring button.</string>
+    <string name="guide_step3_title">Pick your device</string>
+    <string name="guide_step3_pre">"Choose "</string>
+    <string name="guide_step3_post">" and mirroring begins."</string>
+    <string name="guide_same_wifi">Both devices must be on the same Wi-Fi network.</string>
+
+    <!-- Pro / purchase -->
+    <string name="pro_unlock_price">Unlock Pro — %1$s</string>
+    <string name="pro_purchase_pending">Purchase pending…</string>
+    <string name="pro_purchase_pending_hint">Google Play is still processing your payment. Pro unlocks automatically when it completes.</string>
+    <string name="pro_card_title">ScreenDock Pro</string>
+    <string name="pro_card_body">Unlimited mirroring sessions. The free tier limits each session to %1$d minutes.</string>
+    <string name="pro_unlocked">Unlocked — thank you for supporting ScreenDock!</string>
+    <string name="nudge_title">Session limit reached</string>
+    <string name="nudge_body">Free sessions run %1$d minutes. ScreenDock Pro unlocks unlimited mirroring — one-time purchase, no subscriptions.</string>
+    <string name="cooldown_title">Free session limit reached</string>
+    <string name="cooldown_body">You can start another free session in %1$s. Unlock Pro to mirror without limits.</string>
+
+    <!-- Scale mode -->
+    <string name="scale_fit">Fit</string>
+    <string name="scale_fill">Fill</string>
+    <string name="scale_stretch">Stretch</string>
+    <string name="scale_tap_to_change">Tap to change</string>
+
+    <!-- Now playing -->
+    <string name="np_unknown_title">Now playing</string>
+    <string name="np_playing_from">Playing from %1$s</string>
+
+    <!-- Security prompts -->
+    <string name="approval_title">Allow “%1$s” to connect?</string>
+    <string name="approval_body">Only allow devices you recognize. This device will be able to show its screen or play audio here.</string>
+    <string name="approval_allow">Allow</string>
+    <string name="approval_deny">Deny</string>
+    <string name="pin_overlay_title">Enter this PIN on your device</string>
+    <string name="pin_overlay_body">Type the code on the device that is connecting to finish pairing.</string>
+
+    <!-- Onboarding -->
+    <string name="onb_skip">Skip</string>
+    <string name="onb_next">Next</string>
+    <string name="onb_done">Get started</string>
+    <string name="onb1_title">Same Wi-Fi, ideally 5 GHz</string>
+    <string name="onb1_body">Your Apple device and this one must be on the same Wi-Fi network. A 5 GHz network gives the sharpest, smoothest picture.</string>
+    <string name="onb1_tip">Guest networks and some VPNs block device discovery.</string>
+    <string name="onb2_title">Open Screen Mirroring</string>
+    <string name="onb2_body">On iPhone or iPad, swipe down for Control Center and tap Screen Mirroring. On a Mac, open Control Center in the menu bar and choose Screen Mirroring. Then pick “%1$s”.</string>
+    <string name="onb2_tip">Music and YouTube also work: tap the AirPlay icon in the app and choose this device.</string>
+    <string name="onb3_title">Stay reachable</string>
+    <string name="onb3_body">Android may put the receiver to sleep when the app is in the background. Exempt ScreenDock from battery optimization so senders can always find it.</string>
+    <string name="onb3_battery_ok">Battery optimization is off for ScreenDock</string>
+    <string name="onb3_battery_action">Open battery settings</string>
+    <string name="onb3_notif_ok">Notifications are allowed</string>
+    <string name="onb3_notif_action">Allow notifications</string>
+
+    <!-- Settings -->
+    <string name="set_title">Settings</string>
+    <string name="set_subtitle">Receiver preferences</string>
+    <string name="set_card_receiver">Receiver</string>
+    <string name="set_card_display">Display</string>
+    <string name="set_card_quality">Video quality</string>
+    <string name="set_card_media">Media</string>
+    <string name="set_card_codecs">Codecs</string>
+    <string name="set_card_security">Security</string>
+    <string name="set_device_name">Device name</string>
+    <string name="set_device_name_hint">This is the name senders see when they pick a device.</string>
+    <string name="set_receiver_running">Receiver running</string>
+    <string name="set_receiver_running_desc">Turn off to stop advertising this device to senders.</string>
+    <string name="set_auto_start_boot">Start on boot</string>
+    <string name="set_auto_start_boot_desc">Starts the receiver in the background after this device restarts. Android may delay it until the device is unlocked, and it needs notifications to stay allowed.</string>
+    <string name="set_auto_open">Open automatically on connect</string>
+    <string name="set_auto_open_desc">Bring ScreenDock to the front when a sender connects.</string>
+    <string name="set_scale_label">Picture scaling</string>
+    <string name="set_scale_hint">Fit shows everything with bars, Fill crops to cover the screen, Stretch distorts to the exact bounds. Tap the screen while mirroring to switch quickly.</string>
+    <string name="set_max_res">Max resolution</string>
+    <string name="set_fps">Frame rate</string>
+    <string name="set_native_hint">“Native” matches this display\'s panel resolution.</string>
+    <string name="set_hls">AirPlay video (YouTube and more)</string>
+    <string name="set_hls_desc">Play videos sent with the AirPlay button directly on this device. Turn off to allow screen mirroring only.</string>
+    <string name="set_keep_on_audio">Keep screen on for music</string>
+    <string name="set_keep_on_audio_desc">Prevents the display from sleeping while the Now Playing screen is showing.</string>
+    <string name="set_h265_desc">Sharper video at the same bitrate. Turn off if a sender has trouble connecting.</string>
+    <string name="set_pin_mode">PIN protection</string>
+    <string name="pin_off">Off</string>
+    <string name="pin_random">Random</string>
+    <string name="pin_fixed">Fixed</string>
+    <string name="pin_off_desc">Anyone on your network can connect.</string>
+    <string name="pin_random_desc">A new 4-digit PIN is shown on screen each time a device connects.</string>
+    <string name="pin_fixed_desc">Senders must enter the same 4-digit PIN every time.</string>
+    <string name="pin_field_label">4-digit PIN</string>
+    <string name="pin_field_error">Enter exactly 4 digits.</string>
+    <string name="set_ask_before">Ask before allowing new devices</string>
+    <string name="set_ask_before_desc">Show an Allow / Deny prompt whenever a device tries to connect.</string>
+    <string name="set_apply">Apply &amp; restart receiver</string>
+    <string name="set_apply_hint">Restarts the receiver to re-advertise — senders reconnect automatically.</string>
+
+    <!-- Troubleshooting -->
+    <string name="ts_title">Troubleshooting</string>
+    <string name="ts_entry_desc">Can\'t see this device on your iPhone or Mac? Check your network details and common fixes.</string>
+    <string name="ts_entry_button">Open troubleshooting</string>
+    <string name="ts_card_network">This device</string>
+    <string name="ts_card_tips">Tips</string>
+    <string name="ts_row_name">Receiver name</string>
+    <string name="ts_row_ip">IP address</string>
+    <string name="ts_row_network">Network</string>
+    <string name="ts_row_receiver">Receiver</string>
+    <string name="ts_ip_none">Not connected</string>
+    <string name="ts_receiver_on">Running</string>
+    <string name="ts_receiver_off">Stopped</string>
+    <string name="ts_transport_wifi">Wi-Fi</string>
+    <string name="ts_transport_ethernet">Ethernet</string>
+    <string name="ts_transport_other">Other network</string>
+    <string name="ts_transport_none">No network</string>
+    <string name="ts_tip_same_network">Your iPhone, iPad or Mac must be on the same network as this device, not a guest network.</string>
+    <string name="ts_tip_5ghz">Use a 5 GHz Wi-Fi band and stay close to the router for the best quality.</string>
+    <string name="ts_tip_guest_wifi">Some routers isolate devices (\"AP isolation\" or \"client isolation\"). Turn it off if senders cannot see this device.</string>
+    <string name="ts_tip_battery">Exempt ScreenDock from battery optimization so Android does not stop the receiver in the background.</string>
+    <string name="ts_tip_vpn">Turn off VPNs on both devices while testing.</string>
+    <string name="ts_tip_restart">Still stuck? Toggle Wi-Fi on the sender, or use Apply &amp; restart receiver in Settings.</string>
+
+    <!-- Accessibility -->
+    <string name="cd_back">Back</string>
+    <string name="cd_settings">Settings</string>
+    <string name="cd_troubleshooting">Troubleshooting</string>
+    <string name="cd_dismiss">Dismiss</string>
+    <string name="cd_cover_art">Album cover art</string>
+    <string name="cd_progress">Playback position %1$s of %2$s</string>
+    <string name="cd_scale_mode">Picture scaling: %1$s. Activate to change.</string>
+</resources>

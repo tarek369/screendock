@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 6-11 auto backup. Settings are kept; the receiver identity key and device-local
+     state (Pro entitlement cache, free-tier limiter, approved senders) are never restored. -->
+<full-backup-content>
+    <exclude domain="file" path="airplay_key.pem" />
+    <exclude domain="file" path="datastore/airplay_local_state.preferences_pb" />
+    <exclude domain="sharedpref" path="screendock_service.xml" />
+</full-backup-content>

@@ -32,3 +32,34 @@ class SettingsDefaultsTest {
         assertTrue(s.h265Enabled)
     }
 }
+
+class Phase2SettingsDefaultsTest {
+    @Test fun `phase 2 defaults`() {
+        val s = AirPlaySettings()
+        assertEquals(PinMode.OFF, s.pinMode)
+        assertEquals("", s.fixedPin)
+        assertEquals(false, s.askBeforeAllow)
+        assertEquals(false, s.autoStartOnBoot)
+        assertEquals("FIT", s.scaleMode)
+        assertEquals(true, s.hlsEnabled)
+        assertEquals(false, s.keepScreenOnAudio)
+        assertEquals(true, s.autoOpenOnConnect)
+        assertEquals(false, s.onboardingDone)
+        assertEquals(0, s.successfulSessions)
+        assertEquals(false, s.reviewPrompted)
+    }
+
+    @Test fun `default display name includes model`() =
+        assertEquals("ScreenDock (Pixel 8)", DisplayNames.defaultFor("Pixel 8"))
+
+    @Test fun `default display name falls back for blank or null model`() {
+        assertEquals("ScreenDock", DisplayNames.defaultFor(null))
+        assertEquals("ScreenDock", DisplayNames.defaultFor("  "))
+    }
+
+    @Test fun `default display name strips separators and truncates`() {
+        assertEquals("ScreenDock (SM-G991B)", DisplayNames.defaultFor("SM-G991B@(x)".replace("x", "")))
+        val long = DisplayNames.defaultFor("A".repeat(100))
+        assertTrue(long.length <= "ScreenDock ()".length + 28)
+    }
+}

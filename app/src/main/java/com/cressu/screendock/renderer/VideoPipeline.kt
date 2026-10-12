@@ -17,6 +17,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 private const val TAG = "AirplayVideo"
 
@@ -66,7 +67,8 @@ class VideoPipeline {
     private var uTextureLoc: Int = 0
     private val texMatrix = FloatArray(16)
     // Reused vertex buffers — allocated once, mutated in place each draw.
-    private val quadBuffer: FloatBuffer = newFloatBuffer(QUAD_VERTICES)
+    private val quadVertices = FloatArray(8)   // per-instance (rewritten each draw)
+    private val quadBuffer: FloatBuffer = newFloatBuffer(quadVertices)
     private val coordBuffer: FloatBuffer = newFloatBuffer(QUAD_TEXCOORDS)
 
     // ---- output surface (reassigned on the pipeline thread) ----------------
@@ -96,6 +98,17 @@ class VideoPipeline {
      * codec reports its size.
      */
     @Volatile var videoAspect: Float = 0f
+        set(value) {
+            field = value
+            if (!released && started) requestDrawLocked()
+        }
+
+    /** How the picture is mapped to the display; takes effect on the next draw (redraws immediately). */
+    @Volatile var scaleMode: ScaleMode = ScaleMode.FIT
+        set(value) {
+            field = value
+            if (!released && started) requestDrawLocked()
+        }
 
     /**
      * Start the EGL thread and create the input [SurfaceTexture]/[Surface].
@@ -120,7 +133,9 @@ class VideoPipeline {
             }
         }
         try {
-            latch.await()
+            if (!latch.await(START_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+                Log.e(TAG, "VideoPipeline start timed out after ${START_TIMEOUT_MS}ms")
+            }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
         }
@@ -151,7 +166,9 @@ class VideoPipeline {
             }
         }
         try {
-            latch.await()
+            if (!latch.await(RELEASE_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+                Log.e(TAG, "VideoPipeline release timed out after ${RELEASE_TIMEOUT_MS}ms")
+            }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
         }
@@ -408,30 +425,16 @@ class VideoPipeline {
             GLES20.glUniform1i(uTextureLoc, 0)
             GLES20.glUniformMatrix4fv(uTexMatrixLoc, 1, false, texMatrix, 0)
 
-            // Letterbox/pillarbox: fit the video aspect inside the viewport.
-            // Clip space is [-1,1]x[-1,1]; x-unit = vpW/2px, y-unit = vpH/2px.
-            val va = videoAspect
-            val pa = if (h > 0) w.toFloat() / h.toFloat() else 1f
-            val halfW: Float
-            val halfH: Float
-            if (va > 0f) {
-                if (va >= pa) { // video wider than viewport → full width, bars top/bottom
-                    halfW = 1f
-                    halfH = pa / va
-                } else { // video taller → full height, bars left/right
-                    halfW = va / pa
-                    halfH = 1f
-                }
-            } else {
-                halfW = 1f
-                halfH = 1f
-            }
-            QUAD_VERTICES[0] = -halfW; QUAD_VERTICES[1] = -halfH
-            QUAD_VERTICES[2] = halfW;  QUAD_VERTICES[3] = -halfH
-            QUAD_VERTICES[4] = -halfW; QUAD_VERTICES[5] = halfH
-            QUAD_VERTICES[6] = halfW;  QUAD_VERTICES[7] = halfH
+            // Clip space is [-1,1]^2; extents come from the pure ScaleMode math.
+            val ext = VideoGeometry.quadExtents(scaleMode, videoAspect, w, h)
+            val halfW = ext.halfW
+            val halfH = ext.halfH
+            quadVertices[0] = -halfW; quadVertices[1] = -halfH
+            quadVertices[2] = halfW;  quadVertices[3] = -halfH
+            quadVertices[4] = -halfW; quadVertices[5] = halfH
+            quadVertices[6] = halfW;  quadVertices[7] = halfH
             quadBuffer.clear()
-            quadBuffer.put(QUAD_VERTICES)
+            quadBuffer.put(quadVertices)
             quadBuffer.position(0)
             coordBuffer.clear()
             coordBuffer.put(QUAD_TEXCOORDS)
@@ -510,9 +513,8 @@ class VideoPipeline {
     }
 
     private companion object {
-        // Triangle strip covering [-halfW,halfW] x [-halfH,halfH], rewritten
-        // each frame in drawFrameLocked to implement letterbox/pillarbox.
-        private val QUAD_VERTICES = FloatArray(8)
+        private const val START_TIMEOUT_MS = 5_000L
+        private const val RELEASE_TIMEOUT_MS = 3_000L
         private val QUAD_TEXCOORDS = floatArrayOf(
             0f, 0f,
             1f, 0f,

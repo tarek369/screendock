@@ -204,14 +204,23 @@ raop_buffer_enqueue(raop_buffer_t *raop_buffer, unsigned char *data, unsigned sh
     }
 
     /* Update the raop_buffer entry header */
+    unsigned char *new_payload = malloc(payload_size);
+    if (!new_payload) {
+        return -1;   /* out of memory: drop packet */
+    }
     entry->seqnum = seqnum;
     entry->rtp_timestamp = byteutils_get_int_be(data, 4);
     entry->filled = 1;
 
-    entry->payload_data = malloc(payload_size);
+    entry->payload_data = new_payload;
     int decrypt_ret = raop_buffer_decrypt(raop_buffer, data, entry->payload_data, payload_size, &entry->payload_size);
-    assert(decrypt_ret >= 0);
-    assert((int) entry->payload_size <= payload_size);
+    if (decrypt_ret < 0 || (int) entry->payload_size > payload_size) {
+        free(entry->payload_data);
+        entry->payload_data = NULL;
+        entry->payload_size = 0;
+        entry->filled = 0;
+        return -1;
+    }
 
     /* Update the raop_buffer seqnums */
     if (raop_buffer->is_empty) {

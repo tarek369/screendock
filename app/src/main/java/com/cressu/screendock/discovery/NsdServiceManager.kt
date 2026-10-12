@@ -4,6 +4,8 @@ import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 import android.net.wifi.WifiManager
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 
 /**
@@ -31,7 +33,22 @@ import android.util.Log
  * running flag is additionally `@Volatile` so [isRunning] can be polled
  * without taking the lock.
  */
-class NsdServiceManager(private val context: Context) {
+class NsdServiceManager(
+    private val context: Context,
+    /**
+     * Status callback: null = both services registered (healthy / recovered); non-null = the
+     * NsdManager error code of a failed registration (a retry with backoff is already scheduled).
+     */
+    private val onStatus: (errorCode: Int?) -> Unit = {},
+) {
+
+    private data class Registration(
+        val displayName: String,
+        val port: Int,
+        val txtAirplay: Map<String, String>,
+        val txtRaop: Map<String, String>,
+        val raopInstanceName: String,
+    )
 
     /**
      * Begin advertising both services.
@@ -39,10 +56,8 @@ class NsdServiceManager(private val context: Context) {
      * @param displayName      Human-readable receiver name, used verbatim as
      *                         the `_airplay._tcp` instance label.
      * @param port             TCP port the native httpd bound to.
-     * @param txtAirplay       TXT attribute map for `_airplay._tcp`
-     *                         (keys already lowercase).
-     * @param txtRaop          TXT attribute map for `_raop._tcp`
-     *                         (keys already lowercase).
+     * @param txtAirplay       TXT attribute map for `_airplay._tcp`.
+     * @param txtRaop          TXT attribute map for `_raop._tcp`.
      * @param raopInstanceName The `"<hexmac>@<name>"` label produced by the
      *                         native core. A trailing `._raop._tcp.local`
      *                         suffix is tolerated and stripped.
@@ -60,14 +75,12 @@ class NsdServiceManager(private val context: Context) {
                 return
             }
             acquireMulticastLock()
+            val reg = Registration(displayName, port, txtAirplay, txtRaop, raopInstanceName)
             try {
-                registerAirplayLocked(displayName, port, txtAirplay)
-                registerRaopLocked(raopInstanceName, port, txtRaop)
+                registerAllLocked(reg)
+                registration = reg
                 running = true
-                Log.i(
-                    TAG,
-                    "Started: airplay='$displayName' raop='${stripRaopSuffix(raopInstanceName)}' port=$port"
-                )
+                Log.i(TAG, "Started: airplay='$displayName' raop='${stripRaopSuffix(raopInstanceName)}' port=$port")
             } catch (t: Throwable) {
                 // Roll back anything that did register so we leave a clean slate.
                 Log.e(TAG, "start() failed; rolling back registration.", t)
@@ -81,22 +94,40 @@ class NsdServiceManager(private val context: Context) {
 
     /**
      * Tear down both registrations and release the multicast lock.
-     *
      * Safe to call multiple times: a no-op when nothing is registered.
      */
     fun stop() {
         synchronized(lock) {
+            generation++ // invalidates pending retries
+            retryHandler.removeCallbacksAndMessages(null)
             if (!running && listeners.isEmpty()) return
             Log.i(TAG, "Stopping NSD advertisement.")
             tearDownListenersLocked()
             releaseMulticastLock()
             running = false
+            registration = null
         }
     }
 
     /**
-     * Re-register with a new display name. Called from settings when the
-     * user renames the receiver. Equivalent to [stop] followed by [start];
+     * Drop and re-create both registrations with the same data. Used after a network change
+     * (Wi-Fi switch / IP change) so the records are re-announced on the new link. Keeps the
+     * multicast lock; no-op when not running.
+     */
+    fun readvertise() {
+        synchronized(lock) {
+            val reg = registration ?: return
+            if (!running) return
+            Log.i(TAG, "Re-advertising after network change.")
+            val gen = ++generation
+            retryHandler.removeCallbacksAndMessages(null)
+            tearDownListenersLocked()
+            retryHandler.postDelayed({ retryRegister(gen, reg) }, REREGISTER_DELAY_MS)
+        }
+    }
+
+    /**
+     * Re-register with a new display name. Equivalent to [stop] followed by [start];
      * there is intentionally no in-place rename path because NsdManager
      * cannot mutate a live registration.
      */
@@ -118,9 +149,15 @@ class NsdServiceManager(private val context: Context) {
     // ---- internals --------------------------------------------------------
 
     private val lock = Any()
+    private val retryHandler = Handler(Looper.getMainLooper())
 
     @Volatile
     private var running: Boolean = false
+
+    private var registration: Registration? = null
+    private var generation = 0
+    private var attempt = 0
+    private var registeredCount = 0
 
     private val nsdManager: NsdManager =
         context.getSystemService(Context.NSD_SERVICE) as NsdManager
@@ -128,17 +165,38 @@ class NsdServiceManager(private val context: Context) {
     @Volatile
     private var multicastLock: WifiManager.MulticastLock? = null
 
-    /**
-     * Live registration listeners. Held so [stop] can unregister them.
-     * Mutated only while holding [lock].
-     */
+    /** Live registration listeners. Mutated only while holding [lock]. */
     private val listeners = ArrayList<NsdManager.RegistrationListener>()
 
-    private fun registerAirplayLocked(
-        displayName: String,
-        port: Int,
-        txt: Map<String, String>,
-    ) {
+    private fun registerAllLocked(reg: Registration) {
+        registeredCount = 0
+        registerAirplayLocked(reg.displayName, reg.port, reg.txtAirplay)
+        registerRaopLocked(reg.raopInstanceName, reg.port, reg.txtRaop)
+    }
+
+    private fun retryRegister(gen: Int, reg: Registration) {
+        synchronized(lock) {
+            if (gen != generation || !running) return
+            tearDownListenersLocked()
+            try {
+                registerAllLocked(reg)
+            } catch (t: Throwable) {
+                Log.e(TAG, "retry register threw", t)
+                scheduleRetryLocked(gen, reg, -1)
+            }
+        }
+    }
+
+    /** Caller must hold [lock]. Exponential backoff 1 s .. 30 s. */
+    private fun scheduleRetryLocked(gen: Int, reg: Registration, code: Int) {
+        if (gen != generation || !running) return
+        val delay = backoffMs(attempt++)
+        Log.w(TAG, "registration failed (code=$code); retrying in ${delay}ms (attempt $attempt)")
+        onStatus(code)
+        retryHandler.postDelayed({ retryRegister(gen, reg) }, delay)
+    }
+
+    private fun registerAirplayLocked(displayName: String, port: Int, txt: Map<String, String>) {
         val info = NsdServiceInfo().apply {
             serviceName = displayName
             serviceType = SERVICE_TYPE_AIRPLAY
@@ -148,11 +206,7 @@ class NsdServiceManager(private val context: Context) {
         registerServiceLocked(info, "airplay")
     }
 
-    private fun registerRaopLocked(
-        raopInstanceName: String,
-        port: Int,
-        txt: Map<String, String>,
-    ) {
+    private fun registerRaopLocked(raopInstanceName: String, port: Int, txt: Map<String, String>) {
         val bareInstance = stripRaopSuffix(raopInstanceName)
         val info = NsdServiceInfo().apply {
             serviceName = bareInstance
@@ -165,11 +219,8 @@ class NsdServiceManager(private val context: Context) {
 
     /** Caller must hold [lock]. Adds the listener before registering so a
      *  synchronous failure path can still find it for cleanup. */
-    private fun registerServiceLocked(
-        info: NsdServiceInfo,
-        label: String,
-    ) {
-        val listener = makeListener(label)
+    private fun registerServiceLocked(info: NsdServiceInfo, label: String) {
+        val listener = makeListener(label, generation)
         listeners.add(listener)
         try {
             nsdManager.registerService(info, NsdManager.PROTOCOL_DNS_SD, listener)
@@ -189,8 +240,7 @@ class NsdServiceManager(private val context: Context) {
             try {
                 nsdManager.unregisterService(l)
             } catch (t: Throwable) {
-                // Already tearing down — never crash, just log.
-                Log.w(TAG, "unregisterService failed.", t)
+                Log.w(TAG, "unregisterService failed.", t) // already unregistered / never registered
             }
         }
     }
@@ -198,27 +248,32 @@ class NsdServiceManager(private val context: Context) {
     private fun NsdServiceInfo.applyTxt(txt: Map<String, String>) {
         for ((key, value) in txt) {
             if (key.isBlank()) continue
-            // NsdManager lowercases keys and rejects blanks; values are
-            // length-prefixed in the on-wire TXT record so they must fit
-            // in a single byte (<=255 chars).
+            // Values are length-prefixed on the wire so they must fit in one byte.
             setAttribute(key, truncate(value))
         }
     }
 
-    private fun makeListener(label: String): NsdManager.RegistrationListener =
+    private fun makeListener(label: String, gen: Int): NsdManager.RegistrationListener =
         object : NsdManager.RegistrationListener {
             override fun onServiceRegistered(info: NsdServiceInfo) {
                 Log.i(TAG, "[$label] registered as '${info.serviceName}'.")
+                var healthy = false
+                synchronized(lock) {
+                    if (gen == generation && running && ++registeredCount >= 2) {
+                        attempt = 0
+                        healthy = true
+                    }
+                }
+                if (healthy) onStatus(null)
             }
 
             override fun onRegistrationFailed(info: NsdServiceInfo, errorCode: Int) {
-                // Do not crash — the service layer may still limp along on
-                // the other registration, and the user can retry.
-                Log.e(
-                    TAG,
-                    "[$label] registration FAILED (errorCode=$errorCode) " +
-                        "for '${info.serviceName}'."
-                )
+                Log.e(TAG, "[$label] registration FAILED (errorCode=$errorCode) for '${info.serviceName}'.")
+                synchronized(lock) {
+                    val reg = registration ?: return
+                    if (gen != generation) return // stale callback from a superseded registration
+                    scheduleRetryLocked(gen, reg, errorCode)
+                }
             }
 
             override fun onServiceUnregistered(info: NsdServiceInfo) {
@@ -226,11 +281,7 @@ class NsdServiceManager(private val context: Context) {
             }
 
             override fun onUnregistrationFailed(info: NsdServiceInfo, errorCode: Int) {
-                Log.w(
-                    TAG,
-                    "[$label] unregistration FAILED (errorCode=$errorCode) " +
-                        "for '${info.serviceName}'."
-                )
+                Log.w(TAG, "[$label] unregistration FAILED (errorCode=$errorCode) for '${info.serviceName}'.")
             }
         }
 
@@ -276,19 +327,26 @@ class NsdServiceManager(private val context: Context) {
     private fun truncate(value: String, max: Int = MAX_ATTR_VALUE_LEN): String =
         if (value.length > max) value.substring(0, max) else value
 
-    private companion object {
-        const val TAG = "AirplayNsd"
+    companion object {
+        private const val TAG = "AirplayNsd"
+        private const val REREGISTER_DELAY_MS = 700L
+        private const val MAX_BACKOFF_MS = 30_000L
+
+        /** 1 s, 2 s, 4 s ... capped at 30 s. */
+        internal fun backoffMs(attempt: Int): Long =
+            (1_000L shl attempt.coerceIn(0, 5)).coerceAtMost(MAX_BACKOFF_MS)
+
 
         // Trailing dot: the canonical fully-qualified service type form that
         // UxPlay/Bonjour use and that iOS senders probe for. NsdManager
         // accepts both forms; the dotted form is interoperable.
-        const val SERVICE_TYPE_AIRPLAY = "_airplay._tcp."
-        const val SERVICE_TYPE_RAOP = "_raop._tcp."
+        private const val SERVICE_TYPE_AIRPLAY = "_airplay._tcp."
+        private const val SERVICE_TYPE_RAOP = "_raop._tcp."
 
-        const val SUFFIX_RAOP_LOCAL = "._raop._tcp.local"
-        const val MULTICAST_LOCK_TAG = "airplay_mdns"
+        private const val SUFFIX_RAOP_LOCAL = "._raop._tcp.local"
+        private const val MULTICAST_LOCK_TAG = "airplay_mdns"
 
         // DNS TXT values are length-prefixed by a single byte on the wire.
-        const val MAX_ATTR_VALUE_LEN = 255
+        private const val MAX_ATTR_VALUE_LEN = 255
     }
 }
