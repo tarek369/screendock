@@ -28,14 +28,14 @@ DESTAQUES
 - Receptor de áudio AirPlay com informações da faixa e capa
 - Vídeo AirPlay de apps e sites compatíveis
 - Compatível com Android TV e Google TV
-- Ajuste a imagem para caber, preencher ou ampliar
+- Ajuste a imagem para caber, preencher ou esticar
 - PIN opcional e "Perguntar antes de permitir" para cada novo remetente
-- Inicia automaticamente quando o aparelho liga
+- Início opcional quando o aparelho liga
 - Pare o receptor pela notificação de status
 - Código aberto, baseado no núcleo UxPlay
 
 GRÁTIS E PRO
-A versão gratuita limita cada sessão a 10 minutos. O ScreenDock Pro é uma compra única, sem assinatura e sem anúncios.
+Grátis: 10 minutos de espelhamento ou vídeo, depois uma pausa de 30 minutos. O streaming de música é sempre grátis. O ScreenDock Pro é uma compra única, sem assinatura e sem anúncios.
 
 REQUISITOS
 - Remetente e receptor na mesma rede Wi-Fi (recomendado 5 GHz para menor latência)

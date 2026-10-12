@@ -18,24 +18,24 @@ AirPlayオーディオ
 iPhone、iPad、Macから音楽をストリーミングできます。ロスレスのALACにも対応しています。再生中の曲名、アーティスト名、ジャケット画像が画面に表示されます。
 
 AirPlayビデオ
-YouTubeやWebの動画を、AirPlayボタンからApple端末のScreenDockへ送れます。再生はAndroid端末で行われます。
+YouTubeやWebの動画を、Apple端末からAirPlayボタンでScreenDockへ送れます。再生はAndroid端末で行われます。
 
 Android TV・Google TV
-Android TVやGoogle TVにインストールすると、Appleデバイスのメニューに AirPlayレシーバーとして表示されます。
+Android TVやGoogle TVにインストールすると、AppleデバイスのメニューにAirPlayレシーバーとして表示されます。
 
 主な機能
 - macOS、iOS、iPadOSからの画面ミラーリング
 - 再生中の情報とジャケット画像に対応したAirPlayオーディオレシーバー
 - 対応アプリやWebサイトからのAirPlayビデオ
 - Android TVとGoogle TVに対応
-- 映像をフィット、フィル、ズームで調整
+- 映像をフィット、フィル、ストレッチで調整
 - 任意のPIN設定と、新しい送信元ごとの「許可前に確認」
-- 端末の起動時に自動で開始
+- 端末起動時の自動開始（オプション）
 - ステータス通知からレシーバーを停止
 - オープンソース（UxPlayコアを使用）
 
 無料版とPro版
-無料版ではセッションが10分に制限されます。ScreenDock Proは買い切りの1回限りの購入で、サブスクリプションも広告もありません。
+無料版：画面ミラーリングまたは動画は10分間、その後30分間の休止があります。音楽ストリーミングはいつでも無料です。ScreenDock Proは買い切りの1回限りの購入で、サブスクリプションも広告もありません。
 
 動作条件
 - 送信側と受信側を同じWi-Fiネットワークに接続（遅延を抑えるには5 GHz推奨）

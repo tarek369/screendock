@@ -57,3 +57,4 @@ keystore.properties
 # Local agent/workspace state + wrangler cache (contains account id)
 .zcode/
 cloudflare-worker/.wrangler/
+store/fgs_demo.mp4

@@ -13,7 +13,6 @@
     <!-- M4: foreground service hosting the receiver (FR-8) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Wi-Fi lock while a session is active -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -51,12 +50,11 @@
         </activity>
 
         <!-- Foreground service: hosts the UxPlay native server + mDNS + decoders.
-             mediaPlayback keeps audio/video casts alive; connectedDevice is the only type of the two
-             that Android 15 allows from BOOT_COMPLETED (used for boot autostart). -->
+             mediaPlayback keeps audio/video casts alive. -->
         <service
             android:name=".service.AirPlayService"
             android:exported="false"
-            android:foregroundServiceType="mediaPlayback|connectedDevice" />
+            android:foregroundServiceType="mediaPlayback" />
 
         <receiver
             android:name=".service.BootReceiver"

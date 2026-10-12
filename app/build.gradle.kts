@@ -21,14 +21,15 @@ android {
         applicationId = "com.cressu.screendock"
         minSdk = 24
         targetSdk = 36
-        versionCode = 4
+        versionCode = 5
         versionName = "0.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // NFR-5: ABIs — arm64-v8a + armeabi-v7a for devices, x86_64 for emulator.
+        // NFR-5: ABIs — arm64-v8a + armeabi-v7a for devices; x86_64 (emulator) is
+        // added for debug builds only, keeping the release bundle small.
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
 
         // Force the NDK + CMake the SDK has installed (see local.properties).
@@ -61,6 +62,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            ndk { abiFilters += "x86_64" }
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -68,8 +72,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Native crash symbolication in Play Console.
-            ndk { debugSymbolLevel = "SYMBOL_TABLE" }
+            // Native symbols are NOT embedded (they'd push the AAB past browser upload
+            // limits); upload app/build/outputs/native-debug-symbols/release/*.zip to
+            // Play Console → App bundle explorer for symbolication instead.
+            ndk { debugSymbolLevel = "NONE" }
             if (keystoreProperties.isNotEmpty()) {
                 signingConfig = signingConfigs.getByName("release")
             }

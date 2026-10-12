@@ -28,14 +28,14 @@ HIGHLIGHTS
 - AirPlay audio receiver with now-playing info and cover art
 - AirPlay video from supported apps and websites
 - Android TV and Google TV support
-- Fit, fill or zoom the picture to your screen
+- Fit, fill or stretch the picture to your screen
 - Optional PIN, and "ask before allowing" for each new sender
-- Starts automatically when your device boots
+- Optional start at boot
 - Stop the receiver from the status notification
 - Open source, built on the UxPlay core
 
 FREE AND PRO
-The free tier limits each session to 10 minutes. ScreenDock Pro is a single one-time purchase with no subscription and no ads.
+Free: 10 minutes of mirroring or video, then a 30-minute break. Music streaming is always free. ScreenDock Pro is a single one-time purchase with no subscription and no ads.
 
 REQUIREMENTS
 - Sender and receiver on the same Wi-Fi network (5 GHz recommended for lowest latency)

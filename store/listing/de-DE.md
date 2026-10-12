@@ -28,14 +28,14 @@ FUNKTIONEN
 - AirPlay-Audioempfänger mit Titelinfo und Cover
 - AirPlay-Video aus unterstützten Apps und Websites
 - Unterstützung für Android TV und Google TV
-- Bild einpassen, füllen oder zoomen
+- Bild einpassen, füllen oder strecken
 - Optionale PIN und "Vor Zugriff fragen" für jeden neuen Sender
-- Startet automatisch nach dem Neustart des Geräts
+- Optionaler Start beim Hochfahren
 - Empfang über die Statusbenachrichtigung beenden
 - Open Source, basiert auf dem UxPlay-Kern
 
 KOSTENLOS UND PRO
-In der kostenlosen Version ist jede Sitzung auf 10 Minuten begrenzt. ScreenDock Pro ist ein einmaliger Kauf ohne Abo und ohne Werbung.
+Kostenlos: 10 Minuten Bildschirmspiegelung oder Video, danach 30 Minuten Pause. Musik-Streaming ist immer kostenlos. ScreenDock Pro ist ein einmaliger Kauf ohne Abo und ohne Werbung.
 
 ANFORDERUNGEN
 - Sender und Empfänger im selben WLAN (5 GHz empfohlen für geringste Latenz)

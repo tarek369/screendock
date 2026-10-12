@@ -127,8 +127,6 @@ class AirPlayService : Service(), RaopCallbackHandler {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.getBooleanExtra(EXTRA_FROM_BOOT, false) == true) fgsRestricted = true
-        if (intent?.action == ACTION_USER_START) { fgsRestricted = false }
         // Every start delivery must be matched by startForeground() or the OS throws
         // ForegroundServiceDidNotStartInTimeException (even for STOP / sticky null-intent restarts).
         if (!enterForeground()) {
@@ -190,8 +188,7 @@ class AirPlayService : Service(), RaopCallbackHandler {
         val n = notifier.buildForeground(currentModel(starting = true), settingsNow.displayName, null, null, null)
         return try {
             val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                if (fgsRestricted) ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
-                else ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK or ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
             } else 0
             ServiceCompat.startForeground(this, ReceiverNotification.NOTIF_FOREGROUND, n, type)
             fgActive = true
@@ -749,7 +746,6 @@ class AirPlayService : Service(), RaopCallbackHandler {
 
         @Volatile private var activeHandle: Long = 0L
         @Volatile private var serviceAlive = false
-        @Volatile private var fgsRestricted = false
         @Volatile private var activeGate: ApprovalGate? = null
         @Volatile private var previousShutdown: Job? = null
 
@@ -768,7 +764,6 @@ class AirPlayService : Service(), RaopCallbackHandler {
             val enabled = ReceiverPrefs.isEnabled(app)
             _receiverEnabled.value = enabled
             if (!enabled) return
-            fgsRestricted = false // a visible Activity lifts the boot-start FGS-type restriction
             launch(app, ACTION_START)
         }
 
@@ -777,7 +772,6 @@ class AirPlayService : Service(), RaopCallbackHandler {
             val app = context.applicationContext
             ReceiverPrefs.setEnabled(app, true)
             _receiverEnabled.value = true
-            fgsRestricted = false
             launch(app, ACTION_USER_START)
         }
 
@@ -804,8 +798,12 @@ class AirPlayService : Service(), RaopCallbackHandler {
 
         /** Boot autostart (see [BootReceiver] for the Android 15 policy). */
         internal fun startFromBoot(context: Context) {
-            fgsRestricted = true
             val app = context.applicationContext
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                // Android 15+ bars mediaPlayback FGS starts from BOOT_COMPLETED: ask the user to tap.
+                ReceiverNotification(app).apply { createChannels() }.notifyBootPrompt()
+                return
+            }
             val i = Intent(app, AirPlayService::class.java).setAction(ACTION_START).putExtra(EXTRA_FROM_BOOT, true)
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) app.startForegroundService(i) else app.startService(i)
