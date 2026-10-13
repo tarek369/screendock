@@ -1,10 +1,10 @@
 <resources>
-    <string name="app_name">ScreenDock</string>
+    <string name="app_name" translatable="false">ScreenDock</string>
     <string name="idle_status_initializing">Initializing…</string>
     <string name="idle_status_native_load_failed">Failed to load native library</string>
     <string name="idle_title_ready">Ready to receive</string>
     <string name="idle_subtitle">Waiting for an AirPlay sender…</string>
-    <string name="notification_channel_id">airplay_receiver</string>
+    <string name="notification_channel_id" translatable="false">airplay_receiver</string>
     <!-- Service / notification -->
     <string name="notif_channel_receiver">AirPlay Receiver</string>
     <string name="notif_channel_receiver_desc">Receiver status while ScreenDock is running</string>
