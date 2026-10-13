@@ -10,7 +10,13 @@
 # Callback interface + EVERY implementer (AirPlayService, test doubles, ...).
 # GetMethodID runs on the implementer's runtime class, so its overrides must keep names.
 -keep interface com.cressu.screendock.bridge.RaopCallbackHandler { *; }
--keep class * implements com.cressu.screendock.bridge.RaopCallbackHandler { *; }
+# Only the callback methods JNI looks up by name must survive; the rest of each
+# implementer (e.g. AirPlayService) stays optimizable by R8.
+-keepclassmembers class * implements com.cressu.screendock.bridge.RaopCallbackHandler {
+    public void on*(...);
+    public boolean onClientRequest(...);
+    public float[] getHlsPlaybackInfo();
+}
 
 # Play Billing / Play Review ship their own consumer rules.
 

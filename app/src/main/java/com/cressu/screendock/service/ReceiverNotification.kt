@@ -188,9 +188,8 @@ class ReceiverNotification(private val ctx: Context) : NotificationTexts {
 
     /**
      * Session/approval alert. Android 10+ blocks background activity starts, so "auto open" is a
-     * full-screen-intent notification: it launches [MainActivity] over the lock screen / when the
-     * screen is off, and degrades to a heads-up (tap to open) when the user is actively using
-     * the device or USE_FULL_SCREEN_INTENT is not granted (Android 14+: canUseFullScreenIntent()).
+     * heads-up notification the user taps. (USE_FULL_SCREEN_INTENT is deliberately not used:
+     * Play restricts it to calling/alarm apps.)
      */
     fun notifyAlert(id: Int, title: String, text: String, actions: List<Notification.Action> = emptyList()) {
         val pi = openAppIntent()
@@ -201,11 +200,10 @@ class ReceiverNotification(private val ctx: Context) : NotificationTexts {
             .setContentIntent(pi)
             .setAutoCancel(true)
             .setCategory(Notification.CATEGORY_CALL)
-            .setTimeoutAfter(ALERT_TIMEOUT_MS)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) b.setTimeoutAfter(ALERT_TIMEOUT_MS)
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             @Suppress("DEPRECATION") b.setPriority(Notification.PRIORITY_HIGH)
         }
-        if (canUseFullScreenIntent()) b.setFullScreenIntent(pi, true)
         actions.forEach { b.addAction(it) }
         safeNotify(id, b.build())
     }
@@ -228,9 +226,6 @@ class ReceiverNotification(private val ctx: Context) : NotificationTexts {
 
     fun cancelAlerts() { nm.cancel(NOTIF_SESSION); nm.cancel(NOTIF_APPROVAL) }
     fun cancelApproval() = nm.cancel(NOTIF_APPROVAL)
-
-    private fun canUseFullScreenIntent(): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || nm.canUseFullScreenIntent()
 
     private fun safeNotify(id: Int, n: Notification) {
         try { nm.notify(id, n) } catch (_: SecurityException) { /* POST_NOTIFICATIONS denied */ }

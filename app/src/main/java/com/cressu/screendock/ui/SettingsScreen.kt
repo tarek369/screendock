@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.cressu.screendock.R
 import com.cressu.screendock.service.AirPlayService
+import com.cressu.screendock.service.SessionLimiter
 import com.cressu.screendock.settings.AirPlaySettings
 import com.cressu.screendock.settings.PinMode
 import com.cressu.screendock.settings.SettingsRepository
@@ -235,7 +236,11 @@ private fun ProCard(pro: ProUiState, onBuy: () -> Unit) {
             }
         } else {
             Text(
-                stringResource(R.string.pro_card_body, AirPlayService.FREE_SESSION_MINUTES),
+                stringResource(
+                    R.string.pro_card_body,
+                    AirPlayService.FREE_SESSION_MINUTES,
+                    (SessionLimiter.DEFAULT_COOLDOWN_MS / 60_000L).toInt(),
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Palette.textSecondary,
             )

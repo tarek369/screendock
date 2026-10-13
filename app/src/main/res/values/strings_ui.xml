@@ -31,7 +31,7 @@
     <string name="pro_purchase_pending">Purchase pending…</string>
     <string name="pro_purchase_pending_hint">Google Play is still processing your payment. Pro unlocks automatically when it completes.</string>
     <string name="pro_card_title">ScreenDock Pro</string>
-    <string name="pro_card_body">Unlimited mirroring sessions. The free tier limits each session to %1$d minutes.</string>
+    <string name="pro_card_body">Unlimited mirroring and AirPlay video. Free: %1$d minutes, then a %2$d-minute break. Music is always free.</string>
     <string name="pro_unlocked">Unlocked — thank you for supporting ScreenDock!</string>
     <string name="nudge_title">Session limit reached</string>
     <string name="nudge_body">Free sessions run %1$d minutes. ScreenDock Pro unlocks unlimited mirroring — one-time purchase, no subscriptions.</string>

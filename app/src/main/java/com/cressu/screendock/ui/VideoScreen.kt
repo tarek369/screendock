@@ -8,7 +8,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.annotation.OptIn
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 
 /**
@@ -16,6 +18,7 @@ import androidx.media3.ui.PlayerView
  * the service-owned player. The sender is the remote control, so the on-screen
  * controller is hidden. The service owns the player lifecycle — we only detach.
  */
+@OptIn(UnstableApi::class)
 @Composable
 fun VideoScreen(player: Player?) {
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
