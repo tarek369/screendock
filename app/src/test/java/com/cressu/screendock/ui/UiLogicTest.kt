@@ -33,13 +33,20 @@ class UiLogicTest {
     }
 
     @Test fun reviewPolicy() {
-        assertTrue(ReviewPolicy.shouldRequest(3, false, true, false))
+        assertTrue(ReviewPolicy.shouldRequest(2, false, true, false))
         assertTrue(ReviewPolicy.shouldRequest(10, false, true, false))
-        assertFalse(ReviewPolicy.shouldRequest(2, false, true, false))
+        assertFalse(ReviewPolicy.shouldRequest(1, false, true, false))
         assertFalse(ReviewPolicy.shouldRequest(10, false, true, false, paywallOrCooldown = true))
         assertFalse(ReviewPolicy.shouldRequest(3, true, true, false))
         assertFalse(ReviewPolicy.shouldRequest(3, false, false, false))
         assertFalse(ReviewPolicy.shouldRequest(3, false, true, true))
+    }
+
+    @Test fun reviewAfterPurchase() {
+        assertTrue(ReviewPolicy.shouldRequestAfterPurchase(wasPro = false, isPro = true, reviewPrompted = false))
+        assertFalse(ReviewPolicy.shouldRequestAfterPurchase(wasPro = true, isPro = true, reviewPrompted = false))
+        assertFalse(ReviewPolicy.shouldRequestAfterPurchase(wasPro = false, isPro = false, reviewPrompted = false))
+        assertFalse(ReviewPolicy.shouldRequestAfterPurchase(wasPro = false, isPro = true, reviewPrompted = true))
     }
 
     @Test fun pinValidation() {

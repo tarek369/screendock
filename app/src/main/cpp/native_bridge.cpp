@@ -142,7 +142,7 @@ static jobject parse_txt_to_map(JNIEnv *env, const char *txt, int len)
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_cressu_screendock_bridge_NativeBridge_nativeGetVersion(JNIEnv *env, jobject)
 {
-    const char *v = "ScreenDock 0.3.1 (UxPlay core " GLOBAL_VERSION ")";
+    const char *v = "ScreenDock 0.3.2 (UxPlay core " GLOBAL_VERSION ")";
     return env->NewStringUTF(v);
 }
 

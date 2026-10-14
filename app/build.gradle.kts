@@ -21,8 +21,8 @@ android {
         applicationId = "com.cressu.screendock"
         minSdk = 24
         targetSdk = 36
-        versionCode = 6
-        versionName = "0.3.1"
+        versionCode = 7
+        versionName = "0.3.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

@@ -35,7 +35,7 @@ object ClockFormatter {
 }
 
 object ReviewPolicy {
-    const val MIN_SUCCESSFUL_SESSIONS = 3
+    const val MIN_SUCCESSFUL_SESSIONS = 2
 
     /**
      * Ask for an in-app review only after enough successful sessions, only once
@@ -53,6 +53,10 @@ object ReviewPolicy {
         !mediaActive &&
         sessionJustEnded &&
         successfulSessions >= MIN_SUCCESSFUL_SESSIONS
+
+    /** Ask once right after the user completes a Pro purchase in the app. */
+    fun shouldRequestAfterPurchase(wasPro: Boolean, isPro: Boolean, reviewPrompted: Boolean): Boolean =
+        !reviewPrompted && !wasPro && isPro
 }
 
 object PinValidator {

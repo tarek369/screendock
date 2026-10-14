@@ -1,5 +1,7 @@
 package com.cressu.screendock.ui
 
+import com.cressu.screendock.billing.PurchaseUiState
+
 import android.Manifest
 import android.content.Context
 import android.os.Build
@@ -159,6 +161,24 @@ fun AppScreen(version: String, context: Context) {
         val activity = activityContext.findActivity()
         if (eligible && activity != null) {
             repo.updateReviewPrompted(true) // once ever, regardless of what Play decides to show
+            requestInAppReview(activity)
+        }
+    }
+
+    // --- In-app review right after an in-app Pro purchase ---
+    var wasPurchased by remember { mutableStateOf(purchaseState is PurchaseUiState.Purchased) }
+    LaunchedEffect(purchaseState) {
+        val isPurchased = purchaseState is PurchaseUiState.Purchased
+        val ask = ReviewPolicy.shouldRequestAfterPurchase(
+            wasPro = wasPurchased,
+            isPro = isPurchased,
+            reviewPrompted = repo.current().reviewPrompted,
+        )
+        wasPurchased = isPurchased
+        val activity = activityContext.findActivity()
+        if (ask && activity != null) {
+            delay(REVIEW_SETTLE_DELAY_MS) // let the Play purchase sheet close first
+            repo.updateReviewPrompted(true)
             requestInAppReview(activity)
         }
     }
