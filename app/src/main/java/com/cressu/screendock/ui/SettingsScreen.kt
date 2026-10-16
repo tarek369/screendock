@@ -41,6 +41,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.cressu.screendock.ui.components.dpadScrollable
 import com.cressu.screendock.R
 import com.cressu.screendock.service.AirPlayService
 import com.cressu.screendock.service.SessionLimiter
@@ -98,12 +99,14 @@ fun SettingsScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         AuroraBackground(Modifier.fillMaxSize())
 
+        val scroll = rememberScrollState()
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .safeDrawingPadding()
                 .imePadding()
-                .verticalScroll(rememberScrollState()),
+                .dpadScrollable(scroll)
+                .verticalScroll(scroll),
         ) {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                 Column(

@@ -1,5 +1,11 @@
 package com.cressu.screendock.ui.components
 
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -105,3 +111,46 @@ fun appTextFieldColors() = androidx.compose.material3.OutlinedTextFieldDefaults.
     unfocusedContainerColor = Palette.white.copy(alpha = 0.05f),
     errorContainerColor = Palette.white.copy(alpha = 0.05f),
 )
+
+/**
+ * Single-line text fields swallow D-pad up/down, trapping TV remote users inside them.
+ * Move focus out instead so the rest of the screen (e.g. the Apply button) stays reachable.
+ */
+@Composable
+fun Modifier.dpadExitsTextField(): Modifier {
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+    return onPreviewKeyEvent { event ->
+        if (event.type != androidx.compose.ui.input.key.KeyEventType.KeyDown) return@onPreviewKeyEvent false
+        when (event.key) {
+            androidx.compose.ui.input.key.Key.DirectionDown ->
+                focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down)
+            androidx.compose.ui.input.key.Key.DirectionUp ->
+                focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Up)
+            else -> false
+        }
+    }
+}
+
+private const val DPAD_SCROLL_PX = 320f
+
+/**
+ * TV remotes can only scroll by moving focus. On pages where long stretches have nothing
+ * focusable (tips, help text), D-pad up/down would get stuck, so scroll the page instead
+ * whenever focus can't move further in that direction.
+ */
+@Composable
+fun Modifier.dpadScrollable(state: androidx.compose.foundation.ScrollState): Modifier {
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    return onKeyEvent { event ->
+        if (event.type != androidx.compose.ui.input.key.KeyEventType.KeyDown) return@onKeyEvent false
+        val (direction, delta) = when (event.key) {
+            androidx.compose.ui.input.key.Key.DirectionDown -> androidx.compose.ui.focus.FocusDirection.Down to DPAD_SCROLL_PX
+            androidx.compose.ui.input.key.Key.DirectionUp -> androidx.compose.ui.focus.FocusDirection.Up to -DPAD_SCROLL_PX
+            else -> return@onKeyEvent false
+        }
+        if (focusManager.moveFocus(direction)) return@onKeyEvent true
+        scope.launch { state.animateScrollBy(delta) }
+        true
+    }
+}

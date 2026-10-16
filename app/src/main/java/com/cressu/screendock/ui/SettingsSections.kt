@@ -33,6 +33,7 @@ import com.cressu.screendock.ui.components.Spacer16
 import com.cressu.screendock.ui.components.Spacer8
 import com.cressu.screendock.ui.components.SwitchRow
 import com.cressu.screendock.ui.components.appTextFieldColors
+import com.cressu.screendock.ui.components.dpadExitsTextField
 import com.cressu.screendock.ui.theme.Palette
 
 private const val MAX_NAME_LENGTH = 32
@@ -51,7 +52,7 @@ fun ReceiverCard(
         OutlinedTextField(
             value = settings.displayName,
             onValueChange = { if (it.length <= MAX_NAME_LENGTH) onChange(settings.copy(displayName = it)) },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().dpadExitsTextField(),
             singleLine = true,
             shape = RoundedCornerShape(14.dp),
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
@@ -164,7 +165,7 @@ fun SecurityCard(settings: AirPlaySettings, onChange: (AirPlaySettings) -> Unit)
             OutlinedTextField(
                 value = settings.fixedPin,
                 onValueChange = { onChange(settings.copy(fixedPin = PinValidator.sanitize(it))) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().dpadExitsTextField(),
                 singleLine = true,
                 isError = invalid,
                 shape = RoundedCornerShape(14.dp),

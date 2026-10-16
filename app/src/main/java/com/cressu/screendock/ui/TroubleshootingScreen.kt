@@ -37,6 +37,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.cressu.screendock.ui.components.dpadScrollable
 import com.cressu.screendock.R
 import com.cressu.screendock.ui.components.AuroraBackground
 import com.cressu.screendock.ui.components.GlassIconButton
@@ -110,7 +111,8 @@ fun TroubleshootingScreen(deviceName: String, receiverRunning: Boolean, onBack: 
 
     Box(modifier = Modifier.fillMaxSize()) {
         AuroraBackground(Modifier.fillMaxSize())
-        Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState())) {
+        val scroll = rememberScrollState()
+        Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().dpadScrollable(scroll).verticalScroll(scroll)) {
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                 Column(
                     modifier = Modifier.widthIn(max = 640.dp).padding(horizontal = 24.dp, vertical = 20.dp),

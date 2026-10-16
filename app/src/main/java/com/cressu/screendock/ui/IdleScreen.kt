@@ -2,6 +2,7 @@ package com.cressu.screendock.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -38,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -125,83 +127,53 @@ fun IdleScreen(ui: IdleUiState, actions: IdleActions) {
     Box(modifier = Modifier.fillMaxSize()) {
         AuroraBackground(Modifier.fillMaxSize())
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .safeDrawingPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 32.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            BroadcastHero(rings = !failed && !stopped, dim = failed || stopped)
-
-            Spacer(Modifier.height(20.dp))
-            Text(
-                text = displayName,
-                style = MaterialTheme.typography.displaySmall,
-                color = Palette.textPrimary,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(14.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                PulsingDot(statusColor, pulse = !failed && !stopped)
-                Spacer(Modifier.width(10.dp))
-                Text(statusText, style = MaterialTheme.typography.labelLarge, color = statusColor)
-            }
-            Spacer(Modifier.height(36.dp))
-
-            val cardModifier = Modifier.fillMaxWidth().widthIn(max = CARD_MAX_WIDTH)
-            when {
-                inCooldown -> {
-                    CooldownCard(
-                        remainingMs = cooldownLeftMs,
-                        pro = ui.pro,
-                        onBuy = actions.onBuyPro,
-                        focusRequester = primaryFocus,
-                        modifier = cardModifier,
-                    )
-                    Spacer(Modifier.height(20.dp))
-                }
-                showNudge -> {
-                    UpgradeNudgeCard(
-                        pro = ui.pro,
-                        onBuy = actions.onBuyPro,
-                        onDismiss = actions.onDismissNudge,
-                        focusRequester = primaryFocus,
-                        modifier = cardModifier,
-                    )
-                    Spacer(Modifier.height(20.dp))
-                }
-            }
-
-            when {
-                failed -> ErrorCard(cardModifier)
-                stopped -> {
-                    StoppedCard(
-                        onStart = actions.onStartReceiver,
-                        focusRequester = if (startFocused) primaryFocus else null,
-                        modifier = cardModifier,
-                    )
-                }
-                else -> ConnectGuideCard(deviceName = displayName, modifier = cardModifier)
-            }
-
-            Spacer(Modifier.height(22.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CapabilityChip(resolutionLabel(ui.settings.maxWidth, ui.settings.maxHeight))
-                CapabilityChip("${ui.settings.maxFps} fps")
-                if (ui.settings.h265Enabled) CapabilityChip("H.265")
-            }
-            Spacer(Modifier.height(18.dp))
-            Text(
-                ui.version,
-                style = MaterialTheme.typography.labelSmall,
-                color = Palette.textTertiary,
+        val header: @Composable () -> Unit = {
+            IdleHeader(displayName, statusText, statusColor, failed = failed, stopped = stopped)
+        }
+        val cards: @Composable (Modifier) -> Unit = { cardModifier ->
+            IdleCards(
+                ui = ui,
+                actions = actions,
+                state = IdleCardState(failed, stopped, inCooldown, showNudge, startFocused, cooldownLeftMs),
+                displayName = displayName,
+                primaryFocus = primaryFocus,
+                cardModifier = cardModifier,
             )
         }
 
-        // MUST be composed after the scrollable column: a verticalScroll
+        BoxWithConstraints(Modifier.fillMaxSize().safeDrawingPadding()) {
+            // TVs (960x540 dp) and landscape phones: the stacked layout is taller than the
+            // screen and the D-pad can't scroll to non-focusable cards, so go side by side.
+            val sideBySide = maxWidth > maxHeight && maxHeight < SIDE_BY_SIDE_MAX_HEIGHT
+            if (sideBySide) {
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(start = 48.dp, end = 48.dp, top = 80.dp, bottom = 24.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(40.dp),
+                ) {
+                    Column(Modifier.weight(0.8f), horizontalAlignment = Alignment.CenterHorizontally) { header() }
+                    Column(
+                        Modifier.weight(1.2f).verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) { cards(Modifier.fillMaxWidth()) }
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 32.dp, vertical = 24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    header()
+                    Spacer(Modifier.height(36.dp))
+                    cards(Modifier.fillMaxWidth().widthIn(max = CARD_MAX_WIDTH))
+                }
+            }
+        }
+
+        // MUST be composed after the scrollable content: a verticalScroll
         // container hit-tests its full bounds and would otherwise sit ON TOP
         // of these buttons and swallow every tap (buttons appear dead).
         Row(
@@ -221,6 +193,74 @@ fun IdleScreen(ui: IdleUiState, actions: IdleActions) {
             )
         }
     }
+}
+
+private val SIDE_BY_SIDE_MAX_HEIGHT = 600.dp
+
+/** Flags that pick which cards [IdleCards] shows. */
+private data class IdleCardState(
+    val failed: Boolean,
+    val stopped: Boolean,
+    val inCooldown: Boolean,
+    val showNudge: Boolean,
+    val startFocused: Boolean,
+    val cooldownLeftMs: Long,
+)
+
+@Composable
+private fun IdleHeader(displayName: String, statusText: String, statusColor: Color, failed: Boolean, stopped: Boolean) {
+    BroadcastHero(rings = !failed && !stopped, dim = failed || stopped)
+    Spacer(Modifier.height(20.dp))
+    Text(
+        text = displayName,
+        style = MaterialTheme.typography.displaySmall,
+        color = Palette.textPrimary,
+        textAlign = TextAlign.Center,
+    )
+    Spacer(Modifier.height(14.dp))
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        PulsingDot(statusColor, pulse = !failed && !stopped)
+        Spacer(Modifier.width(10.dp))
+        Text(statusText, style = MaterialTheme.typography.labelLarge, color = statusColor)
+    }
+}
+
+@Composable
+private fun IdleCards(
+    ui: IdleUiState,
+    actions: IdleActions,
+    state: IdleCardState,
+    displayName: String,
+    primaryFocus: FocusRequester,
+    cardModifier: Modifier,
+) {
+    when {
+        state.inCooldown -> {
+            CooldownCard(state.cooldownLeftMs, ui.pro, actions.onBuyPro, primaryFocus, cardModifier)
+            Spacer(Modifier.height(20.dp))
+        }
+        state.showNudge -> {
+            UpgradeNudgeCard(ui.pro, actions.onBuyPro, actions.onDismissNudge, primaryFocus, cardModifier)
+            Spacer(Modifier.height(20.dp))
+        }
+    }
+    when {
+        state.failed -> ErrorCard(cardModifier)
+        state.stopped -> StoppedCard(
+            onStart = actions.onStartReceiver,
+            focusRequester = if (state.startFocused) primaryFocus else null,
+            modifier = cardModifier,
+        )
+        else -> ConnectGuideCard(deviceName = displayName, modifier = cardModifier)
+    }
+    Spacer(Modifier.height(22.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        CapabilityChip(resolutionLabel(ui.settings.maxWidth, ui.settings.maxHeight))
+        CapabilityChip("${ui.settings.maxFps} fps")
+        if (ui.settings.h265Enabled) CapabilityChip("H.265")
+    }
+    Spacer(Modifier.height(18.dp))
+    Text(ui.version, style = MaterialTheme.typography.labelSmall, color = Palette.textTertiary)
 }
 
 /** Wall-clock ticker (1 Hz) — only runs while [active]. */
