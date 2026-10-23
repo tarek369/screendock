@@ -596,10 +596,52 @@ httpd_thread(void *arg)
                 parse_len = plain_len;
             }
 
-            /* Parse HTTP request from data read from connection */
-            http_request_add_data(connection->request, parse_data, parse_len);
-            free(plain);
-            plain = NULL;
+            /* Parse HTTP request(s) from data read from connection. A single read can hold
+             * several pipelined requests (AirPlay 2 senders send RECORD + /feedback together):
+             * each complete request is dispatched, and leftover bytes start the next one. */
+            int remaining = parse_len;
+            const char *cursor = parse_data;
+            bool conn_removed = false;
+            while (remaining > 0 && !conn_removed) {
+            char *patched = NULL;
+            if (!connection->request) {
+                connection->request = http_request_init();
+                if (!connection->request) {
+                    httpd_remove_connection(httpd, connection, 0);
+                    conn_removed = true;
+                    break;
+                }
+            }
+            {
+                /* llhttp rejects PUT on an RTSP/1.0 request line, but AirPlay 2 senders send
+                 * "PUT /setProperty?... RTSP/1.0". Present it as POST (same handler). */
+                if (remaining > 5 && !memcmp(cursor, "PUT /", 5)) {
+                    const char *eol = memchr(cursor, '\n', remaining);
+                    if (eol && memmem(cursor, (size_t) (eol - cursor), "RTSP/1.0", 8)) {
+                        patched = malloc((size_t) remaining + 1);
+                        if (patched) {
+                            memcpy(patched, "POST", 4);
+                            memcpy(patched + 4, cursor + 3, (size_t) remaining - 3);
+                            cursor = patched;
+                            remaining += 1;
+                        }
+                    }
+                }
+            }
+            int consumed = http_request_add_data_consumed(connection->request, cursor, remaining);
+            if (consumed <= 0 || consumed > remaining) consumed = remaining;
+            cursor += consumed;
+            remaining -= consumed;
+            if (patched) {
+                /* continue from the matching offset in the original (unpatched) bytes */
+                char *rest = remaining > 0 ? malloc((size_t) remaining) : NULL;
+                if (rest) memcpy(rest, cursor, (size_t) remaining);
+                free(plain);
+                plain = (unsigned char *) rest;
+                cursor = rest;
+                free(patched);
+                patched = NULL;
+            }
             if (http_request_has_error(connection->request)) {
                 char *data = utils_data_to_text((const char *) buffer, recv_datalen);
                 logger_log(httpd->logger, LOGGER_ERR, "httpd error in parsing: %s\n%s\n%s",
@@ -608,9 +650,9 @@ httpd_thread(void *arg)
                            data);
                 free (data);
                 httpd_remove_connection(httpd, connection, 0);
-                continue;
+                conn_removed = true;
+                break;
             }
-
             /* If request is finished, process and deallocate */
             if (http_request_is_complete(connection->request)) {
                 http_response_t *response = NULL;
@@ -645,7 +687,8 @@ httpd_thread(void *arg)
                             free(cipher_out);
                             http_response_destroy(response);
                             httpd_remove_connection(httpd, connection, 0);
-                            continue;
+                            conn_removed = true;
+                            break;
                         }
                         data = (const char *) cipher_out;
                         datalen = clen;
@@ -668,6 +711,7 @@ httpd_thread(void *arg)
                     if (http_response_get_disconnect(response)) {
                         logger_log(httpd->logger, LOGGER_INFO, "Disconnecting on software request");
                         httpd_remove_connection(httpd, connection, 0);
+                        conn_removed = true;
                     }
                 } else {
                     logger_log(httpd->logger, LOGGER_WARNING, "httpd didn't get response");
@@ -675,7 +719,11 @@ httpd_thread(void *arg)
                 http_response_destroy(response);
             } else {
                 logger_log(httpd->logger, LOGGER_DEBUG, "Request not complete, waiting for more data...");
+                break;
             }
+            }
+            free(plain);
+            plain = NULL;
         }
     }
 

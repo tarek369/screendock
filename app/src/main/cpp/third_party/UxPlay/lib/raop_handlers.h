@@ -681,7 +681,13 @@ raop_handler_setup(raop_conn_t *conn,
     // For the response
     plist_t res_root_node = plist_new_dict();
 
-    if (PLIST_IS_DATA(req_eiv_node) && PLIST_IS_DATA(req_ekey_node)) {
+    bool have_aes_keys = PLIST_IS_DATA(req_eiv_node) && PLIST_IS_DATA(req_ekey_node);
+    /* AirPlay 2 (HAP-paired) video senders open the session without FairPlay audio keys:
+     * the session SETUP has timingPort but no ekey/eiv and no "streams". */
+    bool hap_session_setup = !have_aes_keys && conn->hap && hap_is_encrypted(conn->hap) &&
+                             !plist_dict_get_item(req_root_node, "streams") &&
+                             plist_dict_get_item(req_root_node, "timingPort");
+    if (have_aes_keys || hap_session_setup) {
         // The first SETUP call that initializes keys and timing
 
         unsigned char aesiv[16] = { 0 };
@@ -837,6 +843,7 @@ raop_handler_setup(raop_conn_t *conn,
             return;
         }
 
+        if (have_aes_keys) {
         plist_get_data_val(req_eiv_node, &eiv, &eiv_len);
         memcpy(aesiv, eiv, 16);
         free(eiv);	
@@ -912,6 +919,10 @@ raop_handler_setup(raop_conn_t *conn,
                     free(str);
                 }
             }
+        }
+
+        } else {
+            logger_log(raop->logger, LOGGER_INFO, "AirPlay 2 HAP session SETUP (no FairPlay audio keys)");
         }
 
         /* Android port: remember the sender's session UUID for event-channel posts. */

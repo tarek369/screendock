@@ -298,8 +298,11 @@ conn_request(void *ptr, http_request_t *request, http_response_t **response) {
     const char *host = http_request_get_header(request, "Host");
     hls_request =  (host && !cseq && !client_session_id);
 
+    /* AirPlay 2 (HAP) senders open the control connection with HTTP/1.1 pairing
+     * requests (no CSeq) before switching to RTSP: treat X-Apple-HKP as RAOP too. */
+    bool hap_hint = raop->v2_enabled && http_request_get_header(request, "X-Apple-HKP") != NULL;
     if (conn->connection_type == CONNECTION_TYPE_UNKNOWN) {
-        if (cseq || ble) {
+        if (cseq || ble || hap_hint) {
             if (httpd_count_connection_type(raop->httpd, CONNECTION_TYPE_RAOP)) {
                 char ipaddr[40] = { '\0' };
                 utils_ipaddress_to_string(conn->remotelen, conn->remote, conn->zone_id, ipaddr, (int) (sizeof(ipaddr)));
@@ -440,9 +443,20 @@ conn_request(void *ptr, http_request_t *request, http_response_t **response) {
 
     logger_log(raop->logger, LOGGER_DEBUG, "Handling request %s with URL %s", method, url);
     raop_handler_t handler = NULL;
-    if (!hls_request && conn->connection_type == CONNECTION_TYPE_RAOP && !strcmp(protocol, "RTSP/1.0") &&
+    bool raop_conn = !hls_request && conn->connection_type == CONNECTION_TYPE_RAOP;
+    if (raop_conn && (!strcmp(protocol, "RTSP/1.0") || !strcmp(protocol, "HTTP/1.1")) &&
         video_v2_route(method, url)) {
+        /* V2 senders send /play, /playback-info etc. as HTTP/1.1 on the RTSP connection. */
         handler = &raop_handler_video_v2;
+    } else if (raop_conn && raop->v2_enabled && !strcmp(protocol, "HTTP/1.1") && !strcmp(method, "POST") &&
+               (!strcmp(url, "/pair-pin-start") || !strcmp(url, "/pair-setup") || !strcmp(url, "/pair-verify"))) {
+        if (!strcmp(url, "/pair-pin-start")) {
+            handler = &raop_handler_pairpinstart;
+        } else if (!strcmp(url, "/pair-setup")) {
+            handler = &raop_handler_pairsetup;
+        } else {
+            handler = &raop_handler_pairverify;
+        }
     } else if (!hls_request && !strcmp(protocol, "RTSP/1.0")) {
         if (!strcmp(method, "POST")) {
             if (!strcmp(url, "/feedback")) {

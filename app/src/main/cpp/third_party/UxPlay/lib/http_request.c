@@ -160,7 +160,9 @@ on_message_complete(llhttp_t *parser)
 
     request->method = llhttp_method_name(request->parser.method);
     request->complete = 1;
-    return 0;
+    /* Stop at the end of this message so the caller can hand any pipelined bytes
+     * (e.g. AirPlay 2 RECORD + /feedback in one encrypted burst) to a fresh request. */
+    return HPE_PAUSED;
 }
 
 http_request_t *
@@ -208,7 +210,23 @@ http_request_add_data(http_request_t *request, const char *data, int datalen)
     /* support for "Upgrade" to reverse http ("PTTH/1.0") protocol */
     llhttp_resume_after_upgrade(&request->parser);
 
-    return ret;
+    (void) ret;
+    return datalen;
+}
+
+int
+http_request_add_data_consumed(http_request_t *request, const char *data, int datalen)
+{
+    assert(request);
+    int ret = llhttp_execute(&request->parser, data, datalen);
+    if (ret == HPE_PAUSED) {
+        /* paused at on_message_complete: report how much of data belonged to this request */
+        const char *pos = llhttp_get_error_pos(&request->parser);
+        llhttp_resume(&request->parser);
+        return pos ? (int) (pos - data) : datalen;
+    }
+    llhttp_resume_after_upgrade(&request->parser);
+    return datalen;
 }
 
 int
@@ -225,7 +243,8 @@ http_request_has_error(http_request_t *request)
     if (request->is_reverse) {
         return 0;
     }
-    return (llhttp_get_errno(&request->parser) != HPE_OK);
+    llhttp_errno_t err = llhttp_get_errno(&request->parser);
+    return (err != HPE_OK && err != HPE_PAUSED);
 }
 
 const char *

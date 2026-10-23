@@ -22,6 +22,8 @@ typedef struct http_request_s http_request_t;
 http_request_t *http_request_init(void);
 
 int http_request_add_data(http_request_t *request, const char *data, int datalen);
+/* Like add_data, but stops after one complete message; returns the bytes consumed. */
+int http_request_add_data_consumed(http_request_t *request, const char *data, int datalen);
 int http_request_is_complete(http_request_t *request);
 int http_request_has_error(http_request_t *request);
 

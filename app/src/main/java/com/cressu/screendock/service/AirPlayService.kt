@@ -299,6 +299,7 @@ class AirPlayService : Service(), RaopCallbackHandler {
         val (w, hgt) = resolveAdvertisedSize(s)
         NativeBridge.setDisplaySize(h, w, hgt, s.maxFps)
         NativeBridge.setHlsEnabled(h, s.hlsEnabled)
+        NativeBridge.setAirPlayV2Enabled(h, AIRPLAY_V2_ENABLED)
         val pin = when (s.pinMode) {
             PinMode.FIXED -> s.fixedPin.takeIf { it.length == 4 && it.all(Char::isDigit) }
             else -> null // RANDOM (or FIXED with an invalid value): native generates one per pairing
@@ -830,3 +831,6 @@ class AirPlayService : Service(), RaopCallbackHandler {
         }
     }
 }
+
+/** AirPlay Video V2 (HAP pairing + video over RTSP). */
+private const val AIRPLAY_V2_ENABLED = true

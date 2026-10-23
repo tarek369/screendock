@@ -81,6 +81,8 @@ static void apply_feature_flags(struct server_ctx *ctx)
      * the default advertisement is byte-for-byte what it was before. */
     dnssd_set_airplay_features(ctx->dnssd, 46, ctx->v2_enabled ? 1 : 0);
     dnssd_set_airplay_features(ctx->dnssd, 48, ctx->v2_enabled ? 1 : 0);
+    /* Bit 49 = SupportsAirPlayVideoV2: senders use the V2 video path (HAP-paired RTSP /play). */
+    dnssd_set_airplay_features(ctx->dnssd, 49, (ctx->v2_enabled && ctx->hls_enabled) ? 1 : 0);
 }
 
 static void free_server_ctx_strings(struct server_ctx *ctx)
