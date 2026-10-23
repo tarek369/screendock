@@ -83,6 +83,12 @@ static void apply_feature_flags(struct server_ctx *ctx)
     dnssd_set_airplay_features(ctx->dnssd, 48, ctx->v2_enabled ? 1 : 0);
     /* Bit 49 = SupportsAirPlayVideoV2: senders use the V2 video path (HAP-paired RTSP /play). */
     dnssd_set_airplay_features(ctx->dnssd, 49, (ctx->v2_enabled && ctx->hls_enabled) ? 1 : 0);
+    /* 33 = VideoPlayQueue (/action playlistInsert), 34 = FromCloud, 38 = UnifiedMediaControl:
+     * advertised by Apple-SDK TVs that accept local-file AirPlay Video from macOS QuickTime. */
+    const int v2_video = (ctx->v2_enabled && ctx->hls_enabled) ? 1 : 0;
+    dnssd_set_airplay_features(ctx->dnssd, 33, v2_video);
+    dnssd_set_airplay_features(ctx->dnssd, 34, v2_video);
+    dnssd_set_airplay_features(ctx->dnssd, 38, v2_video);
 }
 
 static void free_server_ctx_strings(struct server_ctx *ctx)
@@ -230,7 +236,7 @@ Java_com_cressu_screendock_bridge_NativeBridge_nativeInit(JNIEnv *env, jobject,
         free_server_ctx_strings(ctx); free(ctx); return 0;
     }
     raop_set_log_callback(ctx->raop, android_log_forward, NULL);
-    raop_set_log_level(ctx->raop, 6 /* LOGGER_INFO; 7=DEBUG dumps every RTSP plist but spams resends */);
+    raop_set_log_level(ctx->raop, 7 /* DIAG-TEMP LOGGER_INFO; 7=DEBUG dumps every RTSP plist but spams resends */);
 
     /* Display-cap defaults; nativeSetDisplaySize overrides these BEFORE
      * nativeStart (the service always applies settings first). Do NOT set

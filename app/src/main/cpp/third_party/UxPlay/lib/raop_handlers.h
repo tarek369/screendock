@@ -160,6 +160,22 @@ raop_handler_info(raop_conn_t *conn,
     plist_t model_node = plist_new_string(GLOBAL_MODEL);
     plist_dict_set_item(res_node, "model", model_node);
 
+    if (conn->raop->v2_enabled) {
+        /* AirPlay Video V2: senders (macOS QuickTime, iOS) only hand a video over to a
+         * receiver that reports a playback engine. Values mirror an Apple-SDK TV receiver;
+         * no FairPlay CDM is claimed (version "0.0"), so protected streams stay with the sender. */
+        plist_t caps = plist_new_dict();
+        plist_dict_set_item(caps, "fairPlayCDMPluginVersion", plist_new_string("0.0"));
+        plist_dict_set_item(caps, "fairPlayLibVersion", plist_new_string("0.0"));
+        plist_dict_set_item(caps, "hlsJSVersion", plist_new_string("4.0.16"));
+        plist_dict_set_item(caps, "supportsFPSSecureStop", plist_new_bool(0));
+        plist_dict_set_item(caps, "supportsUIForAudioOnlyContent", plist_new_bool(0));
+        plist_dict_set_item(caps, "webAppVersion", plist_new_string("19.80.27"));
+        plist_dict_set_item(caps, "webEngineName", plist_new_string("Stub"));
+        plist_dict_set_item(caps, "webEngineVersion", plist_new_string("1.0"));
+        plist_dict_set_item(res_node, "playbackCapabilities", caps);
+    }
+
     /* dont need anything below here in the Bluetooth LE response */
     if (cseq == NULL) {
         goto finished;
@@ -1010,6 +1026,10 @@ raop_handler_setup(raop_conn_t *conn,
         plist_t res_timing_port_node = plist_new_uint(timing_lport);
         plist_dict_set_item(res_root_node, "timingPort", res_timing_port_node);
         plist_dict_set_item(res_root_node, "eventPort", res_event_port_node);
+        if (hap_session_setup) {
+            /* AirPlay 2 receivers acknowledge the control session with uiPreloaded */
+            plist_dict_set_item(res_root_node, "uiPreloaded", plist_new_bool(1));
+        }
 
         logger_log(raop->logger, LOGGER_DEBUG, "eport = %d, tport = %d", event_port, timing_lport);
     }

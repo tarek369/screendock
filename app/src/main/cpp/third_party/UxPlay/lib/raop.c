@@ -408,7 +408,15 @@ conn_request(void *ptr, http_request_t *request, http_response_t **response) {
                     char * plist_xml = NULL;
                     char * stripped_xml = NULL;
                     uint32_t plist_len = 0;
-                    plist_to_xml(req_root_node, &plist_xml, &plist_len);
+                    if (req_root_node) plist_to_xml(req_root_node, &plist_xml, &plist_len);
+                    if (!plist_xml) {
+                        /* labelled as a plist but isn't one (e.g. HAP TLV8 from macOS): dump hex */
+                        char *str = utils_data_to_string((const unsigned char *) request_data, request_datalen, 16);
+                        logger_log(raop->logger, LOGGER_DEBUG, "(non-plist body)\n%s", str ? str : "");
+                        free(str);
+                        plist_free(req_root_node);
+                        goto body_logged;
+                    }
                     stripped_xml = utils_strip_data_from_plist_xml(plist_xml);
                     logger_log(raop->logger, LOGGER_DEBUG, "%s", (stripped_xml ? stripped_xml : plist_xml));
                     if (stripped_xml) {
@@ -430,6 +438,7 @@ conn_request(void *ptr, http_request_t *request, http_response_t **response) {
             }
         }
     }
+    body_logged:
     if (header_str) {
         free(header_str);
     }
