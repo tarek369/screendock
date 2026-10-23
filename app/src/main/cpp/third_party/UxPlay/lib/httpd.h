@@ -35,6 +35,19 @@ struct httpd_callbacks_s {
                        int remotelen, unsigned int zone_id);
     void  (*conn_request)(void *ptr, http_request_t *request, http_response_t **response);
     void  (*conn_destroy)(void *ptr);
+    /* Optional per-connection transport encryption (AirPlay 2 HAP control channel,
+     * Android port). All four are NULL for the legacy plaintext behaviour.
+     *  conn_crypto_active: nonzero while bytes on this connection are encrypted.
+     *  conn_decrypt: feed raw bytes; returns plaintext length (>=0, *out malloc'd or
+     *                NULL when 0) or <0 on error (connection is dropped).
+     *  conn_encrypt: returns ciphertext length (*out malloc'd) or <0 on error.
+     *  conn_response_sent: called after each response was written, so a handler that
+     *                just completed pairing can start encrypting AFTER its plaintext
+     *                final response went out. */
+    int   (*conn_crypto_active)(void *ptr);
+    int   (*conn_decrypt)(void *ptr, const unsigned char *in, int in_len, unsigned char **out);
+    int   (*conn_encrypt)(void *ptr, const unsigned char *in, int in_len, unsigned char **out);
+    void  (*conn_response_sent)(void *ptr);
 };
 typedef struct httpd_callbacks_s httpd_callbacks_t;
 bool httpd_nohold(httpd_t *httpd);

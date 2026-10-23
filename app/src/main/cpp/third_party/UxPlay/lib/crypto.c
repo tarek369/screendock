@@ -489,6 +489,14 @@ int ed25519_verify(const unsigned char *signature, size_t signature_len,
     return ret;
 }
 
+int ed25519_key_get_raw_private(unsigned char data[ED25519_KEY_SIZE], const ed25519_key_t *key) {
+    size_t len = ED25519_KEY_SIZE;
+    if (!key || !key->pkey || !EVP_PKEY_get_raw_private_key(key->pkey, data, &len) || len != ED25519_KEY_SIZE) {
+        return -1;
+    }
+    return 0;
+}
+
 void ed25519_key_destroy(ed25519_key_t *key) {
     if (key) {
         EVP_PKEY_free(key->pkey);

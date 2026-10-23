@@ -106,6 +106,13 @@ pairing_get_public_key(pairing_t *pairing, unsigned char public_key[ED25519_KEY_
 }
 
 int
+pairing_get_private_seed(pairing_t *pairing, unsigned char seed[ED25519_KEY_SIZE])
+{
+    assert(pairing);
+    return ed25519_key_get_raw_private(seed, pairing->ed);
+}
+
+int
 pairing_get_ecdh_secret_key(pairing_session_t *session, unsigned char ecdh_secret[X25519_KEY_SIZE])
 {
     assert(session);
