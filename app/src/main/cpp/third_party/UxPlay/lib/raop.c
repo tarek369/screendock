@@ -18,11 +18,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <limits.h>
 
 #include "raop.h"
 #include "raop_rtp.h"
 #include "pairing.h"
 #include "httpd.h"
+#include "hap_session.h"
 
 #include "global.h"
 #include "fairplay.h"
@@ -98,6 +100,11 @@ struct raop_s {
 
   /* used for setting HLS video language choices */
     char *lang;
+
+    /* AirPlay 2 HAP pairing + encrypted control channel (Android port). Off by default:
+     * when false every request takes the original UxPlay code path. */
+    bool v2_enabled;
+    char device_id[64];
 };
 
 struct raop_conn_s {
@@ -121,6 +128,8 @@ struct raop_conn_s {
     char *client_session_id;
     bool authenticated;
     bool have_active_remote;
+
+    hap_session_t *hap;     /* lazily created on the first HAP pairing request */
 };
 typedef struct raop_conn_s raop_conn_t;
 
@@ -588,6 +597,7 @@ conn_destroy(void *ptr) {
 
     free(conn->local);
     free(conn->remote);
+    hap_session_free(conn->hap);
     pairing_session_destroy(conn->session);
     fairplay_destroy(conn->fairplay);
     if (conn->client_session_id) {
@@ -595,6 +605,50 @@ conn_destroy(void *ptr) {
     }
 
     free(conn);
+}
+
+/* ---- AirPlay 2 HAP transport encryption hooks (see httpd_callbacks_t) ---- */
+static int
+conn_crypto_active(void *ptr) {
+    raop_conn_t *conn = ptr;
+    return conn && hap_is_encrypted(conn->hap);
+}
+
+static int
+conn_decrypt(void *ptr, const unsigned char *in, int in_len, unsigned char **out) {
+    raop_conn_t *conn = ptr;
+    if (!conn || in_len < 0) {
+        return -1;
+    }
+    ssize_t n = hap_decrypt(conn->hap, in, (size_t) in_len, out);
+    return (n < 0 || n > INT_MAX) ? -1 : (int) n;
+}
+
+static int
+conn_encrypt(void *ptr, const unsigned char *in, int in_len, unsigned char **out) {
+    raop_conn_t *conn = ptr;
+    if (!conn || in_len <= 0) {
+        return -1;
+    }
+    ssize_t n = hap_encrypt(conn->hap, in, (size_t) in_len, out);
+    return (n < 0 || n > INT_MAX) ? -1 : (int) n;
+}
+
+/* Pairing finished while building a plaintext response: the response has now been
+ * written, so everything after it on this connection is encrypted. */
+static void
+conn_response_sent(void *ptr) {
+    raop_conn_t *conn = ptr;
+    if (conn && hap_cipher_ready(conn->hap) && !hap_is_encrypted(conn->hap)) {
+        hap_activate(conn->hap);
+        logger_log(conn->raop->logger, LOGGER_INFO, "HAP: control channel is now encrypted");
+    }
+}
+
+void
+raop_set_v2_enabled(raop_t *raop, bool enabled) {
+    assert(raop);
+    raop->v2_enabled = enabled;
 }
 
 raop_t *
@@ -691,6 +745,20 @@ raop_init2(raop_t *raop, int nohold, const char *device_id, const char *keyfile)
         logger_log(raop->logger, LOGGER_INFO,"*** A new Public Key has been created and stored in %s", keyfile);
     }
 
+    /* AirPlay 2 HAP identity = the same persistent Ed25519 key advertised as "pk",
+     * and the device id we advertise (used as the HAP accessory identifier). */
+    snprintf(raop->device_id, sizeof(raop->device_id), "%s", device_id ? device_id : "");
+    {
+        unsigned char seed[ED25519_KEY_SIZE];
+        if (pairing_get_private_seed(pairing, seed) == 0) {
+            hap_set_identity_seed(seed);
+        } else {
+            logger_log(raop->logger, LOGGER_WARNING, "HAP: could not read the pairing key; using a device-id derived identity");
+            hap_set_identity_seed(NULL);
+        }
+        memset(seed, 0, sizeof(seed));
+    }
+
     /* Set HTTP callbacks to our handlers */
     httpd_callbacks_t httpd_cbs;
     memset(&httpd_cbs, 0, sizeof(httpd_cbs));
@@ -698,6 +766,10 @@ raop_init2(raop_t *raop, int nohold, const char *device_id, const char *keyfile)
     httpd_cbs.conn_init = &conn_init;
     httpd_cbs.conn_request = &conn_request;
     httpd_cbs.conn_destroy = &conn_destroy;
+    httpd_cbs.conn_crypto_active = &conn_crypto_active;
+    httpd_cbs.conn_decrypt = &conn_decrypt;
+    httpd_cbs.conn_encrypt = &conn_encrypt;
+    httpd_cbs.conn_response_sent = &conn_response_sent;
 
     /* Initialize the http daemon, (this will take a copy of httpd_cbs) */
     httpd = httpd_init(raop->logger, &httpd_cbs, nohold);

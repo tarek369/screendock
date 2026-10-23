@@ -1,0 +1,7 @@
+Vendored from https://github.com/ejurgensen/pair_ap (MIT, see LICENSE).
+Files copied unmodified except:
+  - pair.h:          + #include <stddef.h>/<sys/types.h>; + pair_server_identity_set()
+  - pair_homekit.c:  + pair_server_identity_set() / server_keypair() override
+Not vendored: pair_fruit.c (replaced by pair_fruit_stub.c), evrtsp/, examples.
+compat/sodium.h + sodium_compat.c: libsodium subset implemented on OpenSSL EVP.
+Build with -DCONFIG_OPENSSL=1 and compat/ on the include path.

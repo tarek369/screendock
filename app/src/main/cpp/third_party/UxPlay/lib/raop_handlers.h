@@ -432,6 +432,44 @@ raop_handler_pairsetup_pin(raop_conn_t *conn,
     http_response_init(response, "RTSP/1.0", 470, "Client Authentication Failure");
 }
 
+/* AirPlay 2 HomeKit-style pairing (TLV8 body). Only reached when the receiver has
+ * v2 enabled AND hap_route_*() classified the request as HAP; legacy pairing is
+ * untouched. Pairing completion starts encryption via conn_response_sent(). */
+static void
+raop_handler_hap_pair(raop_conn_t *conn, http_request_t *request, http_response_t *response,
+                      char **response_data, int *response_datalen, bool is_verify)
+{
+    raop_t *raop = conn->raop;
+    int datalen = 0;
+    const uint8_t *data = (const uint8_t *) http_request_get_data(request, &datalen);
+    uint8_t *out = NULL;
+    size_t out_len = 0;
+
+    if (!conn->hap) {
+        conn->hap = hap_session_new(raop->device_id);
+    }
+    if (!conn->hap || !data || datalen <= 0) {
+        goto failed;
+    }
+    if ((is_verify ? hap_pair_verify(conn->hap, data, (size_t) datalen, &out, &out_len)
+                   : hap_pair_setup(conn->hap, data, (size_t) datalen, &out, &out_len)) < 0 || !out) {
+        goto failed;
+    }
+    http_response_add_header(response, "Content-Type", "application/octet-stream");
+    *response_data = (char *) out;     /* freed by conn_request (malloc'd) */
+    *response_datalen = (int) out_len;
+    if (hap_cipher_ready(conn->hap)) {
+        logger_log(raop->logger, LOGGER_INFO, "HAP %s complete: encrypting the control channel after this response",
+                   is_verify ? "pair-verify" : "transient pair-setup");
+    }
+    return;
+ failed:
+    logger_log(raop->logger, LOGGER_ERR, "HAP %s failed", is_verify ? "pair-verify" : "pair-setup");
+    free(out);
+    http_response_init(response, "RTSP/1.0", 470, "Client Authentication Failure");
+    http_response_set_disconnect(response, 1);
+}
+
 static void
 raop_handler_pairsetup(raop_conn_t *conn,
                        http_request_t *request, http_response_t *response,
@@ -441,6 +479,16 @@ raop_handler_pairsetup(raop_conn_t *conn,
     unsigned char public_key[ED25519_KEY_SIZE];
     //const char *data;
     int datalen = 0;
+
+    if (raop->v2_enabled) {
+        int blen = 0;
+        const uint8_t *body = (const uint8_t *) http_request_get_data(request, &blen);
+        if (hap_route_pair_setup(http_request_get_header(request, "X-Apple-HKP"), body,
+                                 blen > 0 ? (size_t) blen : 0) == HAP_ROUTE_HAP) {
+            raop_handler_hap_pair(conn, request, response, response_data, response_datalen, false);
+            return;
+        }
+    }
 
     //data =
     http_request_get_data(request, &datalen);
@@ -467,6 +515,16 @@ raop_handler_pairverify(raop_conn_t *conn,
 {
     raop_t *raop = conn->raop;
     bool register_check = false;  
+    if (raop->v2_enabled) {
+        int blen = 0;
+        const uint8_t *body = (const uint8_t *) http_request_get_data(request, &blen);
+        if (hap_route_pair_verify(http_request_get_header(request, "X-Apple-HKP"),
+                                  http_request_get_header(request, "X-Apple-PD"), body,
+                                  blen > 0 ? (size_t) blen : 0) == HAP_ROUTE_HAP) {
+            raop_handler_hap_pair(conn, request, response, response_data, response_datalen, true);
+            return;
+        }
+    }
     if (pairing_session_check_handshake_status(conn->session)) {
         if (raop->use_pin) {
             pairing_session_set_setup_status(conn->session);

@@ -60,6 +60,7 @@ struct server_ctx {
     int                     pin_fixed;      /* 0..9999 fixed PIN, -1 = random per pairing */
     bool                    hls_enabled;    /* advertise + accept AirPlay video (HLS) */
     bool                    h265_enabled;   /* advertise H.265 (features bit 42) */
+    bool                    v2_enabled;     /* AirPlay 2 HAP pairing + encrypted RTSP (features 46/48); default OFF */
 };
 
 #define DEFAULT_RECEIVER_NAME "ScreenDock"
@@ -75,6 +76,11 @@ static void apply_feature_flags(struct server_ctx *ctx)
     dnssd_set_airplay_features(ctx->dnssd, 42, ctx->h265_enabled ? 1 : 0);
     dnssd_set_airplay_features(ctx->dnssd, 0, ctx->hls_enabled ? 1 : 0);
     dnssd_set_airplay_features(ctx->dnssd, 4, ctx->hls_enabled ? 1 : 0);
+    /* AirPlay 2 receiver pairing: bit 46 = SupportsHKPairingAndAccessControl,
+     * bit 48 = SupportsCoreUtilsPairingAndEncryption. Only set when v2 is enabled so
+     * the default advertisement is byte-for-byte what it was before. */
+    dnssd_set_airplay_features(ctx->dnssd, 46, ctx->v2_enabled ? 1 : 0);
+    dnssd_set_airplay_features(ctx->dnssd, 48, ctx->v2_enabled ? 1 : 0);
 }
 
 static void free_server_ctx_strings(struct server_ctx *ctx)
@@ -290,6 +296,7 @@ Java_com_cressu_screendock_bridge_NativeBridge_nativeStart(JNIEnv *env, jobject,
         raop_set_plist(ctx->raop, "pin", ctx->pin_fixed >= 0 ? ctx->pin_fixed + 10000 : 0);
     }
     raop_set_plist(ctx->raop, "hls", ctx->hls_enabled ? 1 : 0);
+    raop_set_v2_enabled(ctx->raop, ctx->v2_enabled);
 
     /* 2. Ports: let httpd bind any free TCP port for RAOP/AirPlay control, and
      *    fixed UDP ports for timing/control/data. UxPlay passes 0 = OS-assigned. */
@@ -401,6 +408,18 @@ Java_com_cressu_screendock_bridge_NativeBridge_nativeSetH265Enabled(JNIEnv *, jo
      * yet — the flag is applied at start (previously this silently did nothing). */
     ctx->h265_enabled = (enabled == JNI_TRUE);
     ctx->cb_ctx.h265_enabled = ctx->h265_enabled;
+    apply_feature_flags(ctx);
+    refresh_txt_if_started(ctx);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_cressu_screendock_bridge_NativeBridge_nativeSetAirPlayV2Enabled(JNIEnv *, jobject, jlong handle, jboolean enabled)
+{
+    struct server_ctx *ctx = (struct server_ctx *) handle;
+    if (!ctx) return;
+    /* Cached like the other capability flags: usually called before nativeStart. */
+    ctx->v2_enabled = (enabled == JNI_TRUE);
+    if (ctx->raop) raop_set_v2_enabled(ctx->raop, ctx->v2_enabled);
     apply_feature_flags(ctx);
     refresh_txt_if_started(ctx);
 }

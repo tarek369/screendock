@@ -38,6 +38,7 @@ typedef struct pairing_session_s pairing_session_t;
 
 pairing_t *pairing_init_generate(const char *device_id, const char *keyfile, int *result);
 void pairing_get_public_key(pairing_t *pairing, unsigned char public_key[ED25519_KEY_SIZE]);
+int pairing_get_private_seed(pairing_t *pairing, unsigned char seed[ED25519_KEY_SIZE]); /* Android port: HAP identity */
 
 pairing_session_t *pairing_session_init(pairing_t *pairing);
 void pairing_session_set_setup_status(pairing_session_t *session);

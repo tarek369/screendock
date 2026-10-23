@@ -361,6 +361,14 @@ httpd_remove_connections_by_type(httpd_t *httpd, connection_type_t type) {
     }
 }
 
+static int
+httpd_crypto_active(httpd_t *httpd, http_connection_t *connection)
+{
+    return (httpd->callbacks.conn_crypto_active && httpd->callbacks.conn_decrypt &&
+            httpd->callbacks.conn_encrypt && connection->user_data &&
+            httpd->callbacks.conn_crypto_active(connection->user_data));
+}
+
 static THREAD_RETVAL
 httpd_thread(void *arg)
 {
@@ -530,8 +538,9 @@ httpd_thread(void *arg)
                     /* connection was removed */
                     continue;
                 }
-                if (!memcmp(buffer, http, 8) || !memcmp(buffer, event, 8)) {
-                    http_request_set_reverse(connection->request);  
+                if (!httpd_crypto_active(httpd, connection) &&
+                    (!memcmp(buffer, http, 8) || !memcmp(buffer, event, 8))) {
+                    http_request_set_reverse(connection->request);
                 }
             } else {
                 int ret = recv(connection->socket_fd, buffer, sizeof(buffer), 0);
@@ -564,8 +573,33 @@ httpd_thread(void *arg)
                 continue;
             }
 
+            /* AirPlay 2 HAP: once the control channel is encrypted, the bytes read are
+             * framed ciphertext. Decrypt (buffering partial frames) before parsing. */
+            const char *parse_data = buffer;
+            int parse_len = recv_datalen;
+            unsigned char *plain = NULL;
+            if (httpd_crypto_active(httpd, connection)) {
+                int plain_len = httpd->callbacks.conn_decrypt(connection->user_data,
+                                                              (const unsigned char *) buffer, recv_datalen, &plain);
+                if (plain_len < 0) {
+                    logger_log(httpd->logger, LOGGER_ERR, "httpd: HAP decryption failed on socket %d, closing",
+                               connection->socket_fd);
+                    httpd_remove_connection(httpd, connection, 0);
+                    continue;
+                }
+                if (plain_len == 0) {
+                    free(plain);
+                    logger_log(httpd->logger, LOGGER_DEBUG, "HAP: waiting for the rest of an encrypted frame");
+                    continue;
+                }
+                parse_data = (const char *) plain;
+                parse_len = plain_len;
+            }
+
             /* Parse HTTP request from data read from connection */
-            http_request_add_data(connection->request, buffer, recv_datalen);
+            http_request_add_data(connection->request, parse_data, parse_len);
+            free(plain);
+            plain = NULL;
             if (http_request_has_error(connection->request)) {
                 char *data = utils_data_to_text((const char *) buffer, recv_datalen);
                 logger_log(httpd->logger, LOGGER_ERR, "httpd error in parsing: %s\n%s\n%s",
@@ -602,6 +636,21 @@ httpd_thread(void *arg)
                     /* Get response data and datalen */
                     data = http_response_get_data(response, &datalen);
 
+                    unsigned char *cipher_out = NULL;
+                    if (httpd_crypto_active(httpd, connection)) {
+                        int clen = httpd->callbacks.conn_encrypt(connection->user_data,
+                                                                 (const unsigned char *) data, datalen, &cipher_out);
+                        if (clen < 0 || !cipher_out) {
+                            logger_log(httpd->logger, LOGGER_ERR, "httpd: HAP encryption failed, closing connection");
+                            free(cipher_out);
+                            http_response_destroy(response);
+                            httpd_remove_connection(httpd, connection, 0);
+                            continue;
+                        }
+                        data = (const char *) cipher_out;
+                        datalen = clen;
+                    }
+
                     written = 0;
                     while (written < datalen) {
                         ret = send(connection->socket_fd, data+written, datalen-written, HTTPD_SEND_FLAGS);
@@ -610,6 +659,10 @@ httpd_thread(void *arg)
                             break;
                         }
                         written += ret;
+                    }
+                    free(cipher_out);
+                    if (httpd->callbacks.conn_response_sent) {
+                        httpd->callbacks.conn_response_sent(connection->user_data);
                     }
 
                     if (http_response_get_disconnect(response)) {

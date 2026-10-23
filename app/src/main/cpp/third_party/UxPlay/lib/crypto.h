@@ -87,6 +87,7 @@ typedef struct ed25519_key_s ed25519_key_t;
 ed25519_key_t *ed25519_key_generate(const char *device_id, const char * keyfile, int * result);
 ed25519_key_t *ed25519_key_from_raw(const unsigned char data[ED25519_KEY_SIZE]);
 void ed25519_key_get_raw(unsigned char data[ED25519_KEY_SIZE], const ed25519_key_t *key);
+int ed25519_key_get_raw_private(unsigned char data[ED25519_KEY_SIZE], const ed25519_key_t *key); /* Android port: 0 ok, -1 error */
 /*
  * Note that this function does *not copy* the OpenSSL key but only the wrapper. The internal OpenSSL key is still the
  * same. Only the reference count is increased so destroying both the original and the copy is allowed.

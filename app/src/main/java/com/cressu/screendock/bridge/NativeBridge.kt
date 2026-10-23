@@ -87,6 +87,14 @@ object NativeBridge {
     fun setHlsEnabled(handle: Long, enabled: Boolean) = nativeSetHlsEnabled(handle, enabled)
 
     /**
+     * Enable AirPlay 2 HomeKit-style (HAP) pairing + encrypted RTSP control channel. When true the
+     * receiver advertises feature bits 46 and 48 and answers TLV8 /pair-setup (transient, PIN 3939)
+     * and /pair-verify; legacy AirPlay 1 pairing keeps working. Default false (unchanged behaviour).
+     * Call before [start] (or any time; the TXT records are refreshed if already running).
+     */
+    fun setAirPlayV2Enabled(handle: Long, enabled: Boolean) = nativeSetAirPlayV2Enabled(handle, enabled)
+
+    /**
      * Push the local video player's state; native answers the sender's ~1 Hz /playback-info from
      * this snapshot. Call every ~250 ms while a video plays and on every state change.
      * @param durationSec total seconds (0 if unknown yet, NEVER negative while playing)
@@ -153,6 +161,7 @@ object NativeBridge {
 
     @JvmStatic private external fun nativeSetPin(handle: Long, pin: String?)
     @JvmStatic private external fun nativeSetHlsEnabled(handle: Long, enabled: Boolean)
+    @JvmStatic private external fun nativeSetAirPlayV2Enabled(handle: Long, enabled: Boolean)
     @JvmStatic private external fun nativeUpdateHlsPlaybackInfo(
         handle: Long, durationSec: Double, positionSec: Double, rate: Float, ready: Boolean,
     )

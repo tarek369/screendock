@@ -26,4 +26,54 @@ echo "== dmap parser"
 $CC $FLAGS -I"$OUT" -I"$HERE" "$HERE/test_dmap.c" -o "$OUT/test_dmap"
 "$OUT/test_dmap" || status=1
 
+echo "== hap: pair_ap transient pairing + encrypted RTSP (real raop/httpd on loopback)"
+OSSL="${OPENSSL_PREFIX:-}"
+if [ -z "$OSSL" ] && command -v brew >/dev/null 2>&1; then OSSL="$(brew --prefix openssl@3 2>/dev/null || true)"; fi
+if [ -z "$OSSL" ] || [ ! -f "$OSSL/include/openssl/evp.h" ]; then
+    echo "SKIP/FAIL: host OpenSSL 3 not found (set OPENSSL_PREFIX)" >&2
+    status=1
+else
+    TP="$CPP/third_party"
+    PLIST="$TP/libplist"
+    PAIR="$TP/pair_ap"
+    HB="$OUT/hapbuild"
+    rm -rf "$HB"; mkdir -p "$HB"
+    DEFS="-DNOHOLD -DSTANDALONE -D__STDC_CONSTANT_MACROS -DTARGET_POSIX -D_LINUX -DPLIST_210 -DPLIST_230 -DOPENSSL_API_COMPAT=0x10101000L -DTARGET_RT_LITTLE_ENDIAN=1"
+    INC="-I$LIB -I$LIB/llhttp -I$LIB/playfair -I$PLIST/include -I$PLIST/src -I$PLIST/libcnary/include -I$PAIR -I$OSSL/include"
+    PDEFS='-D__LITTLE_ENDIAN__=1 -DPACKAGE_VERSION="2.7.0" -DHAVE_STRDUP=1 -DHAVE_STRNDUP=1 -DHAVE_STRERROR=1 -DHAVE_GMTIME_R=1 -DHAVE_LOCALTIME_R=1 -DHAVE_TIMEGM=1 -DHAVE_STRPTIME=1 -DHAVE_MEMMEM=1 -DHAVE_TM_TM_GMTOFF=1 -DHAVE_TM_TM_ZONE=1'
+    QUIET="-w -O1 -g -fsanitize=address,undefined"
+    SRCS="$LIB/airplay_video.c $LIB/byteutils.c $LIB/compat.c $LIB/crypto.c $LIB/fairplay_playfair.c $LIB/hap_session.c \
+        $LIB/hls_playlist.c $LIB/http_request.c $LIB/http_response.c $LIB/httpd.c $LIB/logger.c $LIB/mirror_buffer.c \
+        $LIB/netutils.c $LIB/pairing.c $LIB/raop.c $LIB/raop_buffer.c $LIB/raop_ntp.c $LIB/raop_rtp.c $LIB/raop_rtp_mirror.c \
+        $LIB/srp.c $LIB/utils.c $LIB/llhttp/api.c $LIB/llhttp/http.c $LIB/llhttp/llhttp.c \
+        $LIB/playfair/playfair.c $LIB/playfair/omg_hax.c $LIB/playfair/hand_garble.c $LIB/playfair/modified_md5.c $LIB/playfair/sap_hash.c"
+    PAIRSRCS="$PAIR/pair.c $PAIR/pair-tlv.c $PAIR/pair_homekit.c $PAIR/pair_fruit_stub.c"
+    PLISTSRCS="$PLIST/src/base64.c $PLIST/src/bytearray.c $PLIST/src/hashtable.c $PLIST/src/ptrarray.c $PLIST/src/time64.c \
+        $PLIST/src/common.c $PLIST/src/xplist.c $PLIST/src/bplist.c $PLIST/src/jsmn.c $PLIST/src/jplist.c $PLIST/src/oplist.c \
+        $PLIST/src/out-default.c $PLIST/src/out-plutil.c $PLIST/src/out-limd.c $PLIST/src/plist.c \
+        $PLIST/libcnary/node.c $PLIST/libcnary/node_list.c"
+    OBJS=""
+    for f in $SRCS $PAIRSRCS "$PAIR/compat/sodium_compat.c" $PLISTSRCS; do
+        o="$HB/$(echo "$f" | cksum | cut -d' ' -f1)_$(basename "$f").o"
+        case "$f" in
+            */libplist/*) EXTRA="$PDEFS" ;;
+            */pair_ap/compat/*) EXTRA="-I$PAIR/compat" ;;
+            */pair_ap/*) EXTRA="-DCONFIG_OPENSSL=1 -I$PAIR/compat" ;;
+            *) EXTRA="$DEFS" ;;
+        esac
+        # shellcheck disable=SC2086
+        $CC -std=gnu11 $QUIET $EXTRA $INC -c "$f" -o "$o" &
+        OBJS="$OBJS $o"
+        # throttle to ~8 parallel compiles
+        [ "$(jobs -r | wc -l)" -ge 8 ] && wait
+    done
+    wait
+    for o in $OBJS; do [ -f "$o" ] || { echo "hap build failed: missing $o" >&2; exit 2; }; done
+    # dnssd.c is replaced by android_dnssd_shim.c on device; raop's /info path (never taken here) is the only user.
+    # shellcheck disable=SC2086
+    $CC -std=gnu11 $FLAGS $DEFS $INC -I"$HERE" "$HERE/test_hap.c" $OBJS -L"$OSSL/lib" -lcrypto -lm -lpthread \
+        -Wl,-undefined,dynamic_lookup -o "$OUT/test_hap"
+    "$OUT/test_hap" || status=1
+fi
+
 exit $status

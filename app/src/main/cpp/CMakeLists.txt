@@ -112,6 +112,24 @@ endif()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__ANDROID_API__=24")
 add_subdirectory(third_party/openssl-cmake)
 
+# ----------------------------------------------------------------- pair_ap ---
+# ejurgensen/pair_ap (MIT): AirPlay 2 HomeKit pairing (SRP, HKDF, ChaCha20-Poly1305
+# framing). libsodium is replaced by a small shim over OpenSSL EVP (compat/), so we
+# add no new native dependency. Must come after add_subdirectory(openssl-cmake).
+set(PAIR_AP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party/pair_ap)
+add_library(pair_ap STATIC
+    ${PAIR_AP_DIR}/pair.c
+    ${PAIR_AP_DIR}/pair-tlv.c
+    ${PAIR_AP_DIR}/pair_homekit.c
+    ${PAIR_AP_DIR}/pair_fruit_stub.c
+    ${PAIR_AP_DIR}/compat/sodium_compat.c
+)
+target_include_directories(pair_ap PUBLIC ${PAIR_AP_DIR})
+target_include_directories(pair_ap PRIVATE ${PAIR_AP_DIR}/compat)
+target_compile_definitions(pair_ap PRIVATE CONFIG_OPENSSL=1 OPENSSL_API_COMPAT=0x10101000L)
+target_compile_options(pair_ap PRIVATE -Wno-deprecated-declarations)
+target_link_libraries(pair_ap PUBLIC crypto)
+
 # --------------------------------------------------------- UxPlay airplay core
 # Keep ALL of lib/*.c (including dnssd.c, which is backend-agnostic: it holds
 # the public dnssd_init/destroy/get_name/set_pk/etc. and delegates to a backend
@@ -134,7 +152,7 @@ target_compile_definitions(airplay_core PUBLIC
     OPENSSL_API_COMPAT=0x10101000L
     TARGET_RT_LITTLE_ENDIAN=1
 )
-target_link_libraries(airplay_core PUBLIC playfair llhttp plist-2.0 crypto log)
+target_link_libraries(airplay_core PUBLIC playfair llhttp plist-2.0 pair_ap crypto log)
 
 # -------------------------------------------------------------------- ALAC ---
 # Apple Lossless decoder (software fallback for RAOP audio when no hardware ALAC).

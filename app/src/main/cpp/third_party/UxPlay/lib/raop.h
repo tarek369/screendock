@@ -18,6 +18,7 @@
 #ifndef RAOP_H
 #define RAOP_H
 
+#include <stdbool.h>
 #include "dnssd.h"
 #include "stream.h"
 #include "raop_ntp.h"
@@ -139,6 +140,7 @@ RAOP_API int raop_start_httpd(raop_t *raop, unsigned short *port);
 RAOP_API int raop_is_running(raop_t *raop);
 RAOP_API void raop_stop_httpd(raop_t *raop);
 RAOP_API void raop_set_dnssd(raop_t *raop, dnssd_t *dnssd);
+RAOP_API void raop_set_v2_enabled(raop_t *raop, bool enabled);   /* AirPlay 2 HAP pairing + encrypted RTSP (default off) */
 RAOP_API void raop_destroy(raop_t *raop);
 RAOP_API void raop_remove_known_connections(raop_t * raop);
 RAOP_API void raop_remove_hls_connections(raop_t * raop);
