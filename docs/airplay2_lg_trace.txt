@@ -1,0 +1,274 @@
+AirPlay 2 URL-playback trace: tools/airplay2_test_sender (pyatv 0.18.0) -> LG webOS TV 55UK6470PLC
+(AirTunes/377.25.06, AirPlay SDK 2.3.1-f.1, features=0x7F8AD0,0x38BCB46), captured 2026-10-23.
+All messages are PLAINTEXT as pyatv builds them (before ChaCha20-Poly1305 framing) and AFTER decryption of
+replies. Key material (pair-setup TLV contents, SETUP 'shk') is not logged: TLVs show type(length) only.
+Serial number redacted. CSeq numbering is the sender's.
+
+KEY RESULT: pairing, SETUP, RECORD and /feedback succeed; POST /play (both HTTP/1.1 and RTSP/1.0 framing)
+is answered 404 Not Found. The LG does NOT implement the pyatv/Apple-TV style /play flow.
+
+===== PART 1: full sequence, POST /play framed as HTTP/1.1 (pyatv default) =====
+23:13:06.449 airplay2.sender: # target=[LG] webOS TV UK6470PLC (192.168.20.121:7000) pairing=transient url=https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_4x3/bipbop_4x3_variant.m3u8
+23:13:06.463 pyatv.protocols.airplay.auth: Setting up new AirPlay Pair-Verify procedure with type AuthenticationType.Transient
+23:13:06.475 airplay2.trace: >> POST /pair-pin-start HTTP/1.1
+    User-Agent: AirPlay/320.20
+    Connection: keep-alive
+    X-Apple-HKP: 4
+    Content-Type: application/octet-stream
+    BODY: (no body)
+23:13:06.481 airplay2.trace: << HTTP 200 OK
+    Server: AirTunes/377.25.06
+    BODY: (no body)
+23:13:06.481 airplay2.trace: >> POST /pair-setup HTTP/1.1
+    User-Agent: AirPlay/320.20
+    Connection: keep-alive
+    X-Apple-HKP: 4
+    Content-Type: application/octet-stream
+    BODY: TLV8[Method(1)=00, SeqNo(1)=01, Flags(1)=10]
+23:13:06.538 airplay2.trace: << HTTP 200 OK
+    Content-Length: 409
+    Content-Type: application/octet-stream
+    Server: AirTunes/377.25.06
+    BODY: TLV8[SeqNo(1)=02, Salt(16)=<16B>, PublicKey(255)=<255B>, PublicKey(129)=<129B>]
+23:13:06.574 airplay2.trace: >> POST /pair-setup HTTP/1.1
+    User-Agent: AirPlay/320.20
+    Connection: keep-alive
+    X-Apple-HKP: 4
+    Content-Type: application/octet-stream
+    BODY: TLV8[SeqNo(1)=03, PublicKey(255)=<255B>, PublicKey(129)=<129B>, Proof(64)=<64B>]
+23:13:06.628 airplay2.trace: << HTTP 200 OK
+    Content-Length: 69
+    Content-Type: application/octet-stream
+    Server: AirTunes/377.25.06
+    BODY: TLV8[SeqNo(1)=04, Proof(64)=<64B>]
+23:13:06.629 airplay2.trace: >> SETUP rtsp://192.168.20.197/830007294 RTSP/1.0
+    CSeq: 0
+    DACP-ID: B1ED567E27EC1B2A
+    Active-Remote: 1747884998
+    Client-Instance: B1ED567E27EC1B2A
+    Content-Type: application/x-apple-binary-plist
+    BODY: plist {'deviceID': 'AA:BB:CC:DD:EE:FF', 'groupContainsGroupLeader': False, 'isMultiSelectAirPlay': True, 'macAddress': 'AA:BB:CC:DD:EE:FF', 'model': 'iPhone14,3', 'name': 'pyatv', 'osBuildVersion': '20F66', 'osName': 'iPhone OS', 'osVersion': '16.5', 'senderSupportsRelay': False, 'sessionUUID': '0B4F8F26-9C67-4E09-A14A-82299B36F3A9', 'sourceVersion': '690.7.1', 'statsCollectionEnabled': False, 'timingPort': 63765, 'timingProtocol': 'NTP'}
+23:13:06.639 airplay2.trace: << RTSP 200 OK
+    Content-Length: 94
+    Content-Type: application/x-apple-binary-plist
+    Server: AirTunes/377.25.06
+    CSeq: 0
+    BODY: plist {'uiPreloaded': True, 'eventPort': 37477, 'timingPort': 55903}
+23:13:06.639 pyatv.protocols.raop.protocols.airplayv2: Setup response body: {'uiPreloaded': True, 'eventPort': 37477, 'timingPort': 55903}
+23:13:06.645 airplay2.trace: >> RECORD rtsp://192.168.20.197/830007294 RTSP/1.0
+    CSeq: 1
+    DACP-ID: B1ED567E27EC1B2A
+    Active-Remote: 1747884998
+    Client-Instance: B1ED567E27EC1B2A
+    BODY: (no body)
+23:13:06.645 pyatv.protocols.raop.protocols.airplayv2: Starting feedback task
+23:13:06.646 airplay2.trace: >> POST /feedback RTSP/1.0
+    CSeq: 2
+    DACP-ID: B1ED567E27EC1B2A
+    Active-Remote: 1747884998
+    Client-Instance: B1ED567E27EC1B2A
+    BODY: (no body)
+23:13:06.656 airplay2.trace: << RTSP 200 OK
+    Server: AirTunes/377.25.06
+    CSeq: 1
+    BODY: (no body)
+23:13:06.657 airplay2.trace: >> POST /play HTTP/1.1
+    User-Agent: AirPlay/550.10
+    X-Apple-ProtocolVersion: 1
+    X-Apple-Stream-ID: 1
+    X-Apple-Session-ID: dc145c4e-fcb6-4f58-aad8-6123d67cf7ec
+    Content-Type: application/x-apple-binary-plist
+    BODY: plist {'Content-Location': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_4x3/bipbop_4x3_variant.m3u8', 'SenderMACAddress': 'AA:BB:CC:DD:EE:FF', 'Start-Position-Seconds': 0.0, 'clientBundleID': 'dev.pyatv.GPU', 'clientProcName': 'dev.pyatv.GPU', 'mediaType': 'file', 'mightSupportStorePastisKeyRequests': True, 'model': 'iPhone14,3', 'osBuildVersion': '20G1116', 'playbackRestrictions': 0, 'rate': 1.0, 'streamType': 1, 'uuid': 'dc145c4e-fcb6-4f58-aad8-6123d67cf7ec', 'volume': 1.0}
+23:13:06.657 airplay2.trace: << RTSP 200 OK
+    Server: AirTunes/377.25.06
+    CSeq: 2
+    BODY: (no body)
+23:13:06.666 airplay2.trace: << HTTP 404 Not Found
+    Content-Length: 0
+    Server: AirTunes/377.25.06
+    BODY: (no body)
+23:13:06.666 airplay2.sender: # POST /play -> 404 Not Found
+
+===== PART 2: same, POST /play framed as RTSP/1.0 (pairing/SETUP/RECORD identical, shown from /play) =====
+23:13:13.052 airplay2.trace: >> POST /play RTSP/1.0
+    CSeq: 3
+    DACP-ID: 7CE0AFFED89955EC
+    Active-Remote: 4128483763
+    Client-Instance: 7CE0AFFED89955EC
+    User-Agent: AirPlay/550.10
+    X-Apple-ProtocolVersion: 1
+    X-Apple-Stream-ID: 1
+    X-Apple-Session-ID: da11c3d3-9f5f-4d88-ae24-374a30aed869
+    Content-Type: application/x-apple-binary-plist
+    BODY: plist {'Content-Location': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_4x3/bipbop_4x3_variant.m3u8', 'SenderMACAddress': 'AA:BB:CC:DD:EE:FF', 'Start-Position-Seconds': 0.0, 'clientBundleID': 'dev.pyatv.GPU', 'clientProcName': 'dev.pyatv.GPU', 'mediaType': 'file', 'mightSupportStorePastisKeyRequests': True, 'model': 'iPhone14,3', 'osBuildVersion': '20G1116', 'playbackRestrictions': 0, 'rate': 1.0, 'streamType': 1, 'uuid': 'da11c3d3-9f5f-4d88-ae24-374a30aed869', 'volume': 1.0}
+23:13:13.052 airplay2.trace: << RTSP 200 OK
+    Server: AirTunes/377.25.06
+    CSeq: 2
+    BODY: (no body)
+23:13:13.058 airplay2.trace: << RTSP 404 Not Found
+    Content-Length: 0
+    Server: AirTunes/377.25.06
+    CSeq: 3
+    BODY: (no body)
+23:13:13.058 airplay2.sender: # POST /play -> 404 Not Found
+
+===== PART 3: route probe after pair+SETUP+RECORD (see 'probe' subcommand), shown from first probe =====
+23:13:19.996 airplay2.trace: >> GET /info RTSP/1.0
+    CSeq: 2
+    DACP-ID: 75B79107323476ED
+    Active-Remote: 1433441618
+    Client-Instance: 75B79107323476ED
+    BODY: (no body)
+23:13:20.017 airplay2.trace: << RTSP 200 OK
+    Content-Length: 1276
+    Content-Type: application/x-apple-binary-plist
+    Server: AirTunes/377.25.06
+    CSeq: 2
+    BODY: plist {'sdk': 'AirPlay;2.3.1-f.1', 'pi': 'D9:F6:3D:AC:AF:7E', 'firmwareRevision': '05.50.70', 'manufacturer': 'LG Electronics', 'audioLatencies': [{'inputLatencyMicros': 0, 'type': 100, 'outputLatencyMicros': 0}, {'inputLatencyMicros': 0, 'audioType': 'default', 'type': 100, 'outputLatencyMicros': 0}, {'inputLatencyMicros': 0, 'audioType': 'media', 'type': 100, 'outputLatencyMicros': 0}, {'inputLatencyMicros': 0, 'audioType': 'telephony', 'type': 100, 'outputLatencyMicros': 0}, {'inputLatencyMicros': 0, 'audioType': 'speechRecognition', 'type': 100, 'outputLatencyMicros': 0}, {'inputLatencyMicros': 0, 'audioType': 'alert', 'type': 100, 'outputLatencyMicros': 0}, {'inputLatencyMicros': 0, 'type': 101, 'outputLatencyMicros': 0}, {'inputLatencyMicros': 0, 'audioType': 'default', 'type': 101, 'outputLatencyMicros': 0}, {'inputLatencyMicros': 0, 'audioType': 'media', 'type': 102, 'outputLatencyMicros': 0}], 'keepAliveLowPower': True, 'firmwareBuildDate': 'Apr 29 2025', 'model': '55UK6470PLC', 'playbackCapabilities': {'supportsUIForAudioOnlyContent': False, 'fairPlayCDMPluginVersion': '0.0', 'supportsFPSSecureStop': True, 'webAppVersion': '19.80.27', 'fairPlayLibVersion': '0.0', 'webEngineVersion': '1.0', 'hlsJSVersion': '4.0.16', 'webEngineName': 'Stub'}, 'serialNumber': '<redacted>', 'nameIsFactoryDefault': True, 'hardwareRevision': 'dv1', 'keepAliveSendStatsAsBody': True, 'statusFlags': 580, 'deviceID': 'D9:F6:3D:AC:AF:7E', 'displays': [{'widthPixels': 1920, 'heightPixels': 1080, 'uuid': '10B7520E-11AD-4AEA-9D27-9E853690788F', 'maxFPS': 60}], 'build': '25.06', 'PTPInfo': 'AirPlay;2.3.1-f.1', 'protocolVersion': '1.1', 'sourceVersion': '377.25.06', 'features': 255521305393072848, 'volumeControlType': 3, 'name': '[LG] webOS TV UK6470PLC'}
+23:13:20.017 airplay2.sender: # GET   /info            RTSP/1.0 -> 200 OK
+23:13:20.017 airplay2.trace: >> POST /play RTSP/1.0
+    CSeq: 3
+    DACP-ID: 75B79107323476ED
+    Active-Remote: 1433441618
+    Client-Instance: 75B79107323476ED
+    Content-Type: application/x-apple-binary-plist
+    BODY: plist {'Content-Location': 'http://x/y.m3u8'}
+23:13:20.022 airplay2.trace: << RTSP 404 Not Found
+    Content-Length: 0
+    Server: AirTunes/377.25.06
+    CSeq: 3
+    BODY: (no body)
+23:13:20.022 airplay2.sender: # POST  /play            RTSP/1.0 -> 404 Not Found
+23:13:20.022 airplay2.trace: >> POST /reverse HTTP/1.1
+    CSeq: 4
+    DACP-ID: 75B79107323476ED
+    Active-Remote: 1433441618
+    Client-Instance: 75B79107323476ED
+    BODY: (no body)
+23:13:20.027 airplay2.trace: << HTTP 404 Not Found
+    Content-Length: 0
+    Server: AirTunes/377.25.06
+    CSeq: 4
+    BODY: (no body)
+23:13:20.027 airplay2.sender: # POST  /reverse         HTTP/1.1 -> 404 Not Found
+23:13:20.027 airplay2.trace: >> POST /fp-setup RTSP/1.0
+    CSeq: 5
+    DACP-ID: 75B79107323476ED
+    Active-Remote: 1433441618
+    Client-Instance: 75B79107323476ED
+    BODY: (no body)
+23:13:20.033 airplay2.trace: << RTSP 404 Not Found
+    Content-Length: 0
+    Server: AirTunes/377.25.06
+    CSeq: 5
+    BODY: (no body)
+23:13:20.033 airplay2.sender: # POST  /fp-setup        RTSP/1.0 -> 404 Not Found
+23:13:20.033 airplay2.trace: >> GET /playback-info RTSP/1.0
+    CSeq: 6
+    DACP-ID: 75B79107323476ED
+    Active-Remote: 1433441618
+    Client-Instance: 75B79107323476ED
+    BODY: (no body)
+23:13:20.038 airplay2.trace: << RTSP 404 Not Found
+    Content-Length: 0
+    Server: AirTunes/377.25.06
+    CSeq: 6
+    BODY: (no body)
+23:13:20.038 airplay2.sender: # GET   /playback-info   RTSP/1.0 -> 404 Not Found
+23:13:20.038 airplay2.trace: >> POST /stop RTSP/1.0
+    CSeq: 7
+    DACP-ID: 75B79107323476ED
+    Active-Remote: 1433441618
+    Client-Instance: 75B79107323476ED
+    BODY: (no body)
+23:13:20.043 airplay2.trace: << RTSP 404 Not Found
+    Content-Length: 0
+    Server: AirTunes/377.25.06
+    CSeq: 7
+    BODY: (no body)
+23:13:20.043 airplay2.sender: # POST  /stop            RTSP/1.0 -> 404 Not Found
+23:13:20.043 airplay2.trace: >> GET /server-info HTTP/1.1
+    CSeq: 8
+    DACP-ID: 75B79107323476ED
+    Active-Remote: 1433441618
+    Client-Instance: 75B79107323476ED
+    BODY: (no body)
+23:13:20.050 airplay2.trace: << HTTP 404 Not Found
+    Content-Length: 0
+    Server: AirTunes/377.25.06
+    CSeq: 8
+    BODY: (no body)
+23:13:20.050 airplay2.sender: # GET   /server-info     HTTP/1.1 -> 404 Not Found
+23:13:20.051 airplay2.trace: >> POST /command RTSP/1.0
+    CSeq: 9
+    DACP-ID: 75B79107323476ED
+    Active-Remote: 1433441618
+    Client-Instance: 75B79107323476ED
+    Content-Type: application/x-apple-binary-plist
+    BODY: plist {}
+23:13:20.055 airplay2.trace: << RTSP 400 Bad Request
+    Content-Length: 0
+    Server: AirTunes/377.25.06
+    CSeq: 9
+    BODY: (no body)
+23:13:20.056 airplay2.sender: # POST  /command         RTSP/1.0 -> 400 Bad Request
+23:13:20.056 airplay2.trace: >> POST /action RTSP/1.0
+    CSeq: 10
+    DACP-ID: 75B79107323476ED
+    Active-Remote: 1433441618
+    Client-Instance: 75B79107323476ED
+    Content-Type: application/x-apple-binary-plist
+    BODY: plist {'type': 'playlistInsert'}
+23:13:20.060 airplay2.trace: << RTSP 404 Not Found
+    Content-Length: 0
+    Server: AirTunes/377.25.06
+    CSeq: 10
+    BODY: (no body)
+23:13:20.060 airplay2.sender: # POST  /action          RTSP/1.0 -> 404 Not Found
+23:13:20.060 airplay2.trace: >> GET /scrub RTSP/1.0
+    CSeq: 11
+    DACP-ID: 75B79107323476ED
+    Active-Remote: 1433441618
+    Client-Instance: 75B79107323476ED
+    BODY: (no body)
+23:13:20.065 airplay2.trace: << RTSP 404 Not Found
+    Content-Length: 0
+    Server: AirTunes/377.25.06
+    CSeq: 11
+    BODY: (no body)
+23:13:20.065 airplay2.sender: # GET   /scrub           RTSP/1.0 -> 404 Not Found
+23:13:20.065 airplay2.trace: >> OPTIONS rtsp://192.168.20.197/3467661706 RTSP/1.0
+    CSeq: 12
+    DACP-ID: 75B79107323476ED
+    Active-Remote: 1433441618
+    Client-Instance: 75B79107323476ED
+    BODY: (no body)
+23:13:20.069 airplay2.trace: << RTSP 200 OK
+    Public: ANNOUNCE, SETUP, RECORD, PAUSE, FLUSH, FLUSHBUFFERED, TEARDOWN, OPTIONS, POST, GET, PUT
+    Server: AirTunes/377.25.06
+    CSeq: 12
+    BODY: (no body)
+23:13:20.069 airplay2.sender: # OPTIONS rtsp://192.168.2 RTSP/1.0 -> 200 OK
+
+===== PART 4: SAME SENDER vs ScreenDock (OnePlus Pad 3) TODAY =====
+23:13:33.257 airplay2.sender: # target=192.168.20.209:38545 (192.168.20.209:38545) pairing=transient url=https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_4x3/bipbop_4x3_variant.m3u8
+23:13:33.389 pyatv.protocols.airplay.auth: Setting up new AirPlay Pair-Verify procedure with type AuthenticationType.Transient
+23:13:33.450 airplay2.trace: >> POST /pair-pin-start HTTP/1.1
+    User-Agent: AirPlay/320.20
+    Connection: keep-alive
+    X-Apple-HKP: 4
+    Content-Type: application/octet-stream
+    BODY: (no body)
+23:13:33.457 airplay2.trace: << HTTP 200 OK
+    Server: AirTunes/220.68
+    BODY: (no body)
+23:13:33.457 airplay2.trace: >> POST /pair-setup HTTP/1.1
+    User-Agent: AirPlay/320.20
+    Connection: keep-alive
+    X-Apple-HKP: 4
+    Content-Type: application/octet-stream
+    BODY: TLV8[Method(1)=00, SeqNo(1)=01, Flags(1)=10]
+23:13:33.463 airplay2.trace: << HTTP 200 OK
+    Server: AirTunes/220.68
+    BODY: (no body)
+23:13:33.463 airplay2.sender: # FAILED during pairing/setup/play: InvalidResponseError: got unexpected response: 
