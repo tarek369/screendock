@@ -371,7 +371,11 @@ static void cb_video_reset(void *cls, reset_type_t t)
     }
 }
 
-/* Must NOT block: this runs on UxPlay's single httpd thread, which also has to
+/* start_position: >= 0 absolute seconds; < 0 = FRACTION of the duration encoded as -fraction
+ * (AirPlay Video V2 /play "Start-Position", see UxPlay/lib/video_v2.h). Kotlin resolves it
+ * once the duration is known (StartPosition.decode).
+ *
+ * Must NOT block: this runs on UxPlay's single httpd thread, which also has to
  * serve the local player's GET /master.m3u8. Until Kotlin pushes the first
  * playback info, playback-info reports ready=false / duration 0. */
 static void cb_on_video_play(void *cls, const char *location, float start_position)
@@ -439,9 +443,10 @@ static void cb_on_video_acquire_playback_info(void *cls, playback_info_t *info)
     info->position = pos < 0 ? -1.0 : pos;
     info->seek_start = 0.0;
     info->seek_duration = dur > 0 ? dur : 0.0;
-    info->playback_buffer_empty = false;
-    info->playback_buffer_full = true;
-    info->playback_likely_to_keep_up = true;
+    /* Kotlin pushes only "ready" (STATE_READY); STATE_BUFFERING arrives as ready=false. */
+    info->playback_buffer_empty = !info->ready_to_play;
+    info->playback_buffer_full = info->ready_to_play;
+    info->playback_likely_to_keep_up = info->ready_to_play;
 }
 
 /* Sender removed the item (e.g. ad boundary or navigated away). Return the
