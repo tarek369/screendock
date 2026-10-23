@@ -59,6 +59,10 @@ interface RaopCallbackHandler {
      * player fetches directly. The URL is valid only while the sender's session is alive and is
      * plain http, so the app must permit cleartext to localhost (network security config).
      *
+     * AirPlay Video V2 (RTSP connection) instead passes the sender's REAL url (https HLS/progressive,
+     * or an http URL on the sender's LAN). [startPositionSec] >= 0 is seconds; < 0 is a FRACTION of
+     * the duration encoded as -fraction (decode with `StartPosition.decode`).
+     *
      * Must return quickly (post to your player thread). Native then waits up to 10 s for the
      * player to push its first ready state via [NativeBridge.updateHlsPlaybackInfo] so the sender
      * gets a real duration. Runs on the httpd thread.

@@ -667,6 +667,11 @@ class AirPlayService : Service(), RaopCallbackHandler {
             NativeBridge.updateHlsPlaybackInfo(activeHandle, -1.0, 0.0, 0f, false)
             return
         }
+        if (!VideoSource.isAllowed(location)) {
+            Log.w(TAG, "refusing video URL: not https and not a local host")
+            NativeBridge.updateHlsPlaybackInfo(activeHandle, -1.0, 0.0, 0f, false)
+            return
+        }
         hls.play(location, startPositionSec)
         setMode(MediaMode.VIDEO)
     }

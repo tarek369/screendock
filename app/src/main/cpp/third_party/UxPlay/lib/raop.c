@@ -31,6 +31,7 @@
 #include "compat.h"
 #include "raop_rtp_mirror.h"
 #include "raop_ntp.h"
+#include "video_v2.h"
 
 
 /* libplist-2.3.0  API change */
@@ -90,7 +91,10 @@ struct raop_s {
     /* activate support for HLS live streaming */
     bool hls_support;
     bool hls_pending;
-  
+
+    /* AirPlay Video V2 commands arriving on the RTSP connection (see video_v2.h) */
+    video_v2_t video_v2;
+
     /* used in digest authentication */
     char *nonce;
     char *random_pw;
@@ -126,6 +130,15 @@ typedef struct raop_conn_s raop_conn_t;
 
 #include "raop_handlers.h"
 #include "http_handlers.h"
+
+/* AirPlay Video V2 commands on a RAOP (RTSP/1.0, CSeq) connection: see video_v2.h */
+static void
+raop_handler_video_v2(raop_conn_t *conn, http_request_t *request, http_response_t *response,
+                      char **response_data, int *response_datalen) {
+    raop_t *raop = conn->raop;
+    video_v2_dispatch(&raop->video_v2, &raop->callbacks, raop->logger, raop->hls_support,
+                      request, response, response_data, response_datalen);
+}
 
 static void *
 conn_init(void *opaque, unsigned char *local, int locallen, unsigned char *remote, int remotelen, unsigned int zone_id) {
@@ -418,7 +431,10 @@ conn_request(void *ptr, http_request_t *request, http_response_t **response) {
 
     logger_log(raop->logger, LOGGER_DEBUG, "Handling request %s with URL %s", method, url);
     raop_handler_t handler = NULL;
-    if (!hls_request && !strcmp(protocol, "RTSP/1.0")) {
+    if (!hls_request && conn->connection_type == CONNECTION_TYPE_RAOP && !strcmp(protocol, "RTSP/1.0") &&
+        video_v2_route(method, url)) {
+        handler = &raop_handler_video_v2;
+    } else if (!hls_request && !strcmp(protocol, "RTSP/1.0")) {
         if (!strcmp(method, "POST")) {
             if (!strcmp(url, "/feedback")) {
                 handler = &raop_handler_feedback;

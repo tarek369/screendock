@@ -6,6 +6,7 @@ import android.os.Looper
 import android.util.Log
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -37,6 +38,8 @@ class HlsPlayerController(
     // Main-thread only.
     private var exo: ExoPlayer? = null
     private var generation = 0
+    /** Fraction (0..1) still waiting for the duration to become known; main-thread only. */
+    private var pendingFraction: StartPosition.Fraction? = null
 
     private val tick = object : Runnable {
         override fun run() {
@@ -49,20 +52,32 @@ class HlsPlayerController(
     private val listener = object : Player.Listener {
         override fun onPlaybackStateChanged(state: Int) {
             val p = exo ?: return
+            applyPendingFraction(p)
             push(p)
             if (state == Player.STATE_ENDED) finish(p)
         }
         override fun onIsPlayingChanged(isPlaying: Boolean) { exo?.let(::push) }
-        override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) { exo?.let(::push) }
+        override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
+            exo?.let { applyPendingFraction(it); push(it) }
+        }
         override fun onPlayerError(error: PlaybackException) {
             Log.e(TAG, "HLS playback error: ${error.errorCodeName}", error)
             exo?.let(::finish)
         }
     }
 
-    fun play(location: String, startPositionSec: Float) {
+    /**
+     * @param startPosition native encoding: >= 0 seconds, < 0 fraction of the duration
+     *        (see [StartPosition.decode]); AirPlay V2 /play sends the latter for "Start-Position".
+     */
+    fun play(location: String, startPosition: Float) {
         main.post {
             releaseOnMain()
+            if (!VideoSource.isAllowed(location)) {
+                Log.w(TAG, "refusing video URL (not https and not a local host)")
+                NativeBridge.updateHlsPlaybackInfo(handleProvider(), -1.0, 0.0, 0f, false)
+                return@post
+            }
             val gen = ++generation
             val p = ExoPlayer.Builder(appContext)
                 .setHandleAudioBecomingNoisy(true)
@@ -74,13 +89,33 @@ class HlsPlayerController(
             )
             p.addListener(listener)
             exo = p
-            p.setMediaItem(MediaItem.fromUri(location), (startPositionSec.coerceAtLeast(0f) * 1000f).toLong())
+            val start = StartPosition.decode(startPosition)
+            pendingFraction = (start as? StartPosition.Fraction)?.takeIf { it.fraction > 0.0 }
+            val startMs = start.resolveMs(null) ?: C.TIME_UNSET
+            p.setMediaItem(buildMediaItem(location), startMs)
             p.playWhenReady = true
             p.prepare()
             _player.value = p
             main.post(tick)
-            Log.i(TAG, "HLS play gen=$gen start=${startPositionSec}s")
+            Log.i(TAG, "video play gen=$gen kind=${VideoSource.classify(location)} start=$start")
         }
+    }
+
+    private fun buildMediaItem(location: String): MediaItem {
+        val b = MediaItem.Builder().setUri(location)
+        // Extension-less HLS URLs would otherwise be sniffed as progressive; everything else is
+        // left to DefaultMediaSourceFactory (content type / extension / sniffing).
+        if (VideoSource.classify(location) == VideoKind.HLS) b.setMimeType(MimeTypes.APPLICATION_M3U8)
+        return b.build()
+    }
+
+    private fun applyPendingFraction(p: ExoPlayer) {
+        val f = pendingFraction ?: return
+        if (p.playbackState != Player.STATE_READY && p.playbackState != Player.STATE_ENDED) return
+        pendingFraction = null
+        if (p.isCurrentMediaItemLive) return
+        val dur = p.duration.takeIf { it != C.TIME_UNSET && it > 0 }
+        f.resolveMs(dur)?.let { p.seekTo(it) }
     }
 
     fun stop() { main.post { releaseOnMain() } }
@@ -127,6 +162,7 @@ class HlsPlayerController(
 
     private fun releaseOnMain() {
         main.removeCallbacks(tick)
+        pendingFraction = null
         val p = exo ?: return
         exo = null
         _player.value = null

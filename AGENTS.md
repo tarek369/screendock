@@ -66,6 +66,7 @@ Native core (C, NDK): UxPlay lib/*.c + android_dnssd_shim.c (TXT only, no net)
 - `app/src/main/cpp/android_raop_callbacks.h` + `.c`  ↔  `RaopCallbackHandler.kt`
   - JNI descriptors: `()V`, `(I)V`, `([BJZ)V`, `(FFFF)V`, `([BIJI)V`, `(IIZ)V`, `(F)V`, `(Ljava/lang/String;)V`
 - `app/src/main/cpp/native_bridge.cpp`  ↔  `NativeBridge.kt` (full surface listed in NativeBridge.kt)
+- **AirPlay Video V2 on the RTSP connection** (`lib/video_v2.{h,c}`, routed from `raop.c conn_request` for CONNECTION_TYPE_RAOP + `RTSP/1.0` only; gated by `setHlsEnabled`). **No JNI descriptor change**, but `onHlsPlay(url, float)`'s float now has a sign convention: `>= 0` = absolute SECONDS, `< 0` = FRACTION of the duration encoded as `-fraction` (V2 `Start-Position`); Kotlin decodes with `StartPosition.decode` (VideoSource.kt). V2 URLs are real http(s) URLs (not the loopback proxy); `VideoSource.isAllowed` = https anywhere, http only to loopback/RFC1918/link-local/ULA/`.local`/single-label hosts (network_security_config is cleartext-permitted globally because Android cannot express CIDR). Gotcha: the vendored llhttp REJECTS `PUT` on an `RTSP/1.0` request line (HPE_INVALID_CONSTANT), so `PUT /setProperty` cannot arrive over RTSP; `POST /setProperty` is accepted. Host test: `app/src/test/native/test_video_v2.c`.
 - mDNS split: TXT records built in C (`android_dnssd_shim.c`), advertising in Kotlin (`NsdServiceManager`). `lib/dnssd.c` is INCLUDED (public API); `lib/mdnsd/` + `lib/dns_sd/` EXCLUDED.
 
 ## Milestone status
