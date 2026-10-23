@@ -36,6 +36,8 @@ internal class BoundedFrameQueue(
         return OfferResult.ACCEPTED
     }
 
+    @Synchronized fun peek(): VideoFrame? = items.firstOrNull()
+
     @Synchronized fun poll(): VideoFrame? = items.removeFirstOrNull()?.also { bytes -= it.data.size }
 
     /** Discard the backlog and drop until the next keyframe (e.g. a frame was lost). */

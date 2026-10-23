@@ -265,6 +265,7 @@ class AirPlayService : Service(), RaopCallbackHandler {
 
         videoRenderer = VideoRenderer().also { it.scaleMode = parseScale(settings.scaleMode) }
         audioRenderer = AudioRenderer()
+        videoRenderer?.audioActive = { audioRenderer?.isActive == true }
 
         val hwAddr = HwAddressProvider.getHardwareAddress(applicationContext)
         val keyFile = File(filesDir, "airplay_key.pem").absolutePath

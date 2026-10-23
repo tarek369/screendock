@@ -65,6 +65,17 @@ class VideoRenderer {
     private var lastFpsTimeNs = 0L
     private var framesSinceLastFps = 0
     private var frameDbgCount = 0L
+    private var pumpScheduled = false
+    // Audio measurably lands ~40-60 ms after its slot (AudioTrack + output path), so
+    // video targets the same slot shifted by that much to line up with what is heard.
+    private val playoutClock = PlayoutClock(PlayoutClock.DEFAULT_LATENCY_NS + AUDIO_PATH_LAG_NS)
+    private var syncDbgCount = 0
+
+    /**
+     * True while the sender is streaming audio. Only then is video held back to the
+     * shared playout clock (lip sync); a silent desktop mirror stays at minimum latency.
+     */
+    @Volatile var audioActive: () -> Boolean = { false }
 
     @Volatile var frameCount: Long = 0L
         private set
@@ -190,6 +201,19 @@ class VideoRenderer {
     private fun pumpInputLocked() {
         val c = codec ?: return
         while (freeInputs.isNotEmpty()) {
+            val head = frameQueue.peek() ?: return
+            // Lip sync: feed the decoder just before the frame's slot on the shared
+            // playout clock (holding compressed input never starves output buffers).
+            val delayNs = playoutClock.delayNs(head.ptsUs * 1000L)
+            val holdMs = AvSyncPolicy.videoHoldMs(delayNs?.minus(DECODE_LEAD_NS), audioActive())
+            if (syncDbgCount < 40 || syncDbgCount % 600 == 0) {
+                Log.d(TAG, "av sync: video delay=${delayNs?.div(1_000_000L)}ms hold=${holdMs}ms audio=${audioActive()}")
+            }
+            syncDbgCount++
+            if (holdMs > 0L) {
+                schedulePumpLocked(holdMs)
+                return
+            }
             val frame = frameQueue.poll() ?: return
             val idx = freeInputs.removeFirst()
             val buf = c.getInputBuffer(idx)
@@ -204,6 +228,17 @@ class VideoRenderer {
             buf.put(frame.data)
             c.queueInputBuffer(idx, 0, frame.data.size, frame.ptsUs, 0)
         }
+    }
+
+    private fun schedulePumpLocked(delayMs: Long) {
+        if (pumpScheduled) return
+        pumpScheduled = true
+        callbackHandler.postDelayed({
+            synchronized(codecLock) {
+                pumpScheduled = false
+                if (!released) runCatching { pumpInputLocked() }.onFailure { Log.e(TAG, "scheduled pump failed", it) }
+            }
+        }, delayMs)
     }
 
     // ---- codec lifecycle -----------------------------------------------------
@@ -383,5 +418,9 @@ class VideoRenderer {
     private companion object {
         const val MIME_AVC = "video/avc"
         const val MIME_HEVC = "video/hevc"
+        /** Typical hardware decode time: queue input this early so output lands on time. */
+        const val DECODE_LEAD_NS = 30_000_000L
+        /** Measured on OnePlus Pad 3 (2026-10-23): audio delay−queued ≈ −45 ms. */
+        const val AUDIO_PATH_LAG_NS = 50_000_000L
     }
 }

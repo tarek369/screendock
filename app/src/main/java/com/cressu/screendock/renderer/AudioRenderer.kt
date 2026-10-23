@@ -77,6 +77,15 @@ class AudioRenderer {
     @Volatile private var wallBaseNs: Long = 0
     @Volatile private var hasSyncAnchor: Boolean = false
     @Volatile private var consecutiveDrops: Int = 0
+    private val playoutClock = PlayoutClock()
+    /** PCM frames written to the current AudioTrack (for queued-duration estimates). */
+    private var framesWritten: Long = 0L
+    @Volatile private var lastAudioNs: Long = 0L
+    private var paceDbgCount = 0
+
+    /** True while audio packets are arriving (lets the video path hold frames for lip sync). */
+    val isActive: Boolean
+        get() = lastAudioNs != 0L && System.nanoTime() - lastAudioNs < ACTIVE_WINDOW_NS
     // Debug: count syncAudio calls for timeline diagnosis (temporary)
     private var syncDbgCount: Int = 0
 
@@ -216,7 +225,7 @@ class AudioRenderer {
         ensureTrackLocked()
 
         // A/V sync: pace or drop this packet to align with the PTS timeline.
-        if (!syncAudio(ptsNs)) return   // dropped to maintain sync
+        if (!paceAudio(ptsNs)) return   // dropped to maintain sync
 
         when {
             // ALAC whose HW path is unavailable/blacklisted -> SW decoder.
@@ -294,6 +303,36 @@ class AudioRenderer {
 
         consecutiveDrops = 0
         return true
+    }
+
+    /**
+     * Lip sync: play each packet at its slot on the shared [PlayoutClock] (same clock
+     * the video path uses), accounting for audio already queued in the AudioTrack.
+     * Falls back to the relative [syncAudio] pacing when no NTP mapping exists yet.
+     */
+    private fun paceAudio(ptsNs: Long): Boolean {
+        lastAudioNs = System.nanoTime()
+        val delayNs = playoutClock.delayNs(ptsNs) ?: return syncAudio(ptsNs)
+        val queuedNs = audioTrack?.let { queuedNsLocked(it) } ?: 0L
+        val action = AvSyncPolicy.audioAction(delayNs, queuedNs)
+        if (paceDbgCount < 40 || paceDbgCount % 512 == 0) {
+            Log.d(TAG, "av sync: audio delay=${delayNs / 1_000_000}ms queued=${queuedNs / 1_000_000}ms -> $action")
+        }
+        paceDbgCount++
+        return when (action) {
+            AudioAction.Play -> true
+            AudioAction.Drop -> false
+            is AudioAction.Wait -> {
+                try { Thread.sleep(action.ms) } catch (_: InterruptedException) { }
+                true
+            }
+        }
+    }
+
+    private fun queuedNsLocked(track: AudioTrack): Long {
+        val played = track.playbackHeadPosition.toLong() and 0xFFFFFFFFL
+        val queuedFrames = (framesWritten - played).coerceAtLeast(0L)
+        return queuedFrames * 1_000_000_000L / SAMPLE_RATE
     }
 
     /** Make sure a decoder for [ct] exists; rebuild (and route to SW on failure). */
@@ -459,7 +498,8 @@ class AudioRenderer {
     private fun writePcmLocked(track: AudioTrack, pcm: ByteArray, length: Int) {
         if (length <= 0) return
         try {
-            track.write(pcm, 0, length, AudioTrack.WRITE_BLOCKING)
+            val written = track.write(pcm, 0, length, AudioTrack.WRITE_BLOCKING)
+            if (written > 0) framesWritten += written / BYTES_PER_FRAME
         } catch (t: Throwable) {
             Log.w(TAG, "AudioTrack.write failed", t)
         }
@@ -552,6 +592,7 @@ class AudioRenderer {
             try { t.release() } catch (ign: Throwable) { /* best-effort */ }
         }
         audioTrack = null
+        framesWritten = 0L
     }
 
     // ---- helpers ------------------------------------------------------------
@@ -585,6 +626,8 @@ class AudioRenderer {
         private const val AHEAD_THRESHOLD_NS = 40_000_000L   // 40 ms ahead → sleep to pace
         private const val BEHIND_THRESHOLD_NS = 80_000_000L  // 80 ms behind → drop to catch up
         private const val LEAD_NS = 20_000_000L              // keep 20 ms lead after sleeping
+        private const val ACTIVE_WINDOW_NS = 1_500_000_000L
+        private const val BYTES_PER_FRAME = 4                  // PCM16 stereo
         private const val MAX_DROPS = 3                      // cap consecutive drops before re-anchor (fast recovery)
 
         // RAOP codec types.

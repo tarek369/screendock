@@ -265,11 +265,13 @@ static void cb_video_process(void *cls, raop_ntp_t *ntp, video_decode_struct *vd
     }
     (*env)->SetByteArrayRegion(env, arr, 0, vdata->data_len, (jbyte *) vdata->data);
     (*env)->CallVoidMethod(env, ctx->callback_ref, ctx->on_video_data, arr,
-                           (jlong) vdata->ntp_time_remote, (jboolean) vdata->is_h265);
+                           (jlong) vdata->ntp_time_local, (jboolean) vdata->is_h265);
     cb_check(env, "onVideoData");
     (*env)->DeleteLocalRef(env, arr);
 }
 
+/* Both streams pass ntp_time_local: the sender timestamp converted to this device's
+ * CLOCK_REALTIME by UxPlay's NTP sync, so Kotlin can schedule A/V on one clock. */
 static void cb_audio_process(void *cls, raop_ntp_t *ntp, audio_decode_struct *adata)
 {
     (void) ntp;
@@ -284,7 +286,7 @@ static void cb_audio_process(void *cls, raop_ntp_t *ntp, audio_decode_struct *ad
     }
     (*env)->SetByteArrayRegion(env, arr, 0, adata->data_len, (jbyte *) adata->data);
     (*env)->CallVoidMethod(env, ctx->callback_ref, ctx->on_audio_data, arr,
-                           (jint) adata->ct, (jlong) adata->ntp_time_remote,
+                           (jint) adata->ct, (jlong) adata->ntp_time_local,
                            (jint) adata->seqnum);
     cb_check(env, "onAudioData");
     (*env)->DeleteLocalRef(env, arr);
