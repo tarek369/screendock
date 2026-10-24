@@ -17,9 +17,7 @@ object HwAddressProvider {
     fun getHardwareAddress(context: Context): ByteArray {
         val androidId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
             ?: "airplay-fallback"
-        // "v2a" salt: bumped so a receiver that a sender cached as PIN-requiring
-        // (from an earlier capability set) is seen as a fresh device offering transient pairing.
-        val digest = MessageDigest.getInstance("SHA-256").digest(("v2a:" + androidId).toByteArray())
+        val digest = MessageDigest.getInstance("SHA-256").digest(androidId.toByteArray())
         // RFC-7217-style: take 6 bytes, set the locally-administered + unicast bits.
         val mac = digest.copyOf(6)
         mac[0] = (mac[0].toInt() and 0xFE or 0x02).toByte() // L/A bit set, unicast

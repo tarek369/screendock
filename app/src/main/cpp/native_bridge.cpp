@@ -83,16 +83,10 @@ static void apply_feature_flags(struct server_ctx *ctx)
     dnssd_set_airplay_features(ctx->dnssd, 48, ctx->v2_enabled ? 1 : 0);
     /* Bit 49 = SupportsAirPlayVideoV2: senders use the V2 video path (HAP-paired RTSP /play). */
     dnssd_set_airplay_features(ctx->dnssd, 49, (ctx->v2_enabled && ctx->hls_enabled) ? 1 : 0);
-    /* 33 = VideoPlayQueue (/action playlistInsert), 34 = FromCloud, 38 = UnifiedMediaControl:
-     * advertised by Apple-SDK TVs that accept local-file AirPlay Video from macOS QuickTime. */
-    const int v2_video = (ctx->v2_enabled && ctx->hls_enabled) ? 1 : 0;
-    dnssd_set_airplay_features(ctx->dnssd, 33, v2_video);
-    dnssd_set_airplay_features(ctx->dnssd, 34, v2_video);
-    dnssd_set_airplay_features(ctx->dnssd, 38, v2_video);
-    dnssd_set_airplay_features(ctx->dnssd, 40, v2_video);  /* BufferedAudio: LG advertises it for local-media AirPlay Video */
-    /* bit 43 (SystemPairing) intentionally NOT set: it makes macOS demand full PIN
-     * access-control pairing, which this receiver does not complete (transient only). */
-    dnssd_set_airplay_features(ctx->dnssd, 51, v2_video);  /* UnifiedPairSetupAndMFi */
+    /* NOTE: macOS QuickTime local-file AirPlay Video additionally needs feature bit 51
+     * (unified pair-setup), which triggers MFi-authenticated pairing (kMFiVerifyErr) that
+     * only Apple-licensed receivers can satisfy. We therefore advertise only URL-based V2
+     * (46/48/49), which works for senders that fetch the media by URL. */
 }
 
 static void free_server_ctx_strings(struct server_ctx *ctx)

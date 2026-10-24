@@ -833,4 +833,4 @@ class AirPlayService : Service(), RaopCallbackHandler {
 }
 
 /** AirPlay Video V2 (HAP pairing + video over RTSP). */
-private const val AIRPLAY_V2_ENABLED = true
+private const val AIRPLAY_V2_ENABLED = false
