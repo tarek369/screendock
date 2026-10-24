@@ -89,6 +89,10 @@ static void apply_feature_flags(struct server_ctx *ctx)
     dnssd_set_airplay_features(ctx->dnssd, 33, v2_video);
     dnssd_set_airplay_features(ctx->dnssd, 34, v2_video);
     dnssd_set_airplay_features(ctx->dnssd, 38, v2_video);
+    dnssd_set_airplay_features(ctx->dnssd, 40, v2_video);  /* BufferedAudio: LG advertises it for local-media AirPlay Video */
+    /* bit 43 (SystemPairing) intentionally NOT set: it makes macOS demand full PIN
+     * access-control pairing, which this receiver does not complete (transient only). */
+    dnssd_set_airplay_features(ctx->dnssd, 51, v2_video);  /* UnifiedPairSetupAndMFi */
 }
 
 static void free_server_ctx_strings(struct server_ctx *ctx)

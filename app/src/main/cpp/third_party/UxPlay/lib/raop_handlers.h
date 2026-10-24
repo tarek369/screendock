@@ -168,7 +168,7 @@ raop_handler_info(raop_conn_t *conn,
         plist_dict_set_item(caps, "fairPlayCDMPluginVersion", plist_new_string("0.0"));
         plist_dict_set_item(caps, "fairPlayLibVersion", plist_new_string("0.0"));
         plist_dict_set_item(caps, "hlsJSVersion", plist_new_string("4.0.16"));
-        plist_dict_set_item(caps, "supportsFPSSecureStop", plist_new_bool(0));
+        plist_dict_set_item(caps, "supportsFPSSecureStop", plist_new_bool(1));
         plist_dict_set_item(caps, "supportsUIForAudioOnlyContent", plist_new_bool(0));
         plist_dict_set_item(caps, "webAppVersion", plist_new_string("19.80.27"));
         plist_dict_set_item(caps, "webEngineName", plist_new_string("Stub"));

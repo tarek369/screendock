@@ -2106,7 +2106,10 @@ server_setup_request1(struct pair_setup_context *handle, const uint8_t *data, si
     }
 
   method = pair_tlv_get_value(request, TLVType_Method);
-  if (!method || method->size != 1 || method->value[0] != 0)
+  /* Accept PairSetup (0) and PairSetupWithAuth (1): macOS sends method 1 with the
+   * transient flag when the receiver advertises unified pair-setup (feature bit 51).
+   * Both use the same SRP exchange with the fixed transient PIN here. */
+  if (!method || method->size != 1 || (method->value[0] != 0 && method->value[0] != 1))
     {
       RETURN_ERROR(PAIR_STATUS_INVALID, "Setup request 1: Missing or unexpected pairing method in TLV");
     }
