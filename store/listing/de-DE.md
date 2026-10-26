@@ -4,7 +4,7 @@
 ScreenDock: AirPlay-Empfänger
 
 ## Short description
-AirPlay-Empfänger ohne Werbung, einmaliger Pro-Kauf. Apple-Displays spiegeln.
+AirPlay-Empfänger & Bildschirm spiegeln: Mac, iPhone, iPad auf Android & TV
 
 ## Full description
 ScreenDock macht dein Android-Smartphone, Tablet oder TV zu einem AirPlay-Empfänger. Spiegle den Bildschirm von Mac, iPhone oder iPad drahtlos über WLAN, streame Musik von Apple-Geräten und sende Videos aus unterstützten Apps.
@@ -22,6 +22,19 @@ Sende YouTube- und Web-Videos von Apple-Geräten mit der AirPlay-Taste an Screen
 
 ANDROID TV UND GOOGLE TV
 Installiere ScreenDock auf Android TV oder Google TV. Dann erscheint es im Menü deines Apple-Geräts als AirPlay-Empfänger.
+
+WOFÜR ES GENUTZT WIRD
+- iPhone auf Android TV spiegeln: Fotos, Präsentationen oder Spiele auf dem großen Bildschirm.
+- Mac auf ein Android-Tablet spiegeln: ein kabelloser zweiter Bildschirm für Meetings, Präsentationen oder als Zusatzmonitor.
+- iPad auf ein Android-Smartphone, eine TV-Box oder einen Beamer streamen.
+- Bildschirm teilen in Schule oder Büro, ohne HDMI-Kabel oder Adapter.
+- Musik vom iPhone über den Android-Fernseher und seine Lautsprecher abspielen, verlustfrei.
+
+SO VERBINDEST DU DICH
+1. Öffne ScreenDock auf deinem Android-Gerät. Es ist sofort empfangsbereit.
+2. Verbinde iPhone, iPad oder Mac mit demselben WLAN.
+3. Öffne das Kontrollzentrum, tippe auf Bildschirmsynchronisierung und wähle ScreenDock.
+Wird es nicht angezeigt? Nach zwei Minuten prüft die App WLAN und VPN und zeigt, was zu tun ist. Unter Fehlerbehebung kannst du uns außerdem ein Problem melden.
 
 FUNKTIONEN
 - Bildschirmspiegelung von macOS, iOS und iPadOS

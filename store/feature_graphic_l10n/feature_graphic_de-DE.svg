@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 500">
+  <!-- Play Store feature graphic 1024x500 -->
+  <defs>
+    <radialGradient id="bg" gradientUnits="userSpaceOnUse" cx="300" cy="140" r="860">
+      <stop offset="0" stop-color="#152036"/>
+      <stop offset="1" stop-color="#06080D"/>
+    </radialGradient>
+    <linearGradient id="acc" gradientUnits="userSpaceOnUse" x1="150" y1="120" x2="390" y2="360">
+      <stop offset="0" stop-color="#7FB3FF"/>
+      <stop offset="1" stop-color="#A78BFA"/>
+    </linearGradient>
+    <linearGradient id="accRule" gradientUnits="userSpaceOnUse" x1="518" y1="0" x2="700" y2="0">
+      <stop offset="0" stop-color="#7FB3FF"/>
+      <stop offset="1" stop-color="#A78BFA"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1024" height="500" fill="url(#bg)"/>
+  <circle cx="283" cy="250" r="218" fill="none" stroke="#7FB3FF" stroke-opacity="0.14" stroke-width="3"/>
+  <circle cx="283" cy="250" r="188" fill="none" stroke="#A78BFA" stroke-opacity="0.10" stroke-width="2"/>
+  <!-- glyph (108-space scaled 3.2x), center at (283, 250) -->
+  <g transform="translate(110.4 77.2) scale(3.2)">
+    <rect x="30" y="34" width="48" height="40" rx="7" fill="none" stroke="url(#acc)" stroke-width="4.5"/>
+    <path d="M 54 44.5 L 64.5 63.5 L 43.5 63.5 Z" fill="url(#acc)"/>
+  </g>
+  <!-- wordmark -->
+  <text x="520" y="252" font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-size="92" font-weight="200" letter-spacing="1" fill="#F2F5FA">ScreenDock</text>
+  <rect x="524" y="284" width="176" height="3" rx="1.5" fill="url(#accRule)"/>
+  <text x="524" y="330" font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-size="27" font-weight="400" fill="#A7B0C0">AirPlay-Empfänger für Android</text>
+</svg>

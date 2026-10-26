@@ -4,7 +4,7 @@
 ScreenDock : récepteur AirPlay
 
 ## Short description
-Récepteur AirPlay sans publicité, achat Pro unique. Diffusez vos écrans Apple.
+Récepteur AirPlay et recopie d'écran : Mac, iPhone, iPad vers Android et TV
 
 ## Full description
 ScreenDock transforme votre smartphone, tablette ou TV Android en récepteur AirPlay. Diffusez l'écran de votre Mac, iPhone ou iPad en Wi-Fi, écoutez la musique de vos appareils Apple et envoyez des vidéos depuis les applications compatibles.
@@ -22,6 +22,19 @@ Envoyez les vidéos YouTube et du web depuis vos appareils Apple vers ScreenDock
 
 ANDROID TV ET GOOGLE TV
 Installez ScreenDock sur Android TV ou Google TV : il apparaît comme récepteur AirPlay dans le menu de vos appareils Apple.
+
+CE QUE VOUS POUVEZ EN FAIRE
+- Recopier l'écran de l'iPhone sur Android TV : photos, présentations ou jeux sur grand écran.
+- Recopier l'écran du Mac sur une tablette Android : un second écran sans fil pour les réunions, les présentations ou comme moniteur d'appoint.
+- Diffuser votre iPad sur un téléphone Android, un boîtier TV ou un vidéoprojecteur.
+- Partager votre écran en classe ou au bureau, sans câble HDMI ni adaptateur.
+- Écouter la musique de votre iPhone sur votre téléviseur Android et ses haut-parleurs, sans perte.
+
+COMMENT SE CONNECTER
+1. Ouvrez ScreenDock sur votre appareil Android. Il est prêt à recevoir immédiatement.
+2. Connectez votre iPhone, iPad ou Mac au même réseau Wi-Fi.
+3. Ouvrez le Centre de contrôle, appuyez sur Recopie de l'écran et choisissez ScreenDock.
+Il n'apparaît pas ? Après deux minutes, l'application vérifie votre Wi-Fi et votre VPN et indique quoi corriger. Vous pouvez aussi nous signaler un problème depuis Dépannage.
 
 POINTS FORTS
 - Miroir d'écran depuis macOS, iOS et iPadOS

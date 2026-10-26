@@ -36,7 +36,7 @@ Keep "airplay" as a term in both the title and the short description. Do not rep
 | Field | Required keywords | Limit | Current draft |
 |---|---|---|---|
 | Title (30) | airplay receiver | 30 | "ScreenDock: AirPlay Receiver" (28) |
-| Short description (80) | airplay receiver, no ads | 80 | "AirPlay receiver with no ads and a one-time Pro unlock. Mirror Apple screens." (77) |
+| Short description (80) | airplay receiver, screen mirroring, devices | 80 | "AirPlay receiver & screen mirroring: cast Mac, iPhone or iPad to Android & TV" (77) |
 | Full description (4000) | all P1 and P2 phrases, naturally | 4000 | About 2,000 to 2,300 characters per locale |
 | Screenshot captions | 8 short captions per locale | about 6 words each | See screenshot_plan.md |
 | TV banner | airplay, android tv | tagline length | "AirPlay on your TV" |

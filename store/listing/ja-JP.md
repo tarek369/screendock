@@ -4,7 +4,7 @@
 ScreenDock: AirPlayレシーバー
 
 ## Short description
-広告なし・買い切りのAirPlayレシーバー。Mac・iPhone・iPadの画面をAndroidに映せます
+AirPlayレシーバー＆画面ミラーリング。Mac・iPhone・iPadの画面をAndroidやテレビに表示
 
 ## Full description
 ScreenDockは、Androidのスマートフォン、タブレット、テレビをAirPlayレシーバーに変えるアプリです。Mac、iPhone、iPadの画面をWi-Fi経由でミラーリングし、Appleデバイスから音楽をストリーミングしたり、対応アプリの動画を送ったりできます。
@@ -22,6 +22,19 @@ YouTubeやWebの動画を、Apple端末からAirPlayボタンでScreenDockへ送
 
 Android TV・Google TV
 Android TVやGoogle TVにインストールすると、AppleデバイスのメニューにAirPlayレシーバーとして表示されます。
+
+こんな使い方ができます
+- iPhoneの画面をAndroid TVにミラーリング：写真やスライド、ゲームを大画面で。
+- MacをAndroidタブレットにミラーリング：会議やプレゼン、サブモニターとして使えるワイヤレスのセカンドスクリーン。
+- iPadの画面をAndroidスマホやTVボックス、プロジェクターに表示。
+- HDMIケーブルやアダプタなしで、授業や職場で画面共有。
+- iPhoneの音楽をAndroid TVとそのスピーカーでロスレス再生。
+
+接続方法
+1. AndroidデバイスでScreenDockを開きます。すぐに受信できる状態になります。
+2. iPhone、iPad、Macを同じWi-Fiネットワークに接続します。
+3. コントロールセンターを開き、「画面ミラーリング」をタップしてScreenDockを選びます。
+表示されない場合は、2分後にアプリがWi-FiとVPNを確認し、対処方法を表示します。トラブルシューティングから問題を報告することもできます。
 
 主な機能
 - macOS、iOS、iPadOSからの画面ミラーリング

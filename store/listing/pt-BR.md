@@ -4,7 +4,7 @@
 ScreenDock: receptor AirPlay
 
 ## Short description
-Receptor AirPlay sem anúncios e compra única Pro. Espelhe telas da Apple.
+Receptor AirPlay e espelhamento de tela: Mac, iPhone ou iPad no Android e TV
 
 ## Full description
 O ScreenDock transforma seu celular, tablet ou TV Android em um receptor AirPlay. Espelhe a tela do seu Mac, iPhone ou iPad pelo Wi-Fi, transmita música de dispositivos Apple e envie vídeos de apps compatíveis.
@@ -22,6 +22,19 @@ Envie vídeos do YouTube e da web dos seus dispositivos Apple para o ScreenDock 
 
 ANDROID TV E GOOGLE TV
 Instale o ScreenDock na Android TV ou Google TV e ele aparece como receptor AirPlay no menu dos seus dispositivos Apple.
+
+PARA QUE SERVE
+- Espelhar o iPhone na Android TV: fotos, apresentações ou jogos na tela grande.
+- Espelhar o Mac em um tablet Android: uma segunda tela sem fio para reuniões, apresentações ou como monitor extra.
+- Transmitir a tela do iPad para um celular Android, TV box ou projetor.
+- Compartilhar a tela na aula ou no trabalho sem cabo HDMI nem adaptador.
+- Ouvir as músicas do iPhone na sua TV Android e nos alto-falantes dela, sem perdas.
+
+COMO CONECTAR
+1. Abra o ScreenDock no seu dispositivo Android. Ele já fica pronto para receber.
+2. Coloque o iPhone, iPad ou Mac na mesma rede Wi-Fi.
+3. Abra a Central de Controle, selecione Espelhamento de Tela e escolha ScreenDock.
+Não aparece? Depois de dois minutos o app verifica seu Wi-Fi e sua VPN e mostra o que corrigir. Você também pode nos enviar um relato de problema em Solução de problemas.
 
 DESTAQUES
 - Espelhamento de tela a partir de macOS, iOS e iPadOS

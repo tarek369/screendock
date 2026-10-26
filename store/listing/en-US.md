@@ -4,7 +4,7 @@
 ScreenDock: AirPlay Receiver
 
 ## Short description
-AirPlay receiver with no ads and a one-time Pro unlock. Mirror Apple screens.
+AirPlay receiver & screen mirroring: cast Mac, iPhone or iPad to Android & TV
 
 ## Full description
 ScreenDock turns your Android phone, tablet or TV into an AirPlay receiver. Mirror your Mac, iPhone or iPad screen over Wi-Fi, stream music from Apple devices, and send videos from supported apps.
@@ -22,6 +22,19 @@ Send YouTube and web videos from Apple devices to ScreenDock with the AirPlay bu
 
 ANDROID TV AND GOOGLE TV
 Install ScreenDock on Android TV or Google TV and it appears as an AirPlay receiver in the Apple device's menu.
+
+WHAT PEOPLE USE IT FOR
+- Mirror iPhone to Android TV: show photos, slides or a game on the big screen.
+- Mirror Mac to an Android tablet: a wireless second screen for meetings, presentations or as a spare monitor.
+- Cast your iPad to an Android phone, TV box or projector.
+- Screen share in class or at work without HDMI cables or a dongle.
+- Play music from your iPhone through your Android TV and its speakers, in lossless quality.
+
+HOW TO CONNECT
+1. Open ScreenDock on your Android device. It is ready to receive right away.
+2. Put your iPhone, iPad or Mac on the same Wi-Fi network.
+3. Open Control Center, tap Screen Mirroring and choose ScreenDock.
+Not showing up? After two minutes the app checks your Wi-Fi and VPN and shows what to fix. You can also send us a problem report from Troubleshooting.
 
 HIGHLIGHTS
 - Screen mirroring from macOS, iOS and iPadOS
