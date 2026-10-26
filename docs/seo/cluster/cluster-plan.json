@@ -1,0 +1,428 @@
+{
+  "seed": "airplay receiver android",
+  "site": "https://screendock.cressu.com",
+  "checked": "2026-10-26",
+  "method": "SERP overlap from 41 US web searches (top results, spam hosts removed, path-level URLs only) + intent grouping where overlap data was too sparse",
+  "caveats": [
+    "No search-volume data (no DataForSEO); 'volume' fields are 0",
+    "Search results were thin (often 2-10 usable URLs) and heavily spam-polluted, so most keywords are singletons by overlap alone",
+    "US results only; German pages grouped by intent"
+  ],
+  "pillar": {
+    "title": "ScreenDock: AirPlay receiver for Android",
+    "keyword": "airplay receiver android",
+    "volume": 0,
+    "template": "landing-page",
+    "wordCount": 1050,
+    "url": "/",
+    "status": "published",
+    "secondary": [
+      "airplay on android",
+      "airplay to android",
+      "can android receive airplay",
+      "does android support airplay",
+      "how to airplay to android"
+    ]
+  },
+  "clusters": [
+    {
+      "name": "Android TV & Google TV",
+      "color": "#4E79A7",
+      "posts": [
+        {
+          "id": "tv",
+          "title": "AirPlay to Android TV and Google TV",
+          "keyword": "airplay to android tv",
+          "template": "how-to",
+          "wordCount": 1500,
+          "url": "/android-tv/",
+          "priority": 1,
+          "secondary": [
+            "airplay android tv",
+            "airplay receiver for android tv",
+            "airplay to google tv",
+            "airplay to chromecast with google tv",
+            "mirror iphone to android tv",
+            "mirror iphone to android tv without apple tv",
+            "mirror mac to android tv",
+            "airplay to sony bravia android tv",
+            "airplay to tcl google tv",
+            "netflix airplay android tv"
+          ],
+          "evidence": "'airplay android tv' and 'airplay to android tv' share 3 top-10 URLs; TV-brand queries have scattered, spam-heavy results with no dominant page",
+          "status": "published",
+          "volume": 0
+        },
+        {
+          "id": "fix",
+          "title": "ScreenDock or AirPlay not showing on Android TV: fixes",
+          "keyword": "airplay not showing on android tv",
+          "template": "how-to",
+          "wordCount": 1000,
+          "url": "/help/not-showing/",
+          "priority": 7,
+          "secondary": [],
+          "evidence": "0-1 overlap with the TV guide, so a separate page; also reusable as the app's Troubleshooting link target",
+          "status": "published",
+          "volume": 0
+        }
+      ]
+    },
+    {
+      "name": "iPhone & iPad to Android",
+      "color": "#F28E2B",
+      "posts": [
+        {
+          "id": "ios",
+          "title": "Mirror an iPhone or iPad to an Android tablet or phone",
+          "keyword": "mirror iphone to android tablet",
+          "template": "how-to",
+          "wordCount": 1400,
+          "url": "/iphone-to-android/",
+          "priority": 2,
+          "secondary": [
+            "screen mirroring iphone to android",
+            "mirror ipad to android tablet",
+            "airplay to android tablet",
+            "airplay to samsung galaxy tab",
+            "airplay to pixel tablet"
+          ],
+          "evidence": "3-way cluster (4 and 3 shared URLs); 'galaxy tab' and 'pixel tablet' results contain no page answering the query",
+          "status": "published",
+          "volume": 0
+        }
+      ]
+    },
+    {
+      "name": "Mac second screen",
+      "color": "#E15759",
+      "posts": [
+        {
+          "id": "mac",
+          "title": "Use an Android tablet as a wireless second screen for your Mac",
+          "keyword": "android tablet as second monitor for mac",
+          "template": "how-to",
+          "wordCount": 1400,
+          "url": "/mac-to-android-tablet/",
+          "priority": 3,
+          "secondary": [
+            "use android tablet as mac second screen wireless",
+            "mirror mac to android tablet"
+          ],
+          "evidence": "the two second-monitor queries share 4 URLs; 'mirror mac to android tablet' results mostly answer the reverse direction (Android to Mac)",
+          "status": "published",
+          "volume": 0
+        }
+      ]
+    },
+    {
+      "name": "AirPlay audio",
+      "color": "#59A14F",
+      "posts": [
+        {
+          "id": "audio",
+          "title": "AirPlay music to Android, including Apple Lossless",
+          "keyword": "airplay music to android",
+          "template": "how-to",
+          "wordCount": 1200,
+          "url": "/airplay-audio/",
+          "priority": 5,
+          "secondary": [
+            "airplay audio receiver android",
+            "stream apple music to android tv"
+          ],
+          "evidence": "intent grouping; 'airplay audio receiver android' overlaps 3 URLs with the open-source/free receiver queries (cross-link to compare)",
+          "status": "published",
+          "volume": 0
+        }
+      ]
+    },
+    {
+      "name": "Alternatives & comparisons",
+      "color": "#B07AA1",
+      "posts": [
+        {
+          "id": "compare",
+          "title": "AirPlay receivers for Android, compared (update)",
+          "keyword": "best airplay receiver app android",
+          "template": "comparison",
+          "wordCount": 1400,
+          "url": "/compare/",
+          "priority": 4,
+          "status": "published",
+          "secondary": [
+            "free airplay receiver android",
+            "airplay receiver app free no ads",
+            "open source airplay receiver android",
+            "airplay 2 receiver android",
+            "airplay server android",
+            "uxplay android"
+          ],
+          "evidence": "free / open-source / for-android-tv / audio receiver queries form the largest measured cluster (3-4 shared URLs); jqssun's open-source AirPlay Server (GitHub, F-Droid) ranks across them and is missing from the page",
+          "volume": 0
+        },
+        {
+          "id": "airscreen",
+          "title": "AirScreen alternative without ads",
+          "keyword": "airscreen alternative",
+          "template": "comparison",
+          "wordCount": 1100,
+          "url": "/alternatives/airscreen/",
+          "priority": 6,
+          "secondary": [
+            "airscreen android tv"
+          ],
+          "evidence": "0 overlap with the compare-page queries, so its own page",
+          "status": "published",
+          "volume": 0
+        },
+        {
+          "id": "m360",
+          "title": "Mirroring360 alternative",
+          "keyword": "mirroring360 alternative",
+          "template": "comparison",
+          "wordCount": 1000,
+          "url": "/alternatives/mirroring360/",
+          "priority": 8,
+          "secondary": [],
+          "evidence": "0 overlap with other queries",
+          "status": "published",
+          "volume": 0
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "from": "pillar",
+      "to": "cluster-0-post-0",
+      "type": "mandatory",
+      "anchor": "airplay to android tv"
+    },
+    {
+      "from": "cluster-0-post-0",
+      "to": "pillar",
+      "type": "mandatory",
+      "anchor": "AirPlay receiver for Android"
+    },
+    {
+      "from": "pillar",
+      "to": "cluster-0-post-1",
+      "type": "mandatory",
+      "anchor": "airplay not showing on android tv"
+    },
+    {
+      "from": "cluster-0-post-1",
+      "to": "pillar",
+      "type": "mandatory",
+      "anchor": "AirPlay receiver for Android"
+    },
+    {
+      "from": "pillar",
+      "to": "cluster-1-post-0",
+      "type": "mandatory",
+      "anchor": "mirror iphone to android tablet"
+    },
+    {
+      "from": "cluster-1-post-0",
+      "to": "pillar",
+      "type": "mandatory",
+      "anchor": "AirPlay receiver for Android"
+    },
+    {
+      "from": "pillar",
+      "to": "cluster-2-post-0",
+      "type": "mandatory",
+      "anchor": "android tablet as second monitor for mac"
+    },
+    {
+      "from": "cluster-2-post-0",
+      "to": "pillar",
+      "type": "mandatory",
+      "anchor": "AirPlay receiver for Android"
+    },
+    {
+      "from": "pillar",
+      "to": "cluster-3-post-0",
+      "type": "mandatory",
+      "anchor": "airplay music to android"
+    },
+    {
+      "from": "cluster-3-post-0",
+      "to": "pillar",
+      "type": "mandatory",
+      "anchor": "AirPlay receiver for Android"
+    },
+    {
+      "from": "pillar",
+      "to": "cluster-4-post-0",
+      "type": "mandatory",
+      "anchor": "best airplay receiver app android"
+    },
+    {
+      "from": "cluster-4-post-0",
+      "to": "pillar",
+      "type": "mandatory",
+      "anchor": "AirPlay receiver for Android"
+    },
+    {
+      "from": "pillar",
+      "to": "cluster-4-post-1",
+      "type": "mandatory",
+      "anchor": "airscreen alternative"
+    },
+    {
+      "from": "cluster-4-post-1",
+      "to": "pillar",
+      "type": "mandatory",
+      "anchor": "AirPlay receiver for Android"
+    },
+    {
+      "from": "pillar",
+      "to": "cluster-4-post-2",
+      "type": "mandatory",
+      "anchor": "mirroring360 alternative"
+    },
+    {
+      "from": "cluster-4-post-2",
+      "to": "pillar",
+      "type": "mandatory",
+      "anchor": "AirPlay receiver for Android"
+    },
+    {
+      "from": "cluster-0-post-0",
+      "to": "cluster-0-post-1",
+      "type": "recommended",
+      "anchor": "AirPlay not showing on Android TV"
+    },
+    {
+      "from": "cluster-0-post-1",
+      "to": "cluster-0-post-0",
+      "type": "recommended",
+      "anchor": "AirPlay to Android TV"
+    },
+    {
+      "from": "cluster-4-post-0",
+      "to": "cluster-4-post-1",
+      "type": "recommended",
+      "anchor": "AirScreen alternative"
+    },
+    {
+      "from": "cluster-4-post-1",
+      "to": "cluster-4-post-0",
+      "type": "recommended",
+      "anchor": "AirPlay receivers compared"
+    },
+    {
+      "from": "cluster-4-post-0",
+      "to": "cluster-4-post-2",
+      "type": "recommended",
+      "anchor": "Mirroring360 alternative"
+    },
+    {
+      "from": "cluster-4-post-2",
+      "to": "cluster-4-post-0",
+      "type": "recommended",
+      "anchor": "AirPlay receivers compared"
+    },
+    {
+      "from": "cluster-4-post-1",
+      "to": "cluster-4-post-2",
+      "type": "recommended",
+      "anchor": "Mirroring360 alternative"
+    },
+    {
+      "from": "cluster-1-post-0",
+      "to": "cluster-2-post-0",
+      "type": "optional",
+      "anchor": "Mac second screen on Android"
+    },
+    {
+      "from": "cluster-2-post-0",
+      "to": "cluster-1-post-0",
+      "type": "optional",
+      "anchor": "mirror iPhone to Android tablet"
+    },
+    {
+      "from": "cluster-0-post-0",
+      "to": "cluster-3-post-0",
+      "type": "optional",
+      "anchor": "stream Apple Music to Android TV"
+    },
+    {
+      "from": "cluster-3-post-0",
+      "to": "cluster-0-post-0",
+      "type": "optional",
+      "anchor": "AirPlay to Android TV"
+    },
+    {
+      "from": "cluster-4-post-0",
+      "to": "cluster-0-post-0",
+      "type": "optional",
+      "anchor": "AirPlay receiver for Android TV"
+    },
+    {
+      "from": "cluster-3-post-0",
+      "to": "cluster-4-post-0",
+      "type": "optional",
+      "anchor": "AirPlay audio receivers compared"
+    },
+    {
+      "from": "cluster-1-post-0",
+      "to": "cluster-0-post-1",
+      "type": "optional",
+      "anchor": "ScreenDock not showing up"
+    },
+    {
+      "from": "cluster-2-post-0",
+      "to": "cluster-0-post-1",
+      "type": "optional",
+      "anchor": "not showing in Screen Mirroring"
+    },
+    {
+      "from": "cluster-0-post-0",
+      "to": "cluster-1-post-0",
+      "type": "optional",
+      "anchor": "mirror iPhone to Android"
+    },
+    {
+      "from": "cluster-4-post-0",
+      "to": "cluster-2-post-0",
+      "type": "optional",
+      "anchor": "Android tablet as a Mac second screen"
+    },
+    {
+      "from": "cluster-1-post-0",
+      "to": "cluster-3-post-0",
+      "type": "optional",
+      "anchor": "AirPlay music to Android"
+    },
+    {
+      "from": "cluster-4-post-2",
+      "to": "cluster-4-post-1",
+      "type": "optional",
+      "anchor": "AirScreen alternative"
+    }
+  ],
+  "excluded": [
+    {
+      "keyword": "airplay receiver fire tv",
+      "reason": "ScreenDock is not on the Amazon Appstore"
+    }
+  ],
+  "german_followups": [
+    {
+      "url": "/de/android-tv/",
+      "keywords": [
+        "airplay auf android tv",
+        "iphone auf android tv spiegeln"
+      ],
+      "note": "translate after the English page proves out; Germany is the top install country"
+    }
+  ],
+  "facts_confirmed": {
+    "mac_extended_display": "yes (owner, 2026-10-26)",
+    "google_tv_play_install": "yes (owner)",
+    "galaxy_tab_pixel_tablet_tested": "yes (owner)"
+  }
+}

@@ -132,11 +132,12 @@ Source: `cloudflare-worker/` (static pages in `public/`, worker in `src/worker.j
 **On every app release (versionCode bump):**
 1. `public/index.html`: update the specs row "Latest version X.Y.Z, updated <Month YYYY>" AND the JSON-LD `softwareVersion` + `dateModified`.
 2. If features, limits or price changed: update the matching copy (answer block, pricing, specs, FAQ) and `public/llms.txt`.
-3. Regenerate German: `cd cloudflare-worker && python3 tools/make_de.py public/index.html public/de/index.html`. If it fails, an English string it translates changed: add/update that pair in `tools/make_de.py`.
-4. Bump `<lastmod>` in `public/sitemap.xml` for changed pages, deploy, then curl `/`, `/de/`, `/compare/` for 200.
+3. Guide pages (`/android-tv/`, `/iphone-to-android/`, `/mac-to-android-tablet/`, `/airplay-audio/`, `/help/not-showing/`, `/alternatives/*`) are GENERATED: edit the fragments in `cloudflare-worker/pages/` (bump `modified` in their meta header), then `python3 tools/build_pages.py`. Never edit their `public/.../index.html` directly. `/compare/` is hand-written.
+4. Regenerate German: `cd cloudflare-worker && python3 tools/make_de.py public/index.html public/de/index.html`. If it fails, an English string it translates changed: add/update that pair in `tools/make_de.py`.
+5. Bump `<lastmod>` in `public/sitemap.xml` for changed pages, deploy, then curl `/`, `/de/`, `/compare/` for 200.
 
 **Every few months, or when touching `/compare/`:**
-- Re-check AirScreen and Mirroring360 facts against their Google Play listings; fix anything stale and update "Last checked" + JSON-LD `dateModified`. Never state a competitor fact you can't source from their listing.
+- Re-check AirScreen, Mirroring360 and jqssun AirPlay Server facts (Play listings / GitHub README) on `/compare/` AND `pages/alternatives/*`; fix anything stale and update "Last checked" + JSON-LD `dateModified`. Never state a competitor fact you can't source from their listing.
 
 **Rules:**
 - Files under `public/assets/` are cached for 1 year (immutable): replace = new filename + update references. `site.css` is not cached that way.

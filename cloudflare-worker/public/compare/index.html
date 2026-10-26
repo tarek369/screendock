@@ -43,27 +43,28 @@
 
 <main id="main" class="wrap compare">
   <h1>AirPlay receivers for Android, compared</h1>
-  <p class="lede">Android can't receive AirPlay on its own, so you need a receiver app. These are three of the most-mentioned options. We make ScreenDock, so we've stuck to facts you can check on each app's Google Play listing.</p>
+  <p class="lede">Android can't receive AirPlay on its own, so you need a receiver app. These are four of the most-mentioned options. We make ScreenDock, so we've stuck to facts you can check on each app's own listing or README.</p>
   <p class="checked">Last checked <time datetime="2026-10-26">26 October 2026</time>. Prices and features of other apps change; if something here is out of date, email <a href="mailto:tarek@cressu.com">tarek@cressu.com</a> and we'll fix it.</p>
 
   <div class="table-scroll" role="region" aria-label="Comparison table" tabindex="0">
     <table>
-      <caption class="sr-only">ScreenDock, AirScreen and Mirroring360 compared</caption>
+      <caption class="sr-only">ScreenDock, AirScreen, Mirroring360 and AirPlay Server compared</caption>
       <thead>
-        <tr><th scope="col"></th><th scope="col">ScreenDock</th><th scope="col">AirScreen</th><th scope="col">Mirroring360</th></tr>
+        <tr><th scope="col"></th><th scope="col">ScreenDock</th><th scope="col">AirScreen</th><th scope="col">Mirroring360</th><th scope="col">AirPlay Server (jqssun)</th></tr>
       </thead>
       <tbody>
-        <tr><th scope="row">Price</th><td>Free with 10-minute sessions; $9.99 once for unlimited</td><td>Free with limits; subscription removes them</td><td>Paid app (about $15–20 on Google Play)</td></tr>
-        <tr><th scope="row">Ads</th><td>None</td><td>Yes, in the free version</td><td>Not stated on its listing</td></tr>
-        <tr><th scope="row">Open source</th><td>Yes, GPLv3 on GitHub</td><td>No</td><td>No</td></tr>
-        <tr><th scope="row">Protocols</th><td>AirPlay only</td><td>AirPlay, Google Cast, Miracast, DLNA</td><td>AirPlay</td></tr>
-        <tr><th scope="row">Send from</th><td>Mac, iPhone, iPad</td><td>Mac, iPhone, iPad, plus Android and Windows over Cast/Miracast</td><td>Mac, iPhone, iPad</td></tr>
-        <tr><th scope="row">Android TV / Google TV</th><td>Yes</td><td>Yes</td><td>Yes</td></tr>
-        <tr><th scope="row">Video</th><td>H.264 and H.265, up to 4K at 60 fps</td><td>Advertises up to 4K</td><td>Not stated on its listing</td></tr>
+        <tr><th scope="row">Price</th><td>Free with 10-minute sessions; $9.99 once for unlimited</td><td>Free with limits; subscription removes them</td><td>Paid app (about $15–20 on Google Play)</td><td>Free</td></tr>
+        <tr><th scope="row">Ads</th><td>None</td><td>Yes, in the free version</td><td>Not stated on its listing</td><td>Not stated in its README</td></tr>
+        <tr><th scope="row">Open source</th><td>Yes, GPLv3 on GitHub</td><td>No</td><td>No</td><td>Yes, GPLv3 on GitHub</td></tr>
+        <tr><th scope="row">Protocols</th><td>AirPlay only</td><td>AirPlay, Google Cast, Miracast, DLNA</td><td>AirPlay</td><td>AirPlay (README says AirPlay 2)</td></tr>
+        <tr><th scope="row">Send from</th><td>Mac, iPhone, iPad</td><td>Mac, iPhone, iPad, plus Android and Windows over Cast/Miracast</td><td>Mac, iPhone, iPad</td><td>Mac, iPhone, iPad</td></tr>
+        <tr><th scope="row">Android TV / Google TV</th><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+        <tr><th scope="row">Video</th><td>H.264 and H.265, up to 4K at 60 fps</td><td>Advertises up to 4K</td><td>Not stated on its listing</td><td>H.264 and H.265</td></tr>
         <tr><th scope="row">Get it</th>
           <td><a href="https://play.google.com/store/apps/details?id=com.cressu.screendock&amp;referrer=utm_source%3Dwebsite%26utm_medium%3Dcompare_table" data-play>Google Play</a></td>
           <td><a href="https://play.google.com/store/apps/details?id=com.ionitech.airscreen" rel="noopener">Google Play</a></td>
-          <td><a href="https://play.google.com/store/apps/details?id=com.splashtop.m360" rel="noopener">Google Play</a></td></tr>
+          <td><a href="https://play.google.com/store/apps/details?id=com.splashtop.m360" rel="noopener">Google Play</a></td>
+          <td><a href="https://github.com/jqssun/android-airplay-server" rel="noopener">GitHub</a> and F-Droid</td></tr>
       </tbody>
     </table>
   </div>
@@ -72,20 +73,24 @@
   <div class="fit">
     <div>
       <h3>Pick ScreenDock if</h3>
-      <p>You only send from Apple devices and want no ads, a single purchase instead of a subscription, and code you can read. It mirrors a Mac at your tablet's native resolution and plays AirPlay music in Apple Lossless.</p>
+      <p>You only send from Apple devices and want no ads, a single purchase instead of a subscription, and code you can read. A Mac can mirror to it or <a href="/mac-to-android-tablet/">use your tablet as a second screen</a>, it works on <a href="/android-tv/">Android TV and Google TV</a>, and it plays <a href="/airplay-audio/">AirPlay music</a> in Apple Lossless.</p>
     </div>
     <div>
       <h3>Pick AirScreen if</h3>
-      <p>You also need to cast from Android phones or Windows PCs. Its support for Google Cast and Miracast covers devices that ScreenDock doesn't, and you can live with ads or pay a subscription.</p>
+      <p>You also need to cast from Android phones or Windows PCs. Its support for Google Cast and Miracast covers devices that ScreenDock doesn't, and you can live with ads or pay a subscription. <a href="/alternatives/airscreen/">ScreenDock vs AirScreen</a>.</p>
     </div>
     <div>
       <h3>Pick Mirroring360 if</h3>
-      <p>You want an established receiver from Splashtop, a long-standing remote-access company, and prefer paying upfront. It has been on Google Play since 2014.</p>
+      <p>You want an established receiver from Splashtop, a long-standing remote-access company, and prefer paying upfront. It has been on Google Play since 2014. <a href="/alternatives/mirroring360/">ScreenDock vs Mirroring360</a>.</p>
+    </div>
+    <div>
+      <h3>Pick AirPlay Server if</h3>
+      <p>You want a completely free, open-source receiver and are happy installing from F-Droid or GitHub. It uses the same UxPlay engine as ScreenDock. Pick ScreenDock instead if you want installs and updates through Google Play and an interface built for TV remotes.</p>
     </div>
   </div>
 
   <h2>What none of them can do</h2>
-  <p class="lede">No third-party AirPlay receiver can play DRM-protected video such as Netflix, Disney+ or the Apple TV app. Those apps only send protected video to Apple-certified receivers. YouTube, browsers, photos, presentations and music work in all three.</p>
+  <p class="lede">No third-party AirPlay receiver can play DRM-protected video such as Netflix, Disney+ or the Apple TV app. Those apps only send protected video to Apple-certified receivers. YouTube, browsers, photos, presentations and music work in all of them.</p>
 
   <div class="cta-row">
     <a class="play-badge" href="https://play.google.com/store/apps/details?id=com.cressu.screendock&amp;referrer=utm_source%3Dwebsite%26utm_medium%3Dcompare_footer" data-play>

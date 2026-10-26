@@ -199,7 +199,55 @@ footer p{max-width:46em}
 .table-scroll td{color:var(--muted)}
 .table-scroll td:nth-child(2){color:var(--text)}
 .table-scroll a{color:var(--peri)}
-.fit{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:40px}
+.fit{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:40px 56px;max-width:960px}
 .fit p{color:var(--muted);margin-top:10px}
 .compare .cta-row{margin-top:56px}
 @media (max-width:800px){.fit{grid-template-columns:1fr;gap:28px}}
+
+/* Guide pages */
+.guide{padding-top:clamp(20px,4vw,48px);padding-bottom:clamp(64px,8vw,104px);max-width:820px}
+.crumbs{font-size:14px;color:var(--faint);margin-bottom:28px}
+.crumbs a{color:var(--muted);text-decoration:none}
+.crumbs a:hover{color:var(--text)}
+.guide h1{font-size:clamp(36px,4.6vw,56px);font-weight:200;letter-spacing:-.03em}
+.guide>.lede{margin-top:20px}
+.guide h2{font-size:clamp(24px,2.6vw,30px);font-weight:400;letter-spacing:-.01em;margin:clamp(44px,5vw,64px) 0 14px}
+.guide p,.guide li,.guide dd{color:var(--muted)}
+.guide p+p{margin-top:12px}
+.guide b{color:var(--text);font-weight:500}
+.guide a{color:var(--peri);text-underline-offset:3px}
+.guide ul,.guide ol{padding-left:1.25em;margin:12px 0 0}
+.guide li{padding:5px 0}
+.guide figure{margin:40px 0 0}
+.guide figcaption{margin-top:14px;color:var(--faint);font-size:15px}
+.guide .device.tv+figcaption{margin-top:44px}
+.guide figure.phones{display:flex;justify-content:flex-start}
+.guide .checked{margin-top:16px;color:var(--faint);font-size:15px}
+.guide .table-scroll table{min-width:520px}
+.steps-list li::marker{color:var(--peri);font-weight:500}
+.pairs{margin:16px 0 0}
+.pairs div{padding:14px 0;border-top:1px solid var(--line)}
+.pairs div:last-child{border-bottom:1px solid var(--line)}
+.pairs dt{font-weight:500;color:var(--text)}
+.pairs dd{margin:4px 0 0}
+.fix-list{list-style:none;padding:0!important;counter-reset:f}
+.fix-list>li{counter-increment:f;padding:0 0 0 52px;position:relative}
+.fix-list>li::before{content:counter(f);position:absolute;left:0;top:-2px;font-size:30px;font-weight:200;line-height:1;color:var(--peri)}
+.fix-list h2{margin-top:clamp(40px,5vw,56px)}
+.related{list-style:none;padding:0!important}
+.related li{padding:12px 0;border-top:1px solid var(--line)}
+.related li:last-child{border-bottom:1px solid var(--line)}
+.related a{text-decoration:none;color:var(--text)}
+.related a:hover{color:var(--peri)}
+.guide-cta{display:flex;flex-wrap:wrap;align-items:center;gap:16px 24px;margin-top:56px;padding-top:40px;border-top:1px solid var(--line)}
+.guide .updated{margin-top:32px;color:var(--faint);font-size:14px}
+
+/* Home: guide index */
+.guides-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 64px}
+.guides-list li{border-top:1px solid var(--line);padding:18px 0}
+.guides-list a{font-size:19px;font-weight:500;text-decoration:none}
+.guides-list a:hover{color:var(--peri)}
+.guides-list p{color:var(--muted);margin-top:4px;font-size:16px}
+@media (max-width:760px){.guides-list{grid-template-columns:1fr}}
+.use .more{margin-top:20px}
+.use .more a{color:var(--peri);text-underline-offset:3px}

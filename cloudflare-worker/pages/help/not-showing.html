@@ -1,0 +1,53 @@
+<!--meta {"path": "/help/not-showing/", "title": "AirPlay Not Showing on Android TV or Tablet: Fixes | ScreenDock", "description": "Your Android TV, tablet or phone isn't in the iPhone or Mac Screen Mirroring list? Check these network, router and battery settings, in order.", "crumb": "Not showing up", "published": "2026-10-26", "modified": "2026-10-26"} -->
+  <h1>AirPlay not showing on Android TV or tablet: fixes</h1>
+  <p class="lede">If your Android device isn't in the Screen Mirroring or AirPlay list on your iPhone, iPad or Mac, the cause is almost always the network between them. Work through these checks in order; most people are done after the first three.</p>
+
+  <ol class="fix-list">
+    <li>
+      <h2>Check that the receiver is running</h2>
+      <p>Open ScreenDock on the Android device. It should say <i>Ready to receive</i>. If it says stopped, turn on Receiver running in Settings. The app's Troubleshooting screen (Settings → Open troubleshooting) shows the device's network and IP address.</p>
+    </li>
+    <li>
+      <h2>Put both devices on the same network</h2>
+      <p>Your Apple device and the Android device must be on the same Wi-Fi, or the same home network if the TV uses Ethernet. Many routers have separate 2.4 GHz and 5 GHz networks with different names; pick the same one on both. A guest network won't work.</p>
+    </li>
+    <li>
+      <h2>Turn off VPNs</h2>
+      <p>A VPN on the iPhone, Mac or Android device moves its traffic off your home network, so the devices can't see each other. Turn VPNs off on both while you connect.</p>
+    </li>
+    <li>
+      <h2>Turn off device isolation on the router</h2>
+      <p>Some routers stop devices on the same Wi-Fi from talking to each other. The setting is usually called <i>AP isolation</i>, <i>client isolation</i> or <i>wireless isolation</i>. Turn it off in your router's settings. Office, school, hotel and many mesh networks have it on, and you may not be able to change it there.</p>
+    </li>
+    <li>
+      <h2>Stop Android from putting ScreenDock to sleep</h2>
+      <p>On phones and tablets, Android can stop apps in the background to save battery, and the receiver disappears from the list. In Android Settings → Apps → ScreenDock → Battery, choose Unrestricted or Don't optimize. Some brands (OnePlus, Xiaomi, Samsung) have an extra battery manager to check.</p>
+    </li>
+    <li>
+      <h2>Refresh the connection</h2>
+      <p>Turn Wi-Fi off and on again on the iPhone or Mac. In ScreenDock, use Apply &amp; restart receiver in Settings. Then open Screen Mirroring again.</p>
+    </li>
+    <li>
+      <h2>Restart the router</h2>
+      <p>Device discovery uses a small network service (mDNS, also called Bonjour) that some routers stop forwarding after running a long time. A restart usually brings it back.</p>
+    </li>
+  </ol>
+
+  <h2>It shows up but won't connect, or the picture stutters</h2>
+  <ul>
+    <li><b>Asked for a code?</b> If PIN protection is on in ScreenDock, enter the code shown on the Android screen, or the fixed PIN you chose.</li>
+    <li><b>Waiting for approval?</b> If "Ask before allowing new devices" is on, accept the prompt on the Android device.</li>
+    <li><b>Stutter or delay?</b> Use 5 GHz Wi-Fi, move closer to the router, and keep other heavy downloads off the network while mirroring.</li>
+    <li><b>Black screen in one app?</b> Netflix, Disney+ and the Apple TV app block every third-party receiver. Other apps work.</li>
+    <li><b>Mirroring stopped after 10 minutes?</b> That's the free version's session limit. ScreenDock Pro removes it.</li>
+  </ul>
+
+  <h2>Still stuck?</h2>
+  <p>Email <a href="mailto:tarek@cressu.com">tarek@cressu.com</a> with your Android device, your iPhone or Mac model, and what the Troubleshooting screen shows. Or <a href="https://github.com/tarek369/screendock/issues">open an issue on GitHub</a>.</p>
+
+  <h2>Related guides</h2>
+  <ul class="related">
+    <li><a href="/android-tv/">AirPlay to Android TV and Google TV</a></li>
+    <li><a href="/iphone-to-android/">Mirror an iPhone or iPad to Android</a></li>
+    <li><a href="/">ScreenDock: AirPlay receiver for Android</a></li>
+  </ul>

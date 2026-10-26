@@ -5,6 +5,12 @@
 - [Home](https://screendock.cressu.com/): features, setup steps, supported formats, pricing, FAQ
 - [Startseite (Deutsch)](https://screendock.cressu.com/de/): the same page in German
 - [Comparison](https://screendock.cressu.com/compare/): ScreenDock vs AirScreen vs Mirroring360 (price, ads, open source, protocols)
+- [AirPlay to Android TV and Google TV](https://screendock.cressu.com/android-tv/): setup guide, supported TVs, DRM limits
+- [Mirror an iPhone or iPad to Android](https://screendock.cressu.com/iphone-to-android/): setup guide for Android phones and tablets
+- [Android tablet as a Mac second screen](https://screendock.cressu.com/mac-to-android-tablet/): extend or mirror a Mac desktop over AirPlay
+- [AirPlay music to Android](https://screendock.cressu.com/airplay-audio/): audio streaming including Apple Lossless
+- [Not showing in Screen Mirroring](https://screendock.cressu.com/help/not-showing/): troubleshooting steps
+- [AirScreen alternative](https://screendock.cressu.com/alternatives/airscreen/) and [Mirroring360 alternative](https://screendock.cressu.com/alternatives/mirroring360/)
 - [Google Play](https://play.google.com/store/apps/details?id=com.cressu.screendock): install the app
 - [Source code](https://github.com/tarek369/screendock): GPLv3 repository
 - [Privacy policy](https://screendock.cressu.com/privacy): no data collection; everything stays on the local network
@@ -14,4 +20,5 @@
 - Receivers: Android 7.0+ phones, tablets, Android TV, Google TV
 - Video: H.264 and H.265 up to 4K at 60 fps; audio: AAC and Apple Lossless (ALAC)
 - DRM-protected apps (Netflix, Disney+, Apple TV app) cannot be mirrored to any third-party receiver
+- A Mac can mirror to ScreenDock or use the Android tablet as an extended (separate) display
 - Touch control back to the Mac is not supported
