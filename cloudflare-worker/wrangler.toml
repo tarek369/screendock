@@ -8,3 +8,12 @@ compatibility_date = "2026-01-01"
 routes = [
   { pattern = "screendock.cressu.com", custom_domain = true }
 ]
+
+# Landing page + media. The worker runs first (HTTPS redirect, /privacy) and
+# hands every other request to these assets; unknown paths get 404.html.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+html_handling = "auto-trailing-slash"
+not_found_handling = "404-page"
+run_worker_first = true

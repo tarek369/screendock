@@ -1,38 +1,10 @@
 /**
- * ScreenDock legal pages — Cloudflare Worker (free plan).
- * Serves the Play Store privacy policy and a small landing page.
+ * ScreenDock site — Cloudflare Worker (free plan).
+ * The landing page and its media are static assets in ./public. This script
+ * runs first: it forces HTTPS, serves the privacy policy, and hands every other
+ * request to the assets binding.
  * No dependencies, no storage, no data collection (fitting, for this app).
  */
-
-const SITE = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ScreenDock</title>
-<style>
-  body{margin:0;background:#07090D;color:#F2F5FA;font:16px/1.6 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-  main{max-width:720px;margin:0 auto;padding:48px 24px 96px}
-  h1{font-weight:200;font-size:44px;margin:0 0 8px}
-  .accent{background:linear-gradient(90deg,#7FB3FF,#A78BFA);-webkit-background-clip:text;background-clip:text;color:transparent}
-  .rule{height:3px;width:180px;border-radius:2px;background:linear-gradient(90deg,#7FB3FF,#A78BFA);margin:20px 0 28px}
-  p{color:#A7B0C0}
-  a{color:#7FB3FF;text-decoration:none}
-  ul{color:#A7B0C0}
-  .card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:20px 24px;margin:16px 0}
-  .muted{color:#5E6779;font-size:13px}
-</style>
-</head>
-<body>
-<main>
-  <h1>Screen<span class="accent">Dock</span></h1>
-  <div class="rule"></div>
-  <p>ScreenDock turns your Android phone or tablet into an AirPlay receiver for your Mac, iPhone, and iPad.</p>
-  <div class="card"><a href="/privacy">Privacy Policy</a></div>
-  <p class="muted">ScreenDock is an independent open-source project (GPLv3) and is not affiliated with Apple Inc. "AirPlay" is a trademark of Apple Inc.</p>
-</main>
-</body>
-</html>`;
 
 const PRIVACY = `<!DOCTYPE html>
 <html lang="en">
@@ -93,19 +65,27 @@ const PRIVACY = `<!DOCTYPE html>
   <p>If we change this policy, we will update it on this page and revise the effective date. Material changes will also be reflected in the app's Play Store listing.</p>
 
   <h2>10. Contact</h2>
-  <p>Questions or requests: <a href="mailto:privacy@cressu.com">privacy@cressu.com</a></p>
+  <p>Questions or requests: <a href="mailto:tarek@cressu.com">tarek@cressu.com</a></p>
 </main>
 </body>
 </html>`;
 
+const HTML = { 'content-type': 'text/html; charset=utf-8' };
+
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const url = new URL(request.url);
+    // Cloudflare terminates TLS; plain-HTTP requests still reach us, so force HTTPS here.
+    if (url.protocol === 'http:') {
+      url.protocol = 'https:';
+      return Response.redirect(url.toString(), 301);
+    }
     const path = url.pathname.replace(/\/+$/, '') || '/';
     if (path === '/privacy' || path === '/privacypolicy') {
-      return new Response(PRIVACY, { headers: { 'content-type': 'text/html; charset=utf-8' } });
+      return new Response(PRIVACY, { headers: HTML });
     }
     if (path === '/healthz') return new Response('ok');
-    return new Response(SITE, { headers: { 'content-type': 'text/html; charset=utf-8' } });
+    // Static site in ./public; unknown paths get public/404.html with a real 404 status.
+    return env.ASSETS.fetch(request);
   },
 };
