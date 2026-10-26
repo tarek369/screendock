@@ -1,0 +1,117 @@
+{
+  "_note": "Proposed JSON-LD for screendock.cressu.com (2026-10-26). Each key is one page's full <script type=\"application/ld+json\"> block. Requires public/assets/logo-512.png (copy of store/store_icon_512.png).",
+
+  "/": {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://screendock.cressu.com/#site",
+        "url": "https://screendock.cressu.com/",
+        "name": "ScreenDock",
+        "publisher": { "@id": "https://screendock.cressu.com/#org" }
+      },
+      {
+        "@type": "WebPage",
+        "@id": "https://screendock.cressu.com/#webpage",
+        "url": "https://screendock.cressu.com/",
+        "name": "ScreenDock: AirPlay Receiver for Android",
+        "inLanguage": "en",
+        "isPartOf": { "@id": "https://screendock.cressu.com/#site" },
+        "about": { "@id": "https://screendock.cressu.com/#app" },
+        "primaryImageOfPage": "https://screendock.cressu.com/assets/og.png",
+        "dateModified": "2026-10-26"
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://screendock.cressu.com/#org",
+        "name": "Cressu",
+        "url": "https://cressu.com",
+        "email": "tarek@cressu.com",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://screendock.cressu.com/assets/logo-512.png",
+          "width": 512,
+          "height": 512
+        },
+        "sameAs": ["https://github.com/tarek369"]
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://screendock.cressu.com/#app",
+        "name": "ScreenDock: AirPlay Receiver",
+        "alternateName": "ScreenDock",
+        "description": "AirPlay receiver for Android. Mirror a Mac, iPhone or iPad to an Android phone, tablet or TV.",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Android 7.0+",
+        "softwareVersion": "0.3.5",
+        "dateModified": "2026-10-24",
+        "isAccessibleForFree": true,
+        "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+        "image": "https://screendock.cressu.com/assets/og.png",
+        "screenshot": [
+          "https://screendock.cressu.com/assets/mac-mirrored.webp",
+          "https://screendock.cressu.com/assets/tv-idle.webp",
+          "https://screendock.cressu.com/assets/phone-idle.webp"
+        ],
+        "featureList": [
+          "AirPlay screen mirroring from Mac, iPhone and iPad",
+          "H.264 and H.265 up to 4K at 60 fps",
+          "AirPlay audio including Apple Lossless (ALAC)",
+          "AirPlay video from apps",
+          "Android TV and Google TV"
+        ],
+        "installUrl": "https://play.google.com/store/apps/details?id=com.cressu.screendock",
+        "downloadUrl": "https://play.google.com/store/apps/details?id=com.cressu.screendock",
+        "offers": [
+          { "@type": "Offer", "name": "ScreenDock (free)", "price": "0", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "ScreenDock Pro (one-time in-app purchase)", "price": "9.99", "priceCurrency": "USD" }
+        ],
+        "publisher": { "@id": "https://screendock.cressu.com/#org" },
+        "subjectOf": { "@id": "https://screendock.cressu.com/#demo" },
+        "sameAs": [
+          "https://play.google.com/store/apps/details?id=com.cressu.screendock",
+          "https://github.com/tarek369/screendock",
+          "https://alternativeto.net/software/screendock/"
+        ]
+      },
+      {
+        "@type": "SoftwareSourceCode",
+        "@id": "https://screendock.cressu.com/#source",
+        "name": "ScreenDock source code",
+        "codeRepository": "https://github.com/tarek369/screendock",
+        "programmingLanguage": ["Kotlin", "C"],
+        "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+        "targetProduct": { "@id": "https://screendock.cressu.com/#app" }
+      },
+      {
+        "@type": "VideoObject",
+        "@id": "https://screendock.cressu.com/#demo",
+        "name": "ScreenDock in 20 seconds",
+        "description": "ScreenDock turns an Android phone, tablet or TV into an AirPlay receiver: open Control Center, tap Screen Mirroring, pick ScreenDock.",
+        "thumbnailUrl": "https://screendock.cressu.com/assets/demo-poster.webp",
+        "contentUrl": "https://screendock.cressu.com/assets/demo.mp4",
+        "uploadDate": "2026-10-23T15:42:00+00:00",
+        "duration": "PT21S",
+        "inLanguage": "en",
+        "publisher": { "@id": "https://screendock.cressu.com/#org" }
+      }
+    ]
+  },
+
+  "/de/": "Same graph as '/' with: WebPage @id '/de/#webpage', url '/de/', name 'ScreenDock: AirPlay-Empfänger für Android', inLanguage 'de', and German description/featureList on SoftwareApplication. Remove inLanguage from the WebSite and SoftwareApplication nodes (they describe language-neutral entities shared by both pages).",
+
+  "/compare/": "Keep current WebPage + BreadcrumbList; replace the inline publisher Organization with {\"@id\": \"https://screendock.cressu.com/#org\"} so all pages describe one Cressu entity.",
+
+  "/privacy": {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": "https://screendock.cressu.com/privacy#webpage",
+    "url": "https://screendock.cressu.com/privacy",
+    "name": "Privacy Policy — ScreenDock",
+    "inLanguage": "en",
+    "datePublished": "2026-09-19",
+    "isPartOf": { "@id": "https://screendock.cressu.com/#site" },
+    "about": { "@id": "https://screendock.cressu.com/#app" }
+  }
+}

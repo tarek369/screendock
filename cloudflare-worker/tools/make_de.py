@@ -29,9 +29,11 @@ PAIRS = [
     ('<meta property="og:url" content="https://screendock.cressu.com/">',
      '<meta property="og:url" content="https://screendock.cressu.com/de/">'),
     ('"description":"AirPlay receiver for Android. Mirror a Mac, iPhone or iPad to an Android phone, tablet or TV."',
-     '"description":"AirPlay-Empfänger für Android. Spiegle Mac, iPhone oder iPad auf ein Android-Smartphone, Tablet oder einen Fernseher.","inLanguage":"de"'),
-    ('"url":"https://screendock.cressu.com/","name":"ScreenDock"',
-     '"url":"https://screendock.cressu.com/de/","name":"ScreenDock","inLanguage":"de"'),
+     '"description":"AirPlay-Empfänger für Android. Spiegle Mac, iPhone oder iPad auf ein Android-Smartphone, Tablet oder einen Fernseher."'),
+    # WebSite / SoftwareApplication are language-neutral entities shared with the English page;
+    # only the WebPage node is localized.
+    ('"@id":"https://screendock.cressu.com/#webpage","url":"https://screendock.cressu.com/","name":"ScreenDock: AirPlay Receiver for Android","inLanguage":"en"',
+     '"@id":"https://screendock.cressu.com/de/#webpage","url":"https://screendock.cressu.com/de/","name":"ScreenDock: AirPlay-Empfänger für Android","inLanguage":"de"'),
 
     # German compounds run long: smaller hero headline so it never meets the stage.
     # The German badge file is cropped to its visible bounds, so no negative margin.

@@ -12,6 +12,9 @@ const PRIVACY = `<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Privacy Policy — ScreenDock</title>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","@id":"https://screendock.cressu.com/privacy#webpage","url":"https://screendock.cressu.com/privacy","name":"Privacy Policy — ScreenDock","inLanguage":"en","datePublished":"2026-09-19","isPartOf":{"@id":"https://screendock.cressu.com/#site"},"about":{"@id":"https://screendock.cressu.com/#app"}}
+</script>
 <style>
   body{margin:0;background:#07090D;color:#F2F5FA;font:16px/1.65 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
   main{max-width:760px;margin:0 auto;padding:48px 24px 96px}

@@ -155,6 +155,7 @@ entry: "Can Android receive AirPlay?" answered in two sentences.
 Done and deployed:
 - **#3 Direct answer:** "What is ScreenDock?" paragraph under the hero (EN + DE), FAQ heading renamed "ScreenDock questions", new FAQ entries "Can Android receive AirPlay?" and "How does ScreenDock compare…".
 - **#4 Comparison page:** https://screendock.cressu.com/compare/ (English) — ScreenDock vs AirScreen vs Mirroring360, facts from their Google Play listings, dated "Last checked 26 October 2026", WebPage + BreadcrumbList schema. Linked from both home pages' footers and the FAQ; in sitemap and llms.txt.
+- **Schema (2026-10-26):** applied docs/seo/generated-schema.json — VideoObject (demo), Pro offer, Organization logo, WebPage nodes, SoftwareSourceCode; /de/ @id conflict and /compare/ inline publisher fixed; /privacy WebPage.
 - **#5 Freshness + maker:** specs show "Latest version 0.3.5, updated October 2026" and "Made by Cressu"; JSON-LD gains `softwareVersion`, `dateModified`, `isAccessibleForFree`, `featureList`.
 
 Still open:
