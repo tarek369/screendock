@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -58,6 +59,7 @@ private enum class Screen { IDLE, SETTINGS, TROUBLESHOOTING }
 fun AppScreen(version: String, context: Context) {
     var screen by remember { mutableStateOf(Screen.IDLE) }
     var troubleshootingReturn by remember { mutableStateOf(Screen.IDLE) }
+    var connectHelpDismissed by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val repo = remember(context) { SettingsRepository(context) }
     // null until DataStore has produced the first value (avoids flashing onboarding).
@@ -221,11 +223,18 @@ fun AppScreen(version: String, context: Context) {
                                 if (on) AirPlayService.requestStart(context) else AirPlayService.requestStop(context)
                             },
                         )
-                        Screen.TROUBLESHOOTING -> TroubleshootingScreen(
-                            deviceName = settings.displayName.ifBlank { "ScreenDock" },
-                            receiverRunning = receiverEnabled && state != com.cressu.screendock.service.ReceiverState.IDLE,
-                            onBack = { screen = troubleshootingReturn },
-                        )
+                        Screen.TROUBLESHOOTING -> {
+                            val receiverRunning =
+                                receiverEnabled && state != com.cressu.screendock.service.ReceiverState.IDLE
+                            TroubleshootingScreen(
+                                deviceName = settings.displayName.ifBlank { "ScreenDock" },
+                                receiverRunning = receiverRunning,
+                                diagnostics = { net ->
+                                    supportDiagnostics(context, proUnlocked, settings, receiverRunning, net)
+                                },
+                                onBack = { screen = troubleshootingReturn },
+                            )
+                        }
                         Screen.IDLE -> MediaContent(
                             mode = mode,
                             settings = settings,
@@ -242,6 +251,7 @@ fun AppScreen(version: String, context: Context) {
                                 pro = pro,
                                 sessionLimitHit = sessionLimitHit,
                                 cooldownUntilMs = cooldownUntilMs,
+                                connectHelpDismissed = connectHelpDismissed,
                             ),
                             idleActions = IdleActions(
                                 onOpenSettings = { screen = Screen.SETTINGS },
@@ -252,6 +262,7 @@ fun AppScreen(version: String, context: Context) {
                                 onBuyPro = buyPro,
                                 onDismissNudge = { AirPlayService.clearSessionLimitHit() },
                                 onStartReceiver = { AirPlayService.requestStart(context) },
+                                onDismissConnectHelp = { connectHelpDismissed = true },
                             ),
                         )
                     }

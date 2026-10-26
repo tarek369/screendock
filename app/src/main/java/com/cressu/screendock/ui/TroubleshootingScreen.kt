@@ -51,6 +51,9 @@ data class NetworkSummary(
     val ipAddress: String?,
     val transport: Transport,
     val networkName: String?,
+    val vpnOn: Boolean = false,
+    /** Wi-Fi band in GHz (2.4 / 5 / 6), null when unknown or not on Wi-Fi. */
+    val wifiBandGhz: String? = null,
 ) {
     enum class Transport { WIFI, ETHERNET, OTHER, NONE }
 }
@@ -61,8 +64,17 @@ object NetworkInfoProvider {
     fun read(context: Context): NetworkSummary {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
             ?: return NetworkSummary(null, NetworkSummary.Transport.NONE, null)
-        val network = cm.activeNetwork
+        val active = cm.activeNetwork
             ?: return NetworkSummary(null, NetworkSummary.Transport.NONE, null)
+        val vpnOn = cm.getNetworkCapabilities(active)?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true
+        // Behind a VPN the active network is the tunnel; describe the physical link instead.
+        val network = if (!vpnOn) active else cm.allNetworks.firstOrNull { n ->
+            cm.getNetworkCapabilities(n)?.let {
+                !it.hasTransport(NetworkCapabilities.TRANSPORT_VPN) &&
+                    (it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                        it.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
+            } == true
+        } ?: active
         val caps = cm.getNetworkCapabilities(network)
         val transport = when {
             caps == null -> NetworkSummary.Transport.NONE
@@ -76,18 +88,24 @@ object NetworkInfoProvider {
             ?.hostAddress
         // SSID is only readable with location permission on newer Android; show it when
         // the OS gives it to us and fall back to the transport label otherwise.
-        val ssid = if (transport == NetworkSummary.Transport.WIFI) {
+        val wifiInfo = if (transport == NetworkSummary.Transport.WIFI) {
             runCatching {
-                (context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager)
-                    ?.connectionInfo?.ssid
-            }.getOrNull()?.trim('"')?.takeIf { it.isNotBlank() && it != "<unknown ssid>" }
+                (context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager)?.connectionInfo
+            }.getOrNull()
         } else null
-        return NetworkSummary(ip, transport, ssid)
+        val ssid = wifiInfo?.ssid?.trim('"')?.takeIf { it.isNotBlank() && it != "<unknown ssid>" }
+        val band = wifiInfo?.let { WifiBand.fromMhz(it.frequency) }
+        return NetworkSummary(ip, transport, ssid, vpnOn, band)
     }
 }
 
 @Composable
-fun TroubleshootingScreen(deviceName: String, receiverRunning: Boolean, onBack: () -> Unit) {
+fun TroubleshootingScreen(
+    deviceName: String,
+    receiverRunning: Boolean,
+    diagnostics: (NetworkSummary) -> SupportDiagnostics,
+    onBack: () -> Unit,
+) {
     val context = LocalContext.current
     var net by remember { mutableStateOf(NetworkInfoProvider.read(context)) }
     LaunchedEffect(Unit) {
@@ -145,6 +163,8 @@ fun TroubleshootingScreen(deviceName: String, receiverRunning: Boolean, onBack: 
                             stringResource(if (receiverRunning) R.string.ts_receiver_on else R.string.ts_receiver_off),
                         )
                     }
+
+                    TellUsCard(diagnostics = { diagnostics(net) })
 
                     SettingsCard(title = stringResource(R.string.ts_card_tips), icon = Icons.Rounded.Lightbulb) {
                         listOf(

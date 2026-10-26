@@ -75,6 +75,7 @@ data class IdleUiState(
     val pro: ProUiState,
     val sessionLimitHit: Boolean,
     val cooldownUntilMs: Long,
+    val connectHelpDismissed: Boolean,
 )
 
 data class IdleActions(
@@ -83,6 +84,7 @@ data class IdleActions(
     val onBuyPro: () -> Unit,
     val onDismissNudge: () -> Unit,
     val onStartReceiver: () -> Unit,
+    val onDismissConnectHelp: () -> Unit,
 )
 
 @Composable
@@ -113,6 +115,22 @@ fun IdleScreen(ui: IdleUiState, actions: IdleActions) {
     }
 
     val showNudge = ui.sessionLimitHit && !ui.pro.unlocked && !inCooldown
+
+    // Ready and nobody connected for a while → swap the guide for the help card.
+    val readyIdle = ready && !failed && !stopped && !inCooldown && !showNudge
+    var waitedMs by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(readyIdle) {
+        waitedMs = 0L
+        if (!readyIdle) return@LaunchedEffect
+        delay(ConnectHelpPolicy.DELAY_MS)
+        waitedMs = ConnectHelpPolicy.DELAY_MS
+    }
+    val showHelp = ConnectHelpPolicy.shouldShow(
+        ready = readyIdle,
+        waitedMs = waitedMs,
+        successfulSessions = ui.settings.successfulSessions,
+        dismissed = ui.connectHelpDismissed,
+    )
     val primaryFocus = remember { FocusRequester() }
     val isTv = LocalIsTv.current
     val ctaFocused = inCooldown || showNudge
@@ -134,7 +152,7 @@ fun IdleScreen(ui: IdleUiState, actions: IdleActions) {
             IdleCards(
                 ui = ui,
                 actions = actions,
-                state = IdleCardState(failed, stopped, inCooldown, showNudge, startFocused, cooldownLeftMs),
+                state = IdleCardState(failed, stopped, inCooldown, showNudge, startFocused, cooldownLeftMs, showHelp),
                 displayName = displayName,
                 primaryFocus = primaryFocus,
                 cardModifier = cardModifier,
@@ -205,6 +223,7 @@ private data class IdleCardState(
     val showNudge: Boolean,
     val startFocused: Boolean,
     val cooldownLeftMs: Long,
+    val showHelp: Boolean,
 )
 
 @Composable
@@ -251,6 +270,12 @@ private fun IdleCards(
             focusRequester = if (state.startFocused) primaryFocus else null,
             modifier = cardModifier,
         )
+        state.showHelp -> ConnectHelpCard(
+            deviceName = displayName,
+            onMoreFixes = actions.onOpenHelp,
+            onDismiss = actions.onDismissConnectHelp,
+            modifier = cardModifier,
+        )
         else -> ConnectGuideCard(deviceName = displayName, modifier = cardModifier)
     }
     Spacer(Modifier.height(22.dp))
@@ -259,7 +284,8 @@ private fun IdleCards(
         CapabilityChip("${ui.settings.maxFps} fps")
         if (ui.settings.h265Enabled) CapabilityChip("H.265")
     }
-    Spacer(Modifier.height(18.dp))
+    Spacer(Modifier.height(8.dp))
+    TextLink(stringResource(R.string.idle_tell_us), onClick = actions.onOpenHelp)
     Text(ui.version, style = MaterialTheme.typography.labelSmall, color = Palette.textTertiary)
 }
 

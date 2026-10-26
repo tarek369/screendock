@@ -138,6 +138,39 @@
     <string name="ts_tip_vpn">Turn off VPNs on both devices while testing.</string>
     <string name="ts_tip_restart">Still stuck? Toggle Wi-Fi on the sender, or use Apply &amp; restart receiver in Settings.</string>
 
+    <!-- Troubleshooting: tell us -->
+    <string name="support_title">Still not working? Tell us</string>
+    <string name="support_body">We read every message and fix what we can in the next update.</string>
+    <string name="support_problem_label">What\'s happening?</string>
+    <string name="support_problem_not_found">Device doesn\'t appear</string>
+    <string name="support_problem_drops">Connects, then drops</string>
+    <string name="support_problem_black">Black screen</string>
+    <string name="support_problem_sound">No sound</string>
+    <string name="support_problem_other">Something else</string>
+    <string name="support_sender_label">Mirroring from</string>
+    <string name="support_send">Email support</string>
+    <string name="support_note">Opens your email app with device details filled in. You see everything before sending.</string>
+    <string name="support_email_prompt">Tell us what happened (optional):</string>
+    <string name="support_no_email_app">No email app found. Write to us at %1$s</string>
+
+    <!-- Idle: nothing connected after a while -->
+    <string name="help_overline">NOTHING CONNECTED YET</string>
+    <string name="help_title">Don\'t see %1$s on your iPhone or Mac?</string>
+    <string name="help_wifi_ok">This device is on Wi-Fi</string>
+    <string name="help_ethernet_ok">This device is on Ethernet</string>
+    <string name="help_no_wifi">This device isn\'t on Wi-Fi</string>
+    <string name="help_no_wifi_body">Connect it to the same Wi-Fi as your iPhone or Mac.</string>
+    <string name="help_vpn">A VPN is on</string>
+    <string name="help_vpn_body">VPNs hide this device from Apple devices. Turn it off while mirroring.</string>
+    <string name="help_same_wifi">Put your iPhone or Mac on the same Wi-Fi</string>
+    <string name="help_same_wifi_named">Put your iPhone or Mac on %1$s</string>
+    <string name="help_same_wifi_body">Not a guest network. Mobile data won\'t work.</string>
+    <string name="help_mirror">Control Center → Screen Mirroring</string>
+    <string name="help_mirror_body">Then choose “%1$s” from the list.</string>
+    <string name="help_more_fixes">More fixes</string>
+    <string name="help_works_now">It works now</string>
+    <string name="idle_tell_us">Not working? Tell us</string>
+
     <!-- Accessibility -->
     <string name="cd_back">Back</string>
     <string name="cd_settings">Settings</string>

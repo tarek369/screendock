@@ -118,6 +118,7 @@ cannot be granted via adb). A dead receiver after backgrounding = check this fir
 ```sh
 git submodule update --init --recursive  # UxPlay is VENDORED (not a submodule); the other three are
 export JAVA_HOME="/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"   # JBR inside Android Studio is JDK 25 → gradle fails
+export ANDROID_NDK_ROOT=~/Library/Android/sdk/ndk/27.0.12077973   # fresh checkouts/worktrees: else OpenSSL Configure fails "no NDK aarch64-linux-android-gcc on $PATH" (rm -rf app/.cxx after)
 ./gradlew :app:assembleDebug
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb shell am start -n com.cressu.screendock/.ui.MainActivity
@@ -267,3 +268,8 @@ Source: `cloudflare-worker/` (static pages in `public/`, worker in `src/worker.j
   - hreflang en/de/x-default on both pages + in sitemap.xml; German Play links add `hl=de` and `utm_source=website_de` (separate acquisition attribution); German Play badge (cropped to visible bounds); German captions `assets/demo.de.vtt` (video itself is English).
   - Apple's German UI terms are used for UI labels: "Bildschirmsynchronisierung" (Screen Mirroring), "Kontrollzentrum" (Control Center). Pro price 9,99 € (DE/AT). Privacy policy stays English-only (linked with hreflang="en").
 - 2026-10-26 (GEO pass, see docs/seo/GEO-ANALYSIS.md): page CSS moved to `public/site.css` (shared by /, /de/, /compare/; NOT under /assets so it isn't cached immutably). New `/compare/` page (ScreenDock vs AirScreen vs Mirroring360, English only) — **re-verify competitor facts against their Play listings and bump "Last checked" + JSON-LD dateModified when you touch it.** Home page now has a "What is ScreenDock?" answer block and version/maker rows: **bump "Latest version" + `softwareVersion`/`dateModified` in index.html on every app release**, then re-run tools/make_de.py.
+- 2026-10-26 (retention: no-connection help + support email): Play stats showed ~40% uninstalls (63% on Android 16) and almost no feedback. Added (UI-only, no native/service changes):
+  - Idle: after `ConnectHelpPolicy.DELAY_MS` (2 min) ready with no sender, first-timers (`successfulSessions == 0`) see `ConnectHelpCard` (live Wi-Fi/Ethernet + VPN checks, same-Wi-Fi + Screen Mirroring steps, More fixes / It works now; dismissal is per process via rememberSaveable). Footer "Not working? Tell us" → Troubleshooting.
+  - Troubleshooting: `TellUsCard` (problem chips + iPhone/iPad/Mac) opens a prefilled ACTION_SENDTO email to tarek@cressu.com with diagnostics (app version/Free-Pro, device, Android/API, Wi-Fi band, VPN, receiver state, sessions — no IP). Logic in `ui/SupportLogic.kt` (unit-tested); no email app → Toast with the address.
+  - `NetworkSummary` gained `vpnOn` + `wifiBandGhz`; behind a VPN it now describes the physical Wi-Fi/Ethernet link instead of the tunnel. SSID still needs location permission (not requested) so it is usually null — copy falls back to "the same Wi-Fi".
+  - Verified on emulator (API 35): card appears at 2 min, footer link + Troubleshooting card render, Email support launches Gmail with mailto. 121 unit tests pass. Released as 0.3.6 (vc11).
