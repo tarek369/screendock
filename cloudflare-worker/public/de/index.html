@@ -28,6 +28,8 @@
   "name":"ScreenDock: AirPlay Receiver","alternateName":"ScreenDock",
   "description":"AirPlay-Empfänger für Android. Spiegle Mac, iPhone oder iPad auf ein Android-Smartphone, Tablet oder einen Fernseher.","inLanguage":"de",
   "applicationCategory":"MultimediaApplication","operatingSystem":"Android 7.0+",
+  "softwareVersion":"0.3.5","dateModified":"2026-10-24","isAccessibleForFree":true,
+  "featureList":["AirPlay-Bildschirmspiegelung von Mac, iPhone und iPad","H.264 und H.265 bis 4K mit 60 fps","AirPlay-Audio inklusive Apple Lossless (ALAC)","AirPlay-Video aus Apps","Android TV und Google TV"],
   "image":"https://screendock.cressu.com/assets/og.png",
   "screenshot":["https://screendock.cressu.com/assets/mac-mirrored.webp","https://screendock.cressu.com/assets/tv-idle.webp","https://screendock.cressu.com/assets/phone-idle.webp"],
   "installUrl":"https://play.google.com/store/apps/details?id=com.cressu.screendock",
@@ -39,186 +41,8 @@
  {"@type":"WebSite","@id":"https://screendock.cressu.com/#site","url":"https://screendock.cressu.com/de/","name":"ScreenDock","inLanguage":"de","publisher":{"@id":"https://screendock.cressu.com/#org"}}
 ]}
 </script>
-<style>
-@font-face{font-family:"Hanken Grotesk";font-style:normal;font-weight:200 600;font-display:swap;
-  src:url(/assets/fonts/hanken-grotesk-latin.woff2) format("woff2")}
-:root{
-  --ink:#090B1A; --ink-2:#10132A; --ink-3:#181C3A; --line:#272C52;
-  --text:#EEF0FF; --muted:#A3A9CC; --faint:#6E759C;
-  --peri:#8E96FF; --violet:#B39BFF; --ready:#4ADE80;
-  --signal:linear-gradient(100deg,#7FB3FF,#8E96FF 45%,#B39BFF);
-  --menu:rgba(236,238,248,.86); --menu-text:#1B1D2B; --menu-sub:#5E6378;
-  --wrap:1180px; --gutter:clamp(16px,4vw,40px);
-  color-scheme:dark;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{margin:0;background:var(--ink);color:var(--text);font:400 17px/1.6 "Hanken Grotesk",system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-img,video{display:block;max-width:100%;height:auto}
-a{color:inherit}
-:focus-visible{outline:2px solid var(--peri);outline-offset:3px;border-radius:6px}
-.wrap{max-width:var(--wrap);margin-inline:auto;padding-inline:var(--gutter)}
-h1,h2,h3{margin:0;font-weight:300;letter-spacing:-.02em;line-height:1.08}
-h2{font-size:clamp(34px,4.6vw,56px);font-weight:200}
-h3{font-size:22px;font-weight:500;letter-spacing:-.01em;line-height:1.25}
-p{margin:0}
-.lede{color:var(--muted);font-size:clamp(18px,1.6vw,20px);max-width:34em}
-.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.skip{position:absolute;left:-999px;top:8px;background:var(--text);color:var(--ink);padding:8px 12px;border-radius:8px;z-index:9}
-.skip:focus{left:8px}
-
-/* Nav */
-.nav{display:flex;align-items:center;justify-content:space-between;padding-top:20px;padding-bottom:20px}
-.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:300;font-size:22px;letter-spacing:-.01em}
-.brand img{width:34px;height:34px;border-radius:9px}
-.nav-links{display:flex;align-items:center;gap:28px;font-size:15px;color:var(--muted)}
-.nav-links a{text-decoration:none}
-.nav-links a:hover{color:var(--text)}
-.btn-small{padding:9px 16px;border-radius:999px;background:var(--text);color:var(--ink)!important;font-weight:600}
-@media (max-width:760px){.nav-links .hide-sm{display:none}}
-
-/* Hero */
-.hero{position:relative;padding-top:clamp(28px,6vw,72px);padding-bottom:clamp(56px,8vw,112px)}
-.hero::before{content:"";position:absolute;inset:-20% -10% auto;height:120%;pointer-events:none;z-index:-1;
-  background:radial-gradient(40% 50% at 78% 40%,rgba(142,150,255,.20),transparent 70%),radial-gradient(30% 40% at 15% 10%,rgba(127,179,255,.10),transparent 70%)}
-.hero-grid{display:grid;grid-template-columns:minmax(0,11fr) minmax(0,13fr);gap:clamp(32px,5vw,72px);align-items:center}
-.hero h1{font-size:clamp(38px,4.4vw,64px);font-weight:200;letter-spacing:-.035em;line-height:1.02}
-.hero .lede{margin-top:24px}
-.kicker{display:block;margin-bottom:20px;font-size:17px;font-weight:500;letter-spacing:0;line-height:1.4;color:var(--peri)}
-.cta-row{display:flex;flex-wrap:wrap;align-items:center;gap:16px 24px;margin-top:36px}
-.play-badge{display:inline-block;border-radius:10px;transition:transform .15s}
-.play-badge img{height:52px;width:auto;margin:0}
-.play-badge:hover{transform:translateY(-1px)}
-.cta-note{color:var(--muted);font-size:15px;line-height:1.45}
-.cta-note b{color:var(--text);font-weight:500}
-@media (max-width:900px){.hero-grid{grid-template-columns:1fr}}
-
-/* The stage: Apple-style menu + receiving device */
-.stage{position:relative;padding:56px 0 0 clamp(0px,6vw,80px)}
-.menu{position:absolute;left:0;top:0;z-index:2;width:min(330px,82%);padding:10px 6px 6px;border-radius:14px;
-  background:var(--menu);color:var(--menu-text);backdrop-filter:blur(24px) saturate(1.6);-webkit-backdrop-filter:blur(24px) saturate(1.6);
-  box-shadow:0 0 0 .5px rgba(0,0,0,.25),0 24px 60px -12px rgba(0,0,0,.65);
-  font:13px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Text","Hanken Grotesk",sans-serif}
-.menu-title{display:flex;align-items:center;gap:10px;padding:2px 10px 10px;font-weight:600;font-size:13px}
-.menu-title svg{flex:none}
-.menu-cap{padding:6px 10px 4px;color:var(--menu-sub);font-size:11.5px;font-weight:500}
-.menu button{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;padding:7px 10px;border-radius:8px;cursor:pointer}
-.menu button:hover{background:rgba(0,0,0,.06)}
-.menu button:focus-visible{outline:2px solid #3B6CF6;outline-offset:0}
-.menu .dev-ico{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.08);transition:background .2s,color .2s}
-.menu button[aria-pressed="true"] .dev-ico{background:#3B6CF6;color:#fff}
-.menu .dev-name{flex:1}
-.menu .dev-state{font-size:11.5px;color:var(--menu-sub)}
-.menu .spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(0,0,0,.15);border-top-color:#3B6CF6;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.menu-foot{margin:6px 4px 0;padding:8px 6px 2px;border-top:.5px solid rgba(0,0,0,.15);color:var(--menu-sub);font-size:12px}
-
-.device{position:relative;border-radius:22px;background:#05060C;padding:10px;
-  box-shadow:0 0 0 1px #2C3160,0 40px 80px -30px rgba(80,90,220,.45)}
-.device .screen{position:relative;overflow:hidden;border-radius:13px;background:#000;aspect-ratio:1828/1290}
-.device.tv{border-radius:10px;padding:8px 8px 8px}
-.device.tv .screen{border-radius:4px;aspect-ratio:16/9}
-.device.tv::after{content:"";position:absolute;left:50%;bottom:-26px;width:28%;height:18px;transform:translateX(-50%);border-radius:0 0 8px 8px;background:linear-gradient(#1B1F3D,#0C0E1E)}
-.screen img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity .5s ease}
-.screen img.letterbox{object-fit:contain;background:#000}
-.screen [data-layer]{opacity:0}
-.screen [data-layer].on{opacity:1}
-.stage-caption{display:flex;align-items:center;gap:10px;margin-top:22px;color:var(--muted);font-size:15px;min-height:24px}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--ready);box-shadow:0 0 0 4px rgba(74,222,128,.18)}
-.dot.live{background:var(--peri);box-shadow:0 0 0 4px rgba(142,150,255,.25)}
-@media (max-width:560px){.stage{padding:0}.menu{position:relative;width:100%;margin-bottom:18px}}
-
-/* Sections */
-section{padding:clamp(72px,10vw,128px) 0}
-.sec-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px 64px;align-items:end;margin-bottom:clamp(36px,5vw,64px)}
-@media (max-width:800px){.sec-head{grid-template-columns:1fr}}
-
-/* Demo video */
-.demo{padding-top:0}
-.film{position:relative;border-radius:20px;overflow:hidden;border:1px solid var(--line);background:#000}
-.film video{width:100%;aspect-ratio:16/9;object-fit:cover}
-
-/* Steps: a real sequence */
-.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid var(--line);counter-reset:s}
-.steps li{padding:28px 32px 8px 0;counter-increment:s}
-.steps li+li{padding-left:32px;border-left:1px solid var(--line)}
-.steps li::before{content:counter(s);display:block;font-size:64px;font-weight:200;line-height:1;margin-bottom:20px;
-  background:var(--signal);-webkit-background-clip:text;background-clip:text;color:transparent}
-.steps p{color:var(--muted);margin-top:8px}
-.steps kbd{font:inherit;color:var(--text);font-weight:500}
-@media (max-width:800px){.steps{grid-template-columns:1fr}.steps li,.steps li+li{padding:24px 0;border-left:0;border-bottom:1px solid var(--line)}}
-
-/* Uses: alternating rows with real screens */
-.use{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:clamp(32px,6vw,88px);align-items:center}
-.use+.use{margin-top:clamp(72px,9vw,120px)}
-.use.flip{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
-.use.flip .use-media{order:2}
-.use .lede{margin-top:16px}
-.use ul{margin:20px 0 0;padding:0;list-style:none;color:var(--muted)}
-.use li{padding:10px 0;border-top:1px solid var(--line)}
-.use li:last-child{border-bottom:1px solid var(--line)}
-.phones{display:flex;gap:20px;justify-content:center}
-.phone{width:min(46%,260px);border-radius:30px;padding:8px;background:#05060C;box-shadow:0 0 0 1px #2C3160,0 30px 60px -30px rgba(80,90,220,.5)}
-.phone img{border-radius:23px;width:100%}
-.phone:nth-child(2){margin-top:56px}
-@media (max-width:860px){.use,.use.flip{grid-template-columns:1fr}.use.flip .use-media{order:0}}
-
-/* Specs */
-.specs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 64px;margin:0}
-.specs div{display:grid;grid-template-columns:11em 1fr;gap:16px;padding:16px 0;border-top:1px solid var(--line)}
-.specs dt{color:var(--faint)}
-.specs dd{margin:0}
-@media (max-width:760px){.specs{grid-template-columns:1fr}.specs div{grid-template-columns:1fr;gap:2px}}
-
-/* Pricing */
-.plans{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}
-.plan{border:1px solid var(--line);border-radius:20px;padding:36px 36px 32px}
-.plan.pro{border:0;position:relative;background:linear-gradient(var(--ink-2),var(--ink-2)) padding-box,var(--signal) border-box;border:1.5px solid transparent}
-.plan .price{font-size:52px;font-weight:200;letter-spacing:-.03em;margin:16px 0 4px;line-height:1}
-.plan .price small{font-size:17px;color:var(--muted);font-weight:400;letter-spacing:0;margin-left:6px}
-.plan>p{color:var(--muted)}
-.plan ul{margin:24px 0 0;padding:0;list-style:none}
-.plan li{display:flex;gap:12px;padding:8px 0}
-.plan li svg{flex:none;margin-top:5px;color:var(--peri)}
-.plans-note{margin-top:20px;color:var(--faint);font-size:15px}
-@media (max-width:760px){.plans{grid-template-columns:1fr}.plan{padding:28px 24px}}
-
-/* FAQ */
-.faq{max-width:820px}
-.faq details{border-top:1px solid var(--line)}
-.faq details:last-child{border-bottom:1px solid var(--line)}
-.faq summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:24px;padding:22px 0;font-size:19px;font-weight:500}
-.faq summary::-webkit-details-marker{display:none}
-.faq summary::after{content:"";flex:none;width:12px;height:12px;margin-top:8px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(45deg);transition:transform .2s}
-.faq details[open] summary::after{transform:rotate(225deg)}
-.faq details p{color:var(--muted);padding:0 0 24px;max-width:40em}
-
-/* Final CTA + footer */
-.final{text-align:center;padding-bottom:clamp(80px,10vw,140px)}
-.final h2{max-width:14em;margin:0 auto}
-.final .cta-row{justify-content:center}
-.final img.big-icon{width:88px;height:88px;border-radius:22px;margin:0 auto 32px;box-shadow:0 20px 60px -10px rgba(142,150,255,.5)}
-footer{border-top:1px solid var(--line);padding:32px 0 48px;color:var(--faint);font-size:14px}
-footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px 40px}
-footer nav{display:flex;flex-wrap:wrap;gap:24px}
-footer a{text-decoration:none;color:var(--muted)}
-footer a:hover{color:var(--text)}
-footer p{max-width:46em}
-
-/* Mobile sticky install bar */
-.sticky{position:fixed;left:12px;right:12px;bottom:12px;z-index:5;display:none;align-items:center;gap:12px;padding:10px 10px 10px 14px;border-radius:16px;
-  background:rgba(16,19,42,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);transform:translateY(140%);transition:transform .3s}
-.sticky.show{transform:none}
-.sticky img{width:36px;height:36px;border-radius:9px}
-.sticky span{flex:1;font-size:14px;line-height:1.3}
-.sticky span b{display:block;font-weight:500;font-size:15px}
-.sticky a{padding:10px 16px;border-radius:999px;background:var(--text);color:var(--ink);font-weight:600;text-decoration:none;font-size:15px}
-@media (max-width:760px){.sticky{display:flex}}
-
-@media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}
-}
-</style>
+<link rel="stylesheet" href="/site.css">
+<style>.hero h1{font-size:clamp(38px,4.4vw,64px)}.play-badge img{height:52px;width:auto;margin:0}</style>
 </head>
 <body>
 <a class="skip" href="#main">Zum Inhalt springen</a>
@@ -281,6 +105,11 @@ footer p{max-width:46em}
       </div>
     </div>
   </div>
+
+  <section class="answer wrap" aria-labelledby="answer-title">
+    <h2 id="answer-title">Was ist ScreenDock?</h2>
+    <p>ScreenDock ist ein AirPlay-Empfänger für Android. Android kann AirPlay von sich aus nicht empfangen; ScreenDock rüstet es nach. Dein Android-Smartphone, Tablet, Android TV oder Google TV erscheint dann in der Liste „Bildschirmsynchronisierung“ auf Mac, iPhone oder iPad. Die App spiegelt den Bildschirm in H.264 oder H.265 bis 4K mit 60 fps, spielt AirPlay-Musik auch in Apple Lossless und läuft über dein WLAN, ohne dass du auf dem Apple-Gerät etwas installieren musst. Sie ist kostenlos mit Sitzungen von 10 Minuten, kostet einmalig 9,99 €, um das Limit aufzuheben, zeigt keine Werbung und ist Open Source unter der GPLv3.</p>
+  </section>
 
   <section class="demo wrap" aria-labelledby="demo-title">
     <h2 id="demo-title" class="sr-only">Die Demo in 20 Sekunden</h2>
@@ -364,6 +193,8 @@ footer p{max-width:46em}
       <div><dt>Audio</dt><dd>AAC und Apple Lossless (ALAC)</dd></div>
       <div><dt>Modi</dt><dd>Bildschirmspiegelung, Musik und Video aus Apps</dd></div>
       <div><dt>Voraussetzungen</dt><dd>Android 7.0 oder neuer, dasselbe WLAN (5 GHz empfohlen)</dd></div>
+      <div><dt>Aktuelle Version</dt><dd>0.3.5, aktualisiert im Oktober 2026</dd></div>
+      <div><dt>Entwickelt von</dt><dd><a href="https://cressu.com">Cressu</a>, Open Source auf <a href="https://github.com/tarek369/screendock">GitHub</a></dd></div>
     </dl>
   </section>
 
@@ -398,8 +229,10 @@ footer p{max-width:46em}
   </section>
 
   <section id="faq" class="wrap" aria-labelledby="faq-title">
-    <div class="sec-head"><h2 id="faq-title">Häufige Fragen</h2></div>
+    <div class="sec-head"><h2 id="faq-title">Fragen zu ScreenDock</h2></div>
     <div class="faq">
+      <details><summary>Kann Android AirPlay empfangen?</summary>
+        <p>Nicht von Haus aus. Android hat keinen eingebauten AirPlay-Empfänger, deshalb zeigen Mac, iPhone und iPad es nicht an. Installiere eine AirPlay-Empfänger-App wie ScreenDock, dann erscheint das Android-Gerät in den Menüs „Bildschirmsynchronisierung“ und AirPlay deines Apple-Geräts.</p></details>
       <details><summary>Warum erscheint ScreenDock nicht auf meinem iPhone oder Mac?</summary>
         <p>Prüfe, ob beide Geräte im selben WLAN sind und ScreenDock „Bereit zum Empfang“ anzeigt. Gastnetzwerke und manche Mesh- oder Firmennetzwerke blockieren die Geräteerkennung. Der Bildschirm „Fehlerbehebung“ in der App führt durch die häufigsten Lösungen.</p></details>
       <details><summary>Kann ich Netflix, Disney+ oder die Apple TV App ansehen?</summary>
@@ -410,6 +243,8 @@ footer p{max-width:46em}
         <p>Derzeit nicht. ScreenDock zeigt deinen Bildschirm und gibt den Ton wieder. Eine Touch-Steuerung zurück zum Mac wird nicht unterstützt.</p></details>
       <details><summary>Wird mein Bildschirm an einen Server gesendet?</summary>
         <p>Nein. Alles bleibt in deinem lokalen Netzwerk, zwischen deinem Apple-Gerät und deinem Android. ScreenDock hat keine Konten, keine Analyse und kein Tracking. Lies die <a href="/privacy" hreflang="en">Datenschutzerklärung</a> (auf Englisch).</p></details>
+      <details><summary>Wie schneidet ScreenDock gegenüber AirScreen oder Mirroring360 ab?</summary>
+        <p>ScreenDock unterstützt nur AirPlay, ist werbefrei, Open Source und ein Einmalkauf. AirScreen kann zusätzlich Google Cast und Miracast, zeigt aber Werbung, und Mirroring360 ist eine kostenpflichtige App. Mehr im <a href="/compare/" hreflang="en">Vergleich</a> (auf Englisch).</p></details>
       <details><summary>Ist ScreenDock von Apple?</summary>
         <p>Nein. ScreenDock ist ein unabhängiges Open-Source-Projekt unter der GPLv3-Lizenz. Jede Zeile des <a href="https://github.com/tarek369/screendock">Quellcodes auf GitHub</a> ist öffentlich.</p></details>
     </div>
@@ -431,6 +266,7 @@ footer p{max-width:46em}
     <nav aria-label="Fußzeile">
       <a href="https://play.google.com/store/apps/details?id=com.cressu.screendock&amp;hl=de" data-play>Google Play</a>
       <a href="https://github.com/tarek369/screendock">Quellcode</a>
+      <a href="/compare/" hreflang="en">Vergleich</a>
       <a href="/privacy" hreflang="en">Datenschutz</a>
       <a href="/" hreflang="en" lang="en">English</a>
       <a href="mailto:tarek@cressu.com">Kontakt</a>

@@ -34,11 +34,29 @@ PAIRS = [
      '"url":"https://screendock.cressu.com/de/","name":"ScreenDock","inLanguage":"de"'),
 
     # German compounds run long: smaller hero headline so it never meets the stage.
-    ('.hero h1{font-size:clamp(44px,5.6vw,78px)', '.hero h1{font-size:clamp(38px,4.4vw,64px)'),
+    # The German badge file is cropped to its visible bounds, so no negative margin.
+    ('<link rel="stylesheet" href="/site.css">',
+     '<link rel="stylesheet" href="/site.css">\n<style>.hero h1{font-size:clamp(38px,4.4vw,64px)}'
+     '.play-badge img{height:52px;width:auto;margin:0}</style>'),
     ('src="/assets/google-play-badge.png" alt="Get it on Google Play" width="646" height="250"',
      'src="/assets/google-play-badge-de.png" alt="Get it on Google Play" width="646" height="192"', 2),
-    # The German badge file is cropped to its visible bounds, so no negative margin.
-    ('.play-badge img{height:78px;width:auto;margin:-12px}', '.play-badge img{height:52px;width:auto;margin:0}'),
+
+    # Answer block, specs, FAQ additions, compare link, schema feature list
+    ('<h2 id="answer-title">What is ScreenDock?</h2>', '<h2 id="answer-title">Was ist ScreenDock?</h2>'),
+    ("<p>ScreenDock is an AirPlay receiver for Android. Android can't receive AirPlay on its own; ScreenDock adds it, so an Android phone, tablet, Android TV or Google TV appears in the Screen Mirroring list on a Mac, iPhone or iPad. It mirrors the screen in H.264 or H.265 up to 4K at 60 fps, plays AirPlay music including Apple Lossless, and works over your Wi-Fi with nothing to install on the Apple side. It's free with 10-minute sessions, $9.99 once to remove the limit, has no ads, and is open source under GPLv3.</p>",
+     '<p>ScreenDock ist ein AirPlay-Empfänger für Android. Android kann AirPlay von sich aus nicht empfangen; ScreenDock rüstet es nach. Dein Android-Smartphone, Tablet, Android TV oder Google TV erscheint dann in der Liste „Bildschirmsynchronisierung“ auf Mac, iPhone oder iPad. Die App spiegelt den Bildschirm in H.264 oder H.265 bis 4K mit 60 fps, spielt AirPlay-Musik auch in Apple Lossless und läuft über dein WLAN, ohne dass du auf dem Apple-Gerät etwas installieren musst. Sie ist kostenlos mit Sitzungen von 10 Minuten, kostet einmalig 9,99 €, um das Limit aufzuheben, zeigt keine Werbung und ist Open Source unter der GPLv3.</p>'),
+    ('<div><dt>Latest version</dt><dd>0.3.5, updated October 2026</dd></div>', '<div><dt>Aktuelle Version</dt><dd>0.3.5, aktualisiert im Oktober 2026</dd></div>'),
+    ('<div><dt>Made by</dt><dd><a href="https://cressu.com">Cressu</a>, open source on <a href="https://github.com/tarek369/screendock">GitHub</a></dd></div>',
+     '<div><dt>Entwickelt von</dt><dd><a href="https://cressu.com">Cressu</a>, Open Source auf <a href="https://github.com/tarek369/screendock">GitHub</a></dd></div>'),
+    ('<summary>Can Android receive AirPlay?</summary>', '<summary>Kann Android AirPlay empfangen?</summary>'),
+    ("<p>Not out of the box. Android has no built-in AirPlay receiver, so a Mac, iPhone or iPad won't list it. Install an AirPlay receiver app such as ScreenDock and the Android device appears in the Apple device's Screen Mirroring and AirPlay menus.</p>",
+     '<p>Nicht von Haus aus. Android hat keinen eingebauten AirPlay-Empfänger, deshalb zeigen Mac, iPhone und iPad es nicht an. Installiere eine AirPlay-Empfänger-App wie ScreenDock, dann erscheint das Android-Gerät in den Menüs „Bildschirmsynchronisierung“ und AirPlay deines Apple-Geräts.</p>'),
+    ('<summary>How does ScreenDock compare with AirScreen or Mirroring360?</summary>', '<summary>Wie schneidet ScreenDock gegenüber AirScreen oder Mirroring360 ab?</summary>'),
+    ('<p>ScreenDock is AirPlay-only, ad-free, open source and a one-time purchase. AirScreen also supports Google Cast and Miracast but shows ads, and Mirroring360 is a paid app. See the <a href="/compare/">side-by-side comparison</a>.</p>',
+     '<p>ScreenDock unterstützt nur AirPlay, ist werbefrei, Open Source und ein Einmalkauf. AirScreen kann zusätzlich Google Cast und Miracast, zeigt aber Werbung, und Mirroring360 ist eine kostenpflichtige App. Mehr im <a href="/compare/" hreflang="en">Vergleich</a> (auf Englisch).</p>'),
+    ('<a href="/compare/">Compare apps</a>', '<a href="/compare/" hreflang="en">Vergleich</a>'),
+    ('"featureList":["AirPlay screen mirroring from Mac, iPhone and iPad","H.264 and H.265 up to 4K at 60 fps","AirPlay audio including Apple Lossless (ALAC)","AirPlay video from apps","Android TV and Google TV"]',
+     '"featureList":["AirPlay-Bildschirmspiegelung von Mac, iPhone und iPad","H.264 und H.265 bis 4K mit 60 fps","AirPlay-Audio inklusive Apple Lossless (ALAC)","AirPlay-Video aus Apps","Android TV und Google TV"]'),
 
     # Nav
     ('<a class="skip" href="#main">Skip to content</a>', '<a class="skip" href="#main">Zum Inhalt springen</a>'),
@@ -142,7 +160,7 @@ PAIRS = [
      '<p class="plans-note">Preis für Deutschland und Österreich. Google Play zeigt den Preis in deiner Landeswährung.</p>'),
 
     # FAQ
-    ('<h2 id="faq-title">Questions</h2>', '<h2 id="faq-title">Häufige Fragen</h2>'),
+    ('<h2 id="faq-title">ScreenDock questions</h2>', '<h2 id="faq-title">Fragen zu ScreenDock</h2>'),
     ("<summary>Why doesn't ScreenDock show up on my iPhone or Mac?</summary>", '<summary>Warum erscheint ScreenDock nicht auf meinem iPhone oder Mac?</summary>'),
     ("<p>Make sure both devices are on the same Wi-Fi network and ScreenDock says Ready to receive. Guest networks and some mesh or office networks block device discovery. The app's Troubleshooting screen walks through the common fixes.</p>",
      '<p>Prüfe, ob beide Geräte im selben WLAN sind und ScreenDock „Bereit zum Empfang“ anzeigt. Gastnetzwerke und manche Mesh- oder Firmennetzwerke blockieren die Geräteerkennung. Der Bildschirm „Fehlerbehebung“ in der App führt durch die häufigsten Lösungen.</p>'),

@@ -4,6 +4,7 @@
 
 - [Home](https://screendock.cressu.com/): features, setup steps, supported formats, pricing, FAQ
 - [Startseite (Deutsch)](https://screendock.cressu.com/de/): the same page in German
+- [Comparison](https://screendock.cressu.com/compare/): ScreenDock vs AirScreen vs Mirroring360 (price, ads, open source, protocols)
 - [Google Play](https://play.google.com/store/apps/details?id=com.cressu.screendock): install the app
 - [Source code](https://github.com/tarek369/screendock): GPLv3 repository
 - [Privacy policy](https://screendock.cressu.com/privacy): no data collection; everything stays on the local network
