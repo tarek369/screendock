@@ -126,6 +126,23 @@ adb logcat -s AirplayNative AirplayMainActivity AirPlayService
 minSdk 24 · targetSdk 36 · AGP 8.9.1 · ABIs arm64-v8a/armeabi-v7a/x86_64 · NDK 27.0.12077973 · CMake 3.22.1.
 First build downloads+compiles OpenSSL (~2–3 min/ABI).
 
+## Website upkeep (screendock.cressu.com) — do these, don't just read them
+Source: `cloudflare-worker/` (static pages in `public/`, worker in `src/worker.js`). Deploy: `cd cloudflare-worker && npx wrangler@4 deploy` (needs `wrangler login`).
+
+**On every app release (versionCode bump):**
+1. `public/index.html`: update the specs row "Latest version X.Y.Z, updated <Month YYYY>" AND the JSON-LD `softwareVersion` + `dateModified`.
+2. If features, limits or price changed: update the matching copy (answer block, pricing, specs, FAQ) and `public/llms.txt`.
+3. Regenerate German: `cd cloudflare-worker && python3 tools/make_de.py public/index.html public/de/index.html`. If it fails, an English string it translates changed: add/update that pair in `tools/make_de.py`.
+4. Bump `<lastmod>` in `public/sitemap.xml` for changed pages, deploy, then curl `/`, `/de/`, `/compare/` for 200.
+
+**Every few months, or when touching `/compare/`:**
+- Re-check AirScreen and Mirroring360 facts against their Google Play listings; fix anything stale and update "Last checked" + JSON-LD `dateModified`. Never state a competitor fact you can't source from their listing.
+
+**Rules:**
+- Files under `public/assets/` are cached for 1 year (immutable): replace = new filename + update references. `site.css` is not cached that way.
+- Keep the Play listing (`store/listing/`), the site and the privacy policy consistent (price, free-tier limits, contact `tarek@cressu.com`).
+- Open owner TODOs: sitemap in Google Search Console + Bing Webmaster Tools; YouTube/Show HN/AlternativeTo mentions (see `docs/GEO-ANALYSIS.md`).
+
 ## Known gotchas (load-bearing)
 - OpenSSL must compile at API 24 (minSdk), else `__sendto_chk` undefined at link. Fix in place: `-DANDROID_PLATFORM=android-24` + `-D__ANDROID_API__=24` in CMAKE_C_FLAGS (forwarded into openssl-cmake).
 - `lib/dnssd.c` MUST be compiled (it has the public `dnssd_init` etc.); only the mdnsd/dns_sd *backends* are dropped — our shim is the backend.
