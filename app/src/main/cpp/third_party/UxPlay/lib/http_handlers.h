@@ -862,6 +862,11 @@ parse_play_request(raop_t *raop, http_request_t *request, const char *apple_sess
     return out->uuid && out->location ? 0 : -1;
 }
 
+static bool
+url_is_http(const char *url) {
+    return url && (!strncmp(url, "http://", 7) || !strncmp(url, "https://", 8));
+}
+
 /* index of a free airplay_video slot; evicts a stored (non-current) one if all are in use */
 static int
 claim_video_slot(raop_t *raop) {
@@ -932,7 +937,10 @@ http_handler_play(raop_conn_t *conn, http_request_t *request, http_response_t *r
 
     /* we only support HLS if the playback location is terminated by "/master.m3u8" */
     const char *uri_suffix = strstr(play.location, "/master.m3u8");
-    if (!uri_suffix) { 
+    /* Direct media URL (progressive MP4, plain HLS, ...) cast from iOS Photos/Files, Safari, Infuse, VLC:
+       handed to the local player as-is.  Adapted from jqssun/android-airplay-server (GPL-3.0). */
+    bool direct_url = !uri_suffix && url_is_http(play.location);
+    if (!uri_suffix && !direct_url) {
         logger_log(raop->logger, LOGGER_ERR, "Content-Location has unsupported form:\n%s\n", play.location);	    
         goto play_error;
     }
@@ -961,6 +969,31 @@ http_handler_play(raop_conn_t *conn, http_request_t *request, http_response_t *r
     }
     raop->current_video = new_id;
 
+    if (direct_url) {
+        if (set_playback_location(airplay_video, play.location, strlen(play.location)) < 0 ||
+            set_apple_session_id(airplay_video, apple_session_id, strlen(apple_session_id)) < 0 ||
+            set_playback_uuid(airplay_video, play.uuid, strlen(play.uuid)) < 0) {
+            logger_log(raop->logger, LOGGER_ERR, "Content-Location is empty or too long");
+            goto play_error;
+        }
+        set_start_position_seconds(airplay_video, (float) play.start_seconds);
+        set_next_media_uri_id(airplay_video, 0);
+        logger_log(raop->logger, LOGGER_INFO, "Play request for direct media URL (no HLS proxy)");
+        float start = (float) play.start_seconds;
+        char *url_copy = strdup(play.location);   /* play is freed before the (long) wait */
+        play_request_free(&play);
+        if (raop->callbacks.on_video_play && url_copy) {
+            raop->callbacks.on_video_play(raop->callbacks.cls, url_copy, start);
+            /* senders poll /playback-info right after the reply and abort on duration 0:
+               hold the reply (bounded) until the player knows the duration.  Direct URLs only --
+               the HLS path must never block, httpd also serves the local player's master.m3u8. */
+            if (raop->callbacks.on_video_wait_ready) {
+                raop->callbacks.on_video_wait_ready(raop->callbacks.cls);
+            }
+        }
+        free(url_copy);
+        return;
+    }
     {
         size_t prefix_len = (size_t) (uri_suffix - play.location);
         const char *local_prefix = get_uri_local_prefix(airplay_video);

@@ -12,6 +12,7 @@
  */
 #include "android_raop_callbacks.h"
 
+#include <errno.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -396,6 +397,32 @@ static void cb_on_video_play(void *cls, const char *location, float start_positi
     (*env)->DeleteLocalRef(env, jloc);
 }
 
+/* Direct http(s) URLs only (never the HLS/master.m3u8 path: httpd is single-threaded and must
+ * keep serving the local player's playlist GETs). Holds the /play reply until Kotlin has pushed a
+ * known duration (senders poll /playback-info right away and abort on duration 0), the player
+ * failed/stopped, or HLS_WAIT_READY_MS elapsed. Adapted from jqssun/android-airplay-server (GPL-3.0). */
+#ifndef HLS_WAIT_READY_MS
+#define HLS_WAIT_READY_MS 5000
+#endif
+static void cb_on_video_wait_ready(void *cls)
+{
+    android_callback_ctx_t *ctx = (android_callback_ctx_t *) cls;
+    if (!ctx || !ctx->hls_mu_ready) return;
+    struct timespec dl;
+    clock_gettime(CLOCK_MONOTONIC, &dl);
+    dl.tv_sec += HLS_WAIT_READY_MS / 1000;
+    dl.tv_nsec += (long) (HLS_WAIT_READY_MS % 1000) * 1000000L;
+    if (dl.tv_nsec >= 1000000000L) { dl.tv_sec++; dl.tv_nsec -= 1000000000L; }
+    pthread_mutex_lock(&ctx->hls_mu);
+    while (ctx->hls_active && !ctx->hls_ready && ctx->hls_duration >= 0.0) {
+        if (pthread_cond_timedwait(&ctx->hls_cv, &ctx->hls_mu, &dl) == ETIMEDOUT) {
+            LOGW("on_video_wait_ready: timed out, replying without a known duration");
+            break;
+        }
+    }
+    pthread_mutex_unlock(&ctx->hls_mu);
+}
+
 static void cb_on_video_scrub(void *cls, float position)
 {
     android_callback_ctx_t *ctx = (android_callback_ctx_t *) cls;
@@ -474,7 +501,7 @@ void android_hls_update_info(android_callback_ctx_t *ctx, double duration,
         ctx->hls_position = position;
         ctx->hls_rate = rate;
         ctx->hls_ready = ready;
-        if (ready && duration > 0.0) pthread_cond_broadcast(&ctx->hls_cv);
+        if ((ready && duration > 0.0) || duration < 0.0) pthread_cond_broadcast(&ctx->hls_cv);
     }
     pthread_mutex_unlock(&ctx->hls_mu);
 }
@@ -650,6 +677,7 @@ void android_callbacks_fill(raop_callbacks_t *cbs)
     cbs->export_dacp             = cb_export_dacp;
     cbs->passwd                  = cb_passwd;
     cbs->on_video_play                  = cb_on_video_play;
+    cbs->on_video_wait_ready            = cb_on_video_wait_ready;
     cbs->on_video_scrub                 = cb_on_video_scrub;
     cbs->on_video_rate                  = cb_on_video_rate;
     cbs->on_video_stop                  = cb_on_video_stop;

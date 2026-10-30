@@ -14,6 +14,13 @@ awk '/^#define DMAP_STR_MAX/{p=1} /^static void cb_audio_set_metadata/{p=0} p' \
     "$CPP/android_raop_callbacks.c" > "$OUT/dmap_extract.inc"
 [ -s "$OUT/dmap_extract.inc" ] || { echo "could not extract android_dmap_parse" >&2; exit 2; }
 
+# Direct-URL /play hold: extract cb_on_video_wait_ready + android_hls_update_info.
+awk '/^#ifndef HLS_WAIT_READY_MS/{p=1} /^static void cb_on_video_scrub/{p=0} p' \
+    "$CPP/android_raop_callbacks.c" > "$OUT/wait_extract.inc"
+awk '/^void android_hls_update_info/{p=1} /^\/\* ---- audio metadata/{p=0} p' \
+    "$CPP/android_raop_callbacks.c" >> "$OUT/wait_extract.inc"
+[ -s "$OUT/wait_extract.inc" ] || { echo "could not extract wait_ready" >&2; exit 2; }
+
 FLAGS="-std=c11 -g -O1 -Wall -Wextra -Wno-unused-parameter -Wno-unused-function -fsanitize=address,undefined -fno-sanitize-recover=undefined"
 status=0
 
@@ -25,5 +32,9 @@ $CC $FLAGS -I"$LIB" -I"$HERE" "$HERE/test_hls_playlist.c" "$LIB/hls_playlist.c" 
 echo "== dmap parser"
 $CC $FLAGS -I"$OUT" -I"$HERE" "$HERE/test_dmap.c" -o "$OUT/test_dmap"
 "$OUT/test_dmap" || status=1
+
+echo "== direct-URL wait_ready"
+$CC $FLAGS -I"$OUT" -I"$HERE" "$HERE/test_wait_ready.c" -lpthread -o "$OUT/test_wait_ready"
+"$OUT/test_wait_ready" || status=1
 
 exit $status
