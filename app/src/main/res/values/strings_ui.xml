@@ -139,6 +139,19 @@
     <string name="ts_tip_restart">Still stuck? Toggle Wi-Fi on the sender, or use Apply &amp; restart receiver in Settings.</string>
 
     <!-- Troubleshooting: tell us -->
+    <string name="ts_tip_usb">Using USB tethering from a Mac? Run \"adb shell settings put global tether_force_usb_functions 1\" once on this device, then switch USB tethering off and on again.</string>
+    <string name="logs_title">Logs</string>
+    <string name="logs_clear">Clear logs</string>
+    <string name="logs_share">Share logs</string>
+    <string name="logs_share_failed">No app available to share the logs.</string>
+    <string name="logs_level_all">All</string>
+    <string name="logs_level_info">Info</string>
+    <string name="logs_level_warn">Warn</string>
+    <string name="logs_level_error">Error</string>
+    <string name="logs_empty">No log lines yet.</string>
+    <string name="logs_card_title">App logs</string>
+    <string name="logs_card_desc">View this app\'s recent log lines or share them with support. PINs are never included.</string>
+    <string name="logs_open">Open logs</string>
     <string name="support_title">Still not working? Tell us</string>
     <string name="support_body">We read every message and fix what we can in the next update.</string>
     <string name="support_problem_label">What\'s happening?</string>

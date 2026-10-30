@@ -20,6 +20,7 @@ class MainActivity : ComponentActivity() {
         // postSplashScreenTheme (Theme.Airplay) at the right moment.
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        com.cressu.screendock.logs.LogCapture.start()
         enableEdgeToEdge(
             // The UI is always dark — force light system-bar icons regardless
             // of the system theme, with transparent scrims over the aurora.
