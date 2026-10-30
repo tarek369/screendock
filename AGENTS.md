@@ -98,7 +98,12 @@ Record the sender iOS/macOS version(s) in README §"Tested sender OS versions".
 ## USB cable mirroring (no Wi-Fi) — procedure + gotchas (2026-09-08)
 The receiver works over any IP network; USB tethering gives a wired Mac↔tablet link.
 1. Tablet: Settings → Hotspot & tethering → USB tethering ON.
-2. **Modern macOS has NO RNDIS driver** — Android exposes `rndis` by default and the Mac ignores the
+2. **Preferred (persistent, one command; method documented by jqssun/android-airplay-server):**
+   `adb shell settings put global tether_force_usb_functions 1` forces NCM for USB tethering, so
+   macOS gets a usable interface every time tethering is switched on — no `setFunctions`, and it
+   survives replug/reboot. Run once, then toggle USB tethering OFF→ON. (Revert: `adb shell settings delete global tether_force_usb_functions`.)
+   Not yet verified on our OnePlus Pad — confirm on hardware; fall back to the manual method below if it has no effect.
+   **Fallback (manual, resets on replug/reboot):** **Modern macOS has NO RNDIS driver** — Android exposes `rndis` by default and the Mac ignores the
    interface entirely (no DHCP, `ip neigh show dev usb0` empty). Switch the gadget to NCM:
    `adb shell svc usb setFunctions ncm` (adb drops during re-enumeration, returns in seconds; verify
    `getprop sys.usb.state` = `ncm,adb`). Then toggle USB tethering OFF→ON to re-attach usb0 + DHCP
@@ -274,3 +279,4 @@ Source: `cloudflare-worker/` (static pages in `public/`, worker in `src/worker.j
   - `NetworkSummary` gained `vpnOn` + `wifiBandGhz`; behind a VPN it now describes the physical Wi-Fi/Ethernet link instead of the tunnel. SSID still needs location permission (not requested) so it is usually null — copy falls back to "the same Wi-Fi".
   - Verified on emulator (API 35): card appears at 2 min, footer link + Troubleshooting card render, Email support launches Gmail with mailto. 121 unit tests pass. Released as 0.3.6 (vc11).
 - 2026-10-26 (ASO pass 2, live on Play, no app release): ranking check showed #28 for "airplay receiver" (US) and absent from top 30 for "airplay", "screen mirroring", "airplay tv"; 0 visible ratings at 100+ installs. Applied via one API edit across all 6 locales: short description now leads with "AirPlay receiver & screen mirroring … Mac, iPhone or iPad to Android & TV" (dropped "no ads / one-time Pro" wording nobody searches); full description gained "what people use it for" + "how to connect" sections (use-case phrases: mirror iPhone to Android TV, Mac to tablet second screen, screen share without HDMI) while staying ≤10 AirPlay mentions; promo video https://www.youtube.com/watch?v=6sx78YB4GuQ on every locale; localized feature graphics (`store/feature_graphic_l10n/`, render from the SVGs with rsvg-convert → JPEG, no alpha); the Mac-mirrored phone screenshot now leads every locale (was en-US only). Next: review prompt after the first good session (not done yet), re-check rankings ~2 weeks after indexing.
+- 2026-10-30: in-app **Logs** screen (Troubleshooting → App logs): `logs/LogCapture` streams own-process `logcat --pid` (no permission, no JNI change) into a 2000-line redacting `LogBuffer`; level filter, Clear, Share via FileProvider (`${applicationId}.logs`, cache/logs). PIN-shaped values are masked. USB docs: added `tether_force_usb_functions 1` as the preferred NCM method (in-app tip + AGENTS.md); website had no USB tethering copy to change.
