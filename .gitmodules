@@ -6,3 +6,6 @@
 [submodule "app/src/main/cpp/third_party/openssl-cmake"]
 	path = app/src/main/cpp/third_party/openssl-cmake
 	url = https://github.com/viaduck/openssl-cmake.git
+[submodule "app/src/main/cpp/third_party/oboe"]
+	path = app/src/main/cpp/third_party/oboe
+	url = https://github.com/google/oboe.git

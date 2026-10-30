@@ -26,4 +26,9 @@ echo "== dmap parser"
 $CC $FLAGS -I"$OUT" -I"$HERE" "$HERE/test_dmap.c" -o "$OUT/test_dmap"
 "$OUT/test_dmap" || status=1
 
+echo "== oboe timeline buffer (header-only; no Oboe needed)"
+${CXX:-clang++} -std=c++17 -g -O1 -Wall -Wextra -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+    -I"$CPP" -I"$HERE" "$HERE/test_timeline_buffer.cpp" -o "$OUT/test_timeline_buffer"
+"$OUT/test_timeline_buffer" || status=1
+
 exit $status

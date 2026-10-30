@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.cressu.screendock.R
+import com.cressu.screendock.renderer.NativeAudioConfig
 import com.cressu.screendock.renderer.ScaleMode
 import com.cressu.screendock.settings.AirPlaySettings
 import com.cressu.screendock.settings.PinMode
@@ -127,6 +128,30 @@ fun MediaCard(settings: AirPlaySettings, onChange: (AirPlaySettings) -> Unit) {
             checked = settings.keepScreenOnAudio,
             onCheckedChange = { onChange(settings.copy(keepScreenOnAudio = it)) },
         )
+        SwitchRow(
+            title = stringResource(R.string.set_low_latency_audio),
+            description = stringResource(R.string.set_low_latency_audio_desc),
+            checked = settings.lowLatencyAudio,
+            onCheckedChange = { onChange(settings.copy(lowLatencyAudio = it)) },
+        )
+        if (settings.lowLatencyAudio) {
+            Spacer8()
+            FieldLabel(stringResource(R.string.set_audio_cushion))
+            Spacer8()
+            SegmentedControl(
+                selected = NativeAudioConfig.nearestChoice(settings.audioCushionMs),
+                segments = NativeAudioConfig.CUSHION_CHOICES.map { ms ->
+                    Segment(ms, if (ms == NativeAudioConfig.CUSHION_AUTO) stringResource(R.string.set_audio_cushion_auto) else "$ms ms")
+                },
+                onSelect = { onChange(settings.copy(audioCushionMs = it)) },
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                stringResource(R.string.set_audio_cushion_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = Palette.textTertiary,
+            )
+        }
     }
 }
 

@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.cressu.screendock.renderer.NativeAudioConfig
 import com.cressu.screendock.service.LimiterState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -53,6 +54,10 @@ data class AirPlaySettings(
     val scaleMode: String = "FIT",
     val hlsEnabled: Boolean = true,
     val keepScreenOnAudio: Boolean = false,
+    /** Experimental Oboe/AAudio low-latency audio output (falls back to AudioTrack on failure). */
+    val lowLatencyAudio: Boolean = false,
+    /** Jitter cushion for the low-latency engine in ms; 0 = adaptive (auto). */
+    val audioCushionMs: Int = 0,
     val autoOpenOnConnect: Boolean = true,
     val onboardingDone: Boolean = false,
     /** Sessions of at least 60 s that ended normally (drives the review prompt). */
@@ -99,6 +104,8 @@ class SettingsRepository(private val context: Context) {
         val SCALE_MODE = stringPreferencesKey("scale_mode")
         val HLS_ENABLED = booleanPreferencesKey("hls_enabled")
         val KEEP_SCREEN_ON_AUDIO = booleanPreferencesKey("keep_screen_on_audio")
+        val LOW_LATENCY_AUDIO = booleanPreferencesKey("low_latency_audio")
+        val AUDIO_CUSHION_MS = intPreferencesKey("audio_cushion_ms")
         val AUTO_OPEN = booleanPreferencesKey("auto_open_on_connect")
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         val SUCCESSFUL_SESSIONS = intPreferencesKey("successful_sessions")
@@ -130,6 +137,8 @@ class SettingsRepository(private val context: Context) {
             scaleMode = p[Keys.SCALE_MODE] ?: "FIT",
             hlsEnabled = p[Keys.HLS_ENABLED] ?: true,
             keepScreenOnAudio = p[Keys.KEEP_SCREEN_ON_AUDIO] ?: false,
+            lowLatencyAudio = p[Keys.LOW_LATENCY_AUDIO] ?: false,
+            audioCushionMs = NativeAudioConfig.sanitizeCushion(p[Keys.AUDIO_CUSHION_MS] ?: 0),
             autoOpenOnConnect = p[Keys.AUTO_OPEN] ?: true,
             onboardingDone = p[Keys.ONBOARDING_DONE] ?: false,
             successfulSessions = p[Keys.SUCCESSFUL_SESSIONS] ?: 0,
@@ -193,6 +202,14 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun updateKeepScreenOnAudio(enabled: Boolean) {
         context.dataStore.edit { it[Keys.KEEP_SCREEN_ON_AUDIO] = enabled }
+    }
+
+    suspend fun updateLowLatencyAudio(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.LOW_LATENCY_AUDIO] = enabled }
+    }
+
+    suspend fun updateAudioCushionMs(ms: Int) {
+        context.dataStore.edit { it[Keys.AUDIO_CUSHION_MS] = NativeAudioConfig.sanitizeCushion(ms) }
     }
 
     suspend fun updateAutoOpenOnConnect(enabled: Boolean) {

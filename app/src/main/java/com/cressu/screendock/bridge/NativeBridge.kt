@@ -118,6 +118,27 @@ object NativeBridge {
     fun alacDecode(handle: Long, input: ByteArray): ByteArray = nativeAlacDecode(handle, input)
     fun alacDestroy(handle: Long) = nativeAlacDestroy(handle)
 
+    // ---- optional Oboe low-latency PCM output (oboe_audio_engine.cpp) -------
+    // Kotlin still decodes; PCM16 stereo + sender pts go to a native timeline buffer -> Oboe.
+
+    /** Opens + starts an Oboe stream. Returns an engine handle, or 0 if unavailable (caller falls back). */
+    fun audioOpen(
+        sampleRate: Int, cushionMs: Int, bufferFrames: Int, lowLatency: Boolean,
+        deviceSampleRate: Int, deviceFramesPerBurst: Int,
+    ): Long =
+        if (loaded) {
+            try {
+                nativeAudioOpen(sampleRate, cushionMs, bufferFrames, lowLatency, deviceSampleRate, deviceFramesPerBurst)
+            } catch (t: UnsatisfiedLinkError) { 0L }
+        } else 0L
+
+    fun audioWrite(engine: Long, pcm: ByteArray, length: Int, ptsNs: Long) = nativeAudioWrite(engine, pcm, length, ptsNs)
+    fun audioSetGain(engine: Long, gain: Float) = nativeAudioSetGain(engine, gain)
+    fun audioClose(engine: Long) = nativeAudioClose(engine)
+
+    /** [backlogMs, cushionMs, trims, drops, silences, underruns, xruns], or null. */
+    fun audioStats(engine: Long): IntArray? = nativeAudioStats(engine)
+
     // ---- touch backchannel (receiver → sender HID) ------------------------
 
     /** Touch phases for [sendTouchEvent]. */
@@ -174,6 +195,15 @@ object NativeBridge {
 
     @JvmStatic private external fun nativeAlacDecode(handle: Long, input: ByteArray): ByteArray
     @JvmStatic private external fun nativeAlacDestroy(handle: Long)
+
+    @JvmStatic private external fun nativeAudioOpen(
+        sampleRate: Int, cushionMs: Int, bufferFrames: Int, lowLatency: Boolean,
+        deviceSampleRate: Int, deviceFramesPerBurst: Int,
+    ): Long
+    @JvmStatic private external fun nativeAudioWrite(engine: Long, pcm: ByteArray, length: Int, ptsNs: Long)
+    @JvmStatic private external fun nativeAudioSetGain(engine: Long, gain: Float)
+    @JvmStatic private external fun nativeAudioClose(engine: Long)
+    @JvmStatic private external fun nativeAudioStats(engine: Long): IntArray?
 
     @JvmStatic private external fun nativeSendTouchEvent(
         handle: Long, phase: Int, xNorm: Double, yNorm: Double,

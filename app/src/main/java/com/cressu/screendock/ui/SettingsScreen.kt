@@ -217,6 +217,8 @@ private suspend fun persist(repo: SettingsRepository, s: AirPlaySettings) {
     repo.updateAutoOpenOnConnect(s.autoOpenOnConnect)
     repo.updateHlsEnabled(s.hlsEnabled)
     repo.updateKeepScreenOnAudio(s.keepScreenOnAudio)
+    repo.updateLowLatencyAudio(s.lowLatencyAudio)
+    repo.updateAudioCushionMs(s.audioCushionMs)
 }
 
 @Composable
