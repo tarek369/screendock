@@ -19,6 +19,7 @@ import com.cressu.screendock.R
 import com.cressu.screendock.bridge.NativeBridge
 import com.cressu.screendock.bridge.RaopCallbackHandler
 import com.cressu.screendock.discovery.NsdServiceManager
+import com.cressu.screendock.discovery.UsbMdnsAdvertiser
 import com.cressu.screendock.model.HwAddressProvider
 import com.cressu.screendock.renderer.AudioRenderer
 import com.cressu.screendock.renderer.ScaleMode
@@ -86,6 +87,7 @@ class AirPlayService : Service(), RaopCallbackHandler {
 
     private var nsdManager: NsdServiceManager? = null
     private var networkWatcher: NetworkWatcher? = null
+    private var usbMdns: UsbMdnsAdvertiser? = null
     private var audioRenderer: AudioRenderer? = null
     private var mediaSession: MediaSessionController? = null
     private var wifiLock: WifiManager.WifiLock? = null
@@ -286,6 +288,15 @@ class AirPlayService : Service(), RaopCallbackHandler {
             )
         }
         networkWatcher = NetworkWatcher(applicationContext) { has -> onNetworkChanged(has) }.also { it.start() }
+        if (UsbMdnsAdvertiser.isNeeded()) {
+            usbMdns = UsbMdnsAdvertiser(
+                UsbMdnsAdvertiser.servicesFor(
+                    settings.displayName, port,
+                    NativeBridge.getAirplayTxtRecords(h), NativeBridge.getRaopTxtRecords(h),
+                    NativeBridge.getRaopServiceName(h),
+                ),
+            ) { iface, addr -> Log.i(TAG, "USB link " + (iface?.let { "up on $it (${addr?.hostAddress})" } ?: "down")) }.also { it.start() }
+        }
 
         _errorMessage.value = null
         mdnsError = false
@@ -323,6 +334,7 @@ class AirPlayService : Service(), RaopCallbackHandler {
         gate.cancelAll()
         networkWatcher?.stop(); networkWatcher = null
         nsdManager?.stop(); nsdManager = null
+        usbMdns?.stop(); usbMdns = null
         val h = handle
         activeHandle = 0L
         hls.stopAndWait() // no HLS push may reach native after this point

@@ -312,23 +312,24 @@ class NsdServiceManager(
 
     // ---- helpers ----------------------------------------------------------
 
-    /** Strip a trailing `._raop._tcp.local` (with or without a final dot)
-     *  so NsdManager receives only the `<hexmac>@<name>` instance label. */
-    private fun stripRaopSuffix(name: String): String {
-        var s = name.trim()
-        if (s.endsWith("$SUFFIX_RAOP_LOCAL.")) {
-            s = s.dropLast(SUFFIX_RAOP_LOCAL.length + 1)
-        } else if (s.endsWith(SUFFIX_RAOP_LOCAL)) {
-            s = s.dropLast(SUFFIX_RAOP_LOCAL.length)
-        }
-        return s
-    }
-
     private fun truncate(value: String, max: Int = MAX_ATTR_VALUE_LEN): String =
         if (value.length > max) value.substring(0, max) else value
 
     companion object {
         private const val TAG = "AirplayNsd"
+
+        /** Strip a trailing `._raop._tcp.local` (with or without a final dot)
+         *  so only the `<hexmac>@<name>` instance label remains. */
+        internal fun stripRaopSuffix(name: String): String {
+            var s = name.trim()
+            if (s.endsWith("$SUFFIX_RAOP_LOCAL.")) {
+                s = s.dropLast(SUFFIX_RAOP_LOCAL.length + 1)
+            } else if (s.endsWith(SUFFIX_RAOP_LOCAL)) {
+                s = s.dropLast(SUFFIX_RAOP_LOCAL.length)
+            }
+            return s
+        }
+
         private const val REREGISTER_DELAY_MS = 700L
         private const val MAX_BACKOFF_MS = 30_000L
 

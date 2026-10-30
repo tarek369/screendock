@@ -112,6 +112,11 @@ The receiver works over any IP network; USB tethering gives a wired Mac↔tablet
 3. Mac: Wi-Fi OFF (else macOS keeps using the Wi-Fi route), then Screen Mirroring → "ScreenDock".
    Verify in logs the RTSP peer is on the USB subnet (10.41.52.x), not 192.168.20.x.
    Our mDNS (NsdManager) DOES join the mDNS multicast group on usb0 — no app change needed.
+   **Update (2026-10-30):** NsdManager's reach onto tether ifaces is unreliable on Android <=16, so
+   `discovery/UsbMdnsAdvertiser` (adapted from jqssun/android-airplay-server, GPL-3.0) runs a tiny RFC 6762 responder
+   bound ONLY to usb*/ncm*/rndis* (probe/announce/answer/goodbye, yields if another responder claims our names).
+   Started/stopped beside NsdServiceManager in AirPlayService (SDK <= 36 only, `isNeeded()`); fed the same native TXT
+   maps via `servicesFor()`. Pure DNS parts + tests: `MdnsCodec.kt` / `MdnsCodecTest`. Needs Mac+cable validation.
 
 ## OnePlus power-management gotcha (2026-09-08)
 `ActivityManager: Stopping service due to app idle` — the OS killed the FOREGROUND service after
@@ -260,6 +265,7 @@ Source: `cloudflare-worker/` (static pages in `public/`, worker in `src/worker.j
   - **MED** NULL guards: `User-Agent` strstr (sender may omit header) and `audioMode` strstr (absent/non-string plist key) — both were NULL-deref crashes.
   - **MED** SET_PARAMETER volume: guarded with `raop_rtp_is_running()`, falling back to `audio_set_volume` callback for the HLS/playbin path.
   - NOTE: the full AirPlay 2 "Video V2" work (HAP pairing + encrypted RTSP) lives on the `v2-integration` branch, NOT on main. These 7 fixes were cherry-picked to main alone for the 0.3.5 production release; the v2-integration branch carries the same fixes plus the gated-off V2 slice.
+- 2026-10-30: USB-tether mDNS responder (`UsbMdnsAdvertiser`, SDK<=36) so a Mac finds ScreenDock over a USB cable; unit-tested codec, awaiting Mac+cable validation.
 - 2026-10-26 (website redesign + contact cleanup): https://screendock.cressu.com rebuilt as a conversion landing page and redeployed (worker `screendock-legal`, custom domain).
   - Landing page + media are now Workers static assets in `cloudflare-worker/public/` (`[assets]` in wrangler.toml); `src/worker.js` only serves `/privacy` + `/healthz` and 302s unknown paths to `/`. Media are crops of `store/screenshots/` + the brag video (`~/Dev/Airplay/brag-output/brag.mp4`). Do NOT use `store/fgs_demo.mp4` publicly (shows a copyrighted music video + personal browser bookmarks).
   - Every Play link carries `referrer=utm_source=website&utm_medium={nav,hero,footer,sticky}` for Play Console acquisition attribution.
