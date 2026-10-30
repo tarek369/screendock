@@ -58,6 +58,7 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalViewConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -120,6 +121,8 @@ fun RenderScreen(repo: SettingsRepository, savedScaleMode: String) {
     }
 
     val isTv = LocalIsTv.current
+    val pip = LocalPip.current
+    val inPip = pip?.isInPip == true
     val rootFocus = remember { FocusRequester() }
     val chipFocus = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { rootFocus.requestFocus() } }
@@ -167,22 +170,33 @@ fun RenderScreen(repo: SettingsRepository, savedScaleMode: String) {
             },
             modifier = Modifier.fillMaxSize(),
         )
-        TouchForwardOverlay(
-            mode = mode,
-            videoAspect = videoSize.aspect,
-            onTap = { chipNonce++ },
-            modifier = Modifier.fillMaxSize(),
-        )
-        ConnectedChip()
-        // Composed AFTER the overlay so it sits on top and wins hit-testing —
-        // taps on the chip never reach the touch-forward layer.
-        ScaleChip(
-            visible = chipVisible,
-            mode = mode,
-            onClick = cycle,
-            focusRequester = chipFocus,
-            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 28.dp),
-        )
+        // In picture-in-picture only the bare video surface is shown: no touch
+        // forwarding (the window is tiny), chips or buttons.
+        if (!inPip) {
+            TouchForwardOverlay(
+                mode = mode,
+                videoAspect = videoSize.aspect,
+                onTap = { chipNonce++ },
+                modifier = Modifier.fillMaxSize(),
+            )
+            ConnectedChip()
+            // Composed AFTER the overlay so it sits on top and wins hit-testing —
+            // taps on the chip never reach the touch-forward layer.
+            ScaleChip(
+                visible = chipVisible,
+                mode = mode,
+                onClick = cycle,
+                focusRequester = chipFocus,
+                modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 28.dp),
+            )
+            if (pip != null && pip.supported && !isTv) {
+                PipButton(
+                    visible = chipVisible,
+                    onClick = { pip.enterPip() },
+                    modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(top = 16.dp, end = 16.dp),
+                )
+            }
+        }
     }
 }
 
@@ -236,6 +250,29 @@ private fun ScaleChip(
             Text(label, style = MaterialTheme.typography.labelLarge, color = Palette.textPrimary)
             Spacer(Modifier.width(10.dp))
             Text(stringResource(R.string.scale_tap_to_change), style = MaterialTheme.typography.bodySmall, color = Palette.textSecondary)
+        }
+    }
+}
+
+/** Manual picture-in-picture entry; shares the auto-hiding chip's visibility. */
+@Composable
+private fun PipButton(visible: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    AnimatedVisibility(visible = visible, modifier = modifier, enter = fadeIn(tween(200)), exit = fadeOut(tween(350))) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(Color.Black.copy(alpha = 0.72f))
+                .border(1.dp, Palette.white.copy(alpha = 0.18f), CircleShape)
+                .clickable(role = Role.Button, onClickLabel = stringResource(R.string.cd_pip), onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                painterResource(R.drawable.ic_pip),
+                contentDescription = stringResource(R.string.cd_pip),
+                tint = Palette.textPrimary,
+                modifier = Modifier.size(22.dp),
+            )
         }
     }
 }

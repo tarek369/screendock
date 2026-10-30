@@ -24,6 +24,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -138,6 +139,9 @@ fun AppScreen(version: String, context: Context) {
     // Effective mode only counts while the media screen is actually showing.
     val shownMode = if (screen == Screen.IDLE) mediaMode else MediaMode.NONE
     WindowModeEffect(shownMode, loadedSettings?.keepScreenOnAudio == true)
+    // Tell the activity whether video is really on screen (gates picture-in-picture).
+    val pip = LocalPip.current
+    SideEffect { pip?.mediaScreenShowing = shownMode == MediaMode.MIRROR || shownMode == MediaMode.VIDEO }
 
     // --- In-app review (only on idle, right after a session ended) ---
     var previousMode by remember { mutableStateOf(mediaMode) }

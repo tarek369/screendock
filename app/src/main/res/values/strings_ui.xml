@@ -179,4 +179,5 @@
     <string name="cd_cover_art">Album cover art</string>
     <string name="cd_progress">Playback position %1$s of %2$s</string>
     <string name="cd_scale_mode">Picture scaling: %1$s. Activate to change.</string>
+    <string name="cd_pip">Picture-in-picture</string>
 </resources>
