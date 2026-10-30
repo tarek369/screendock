@@ -21,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +42,7 @@ import com.cressu.screendock.ui.components.dpadScrollable
 import com.cressu.screendock.R
 import com.cressu.screendock.ui.components.AuroraBackground
 import com.cressu.screendock.ui.components.GlassIconButton
+import com.cressu.screendock.ui.components.GradientButton
 import com.cressu.screendock.ui.components.SettingsCard
 import com.cressu.screendock.ui.theme.Palette
 import java.net.Inet4Address
@@ -104,6 +106,7 @@ fun TroubleshootingScreen(
     deviceName: String,
     receiverRunning: Boolean,
     diagnostics: (NetworkSummary) -> SupportDiagnostics,
+    onOpenLogs: () -> Unit,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -166,6 +169,16 @@ fun TroubleshootingScreen(
 
                     TellUsCard(diagnostics = { diagnostics(net) })
 
+                    SettingsCard(title = stringResource(R.string.logs_card_title), icon = Icons.Rounded.Description) {
+                        Text(
+                            stringResource(R.string.logs_card_desc),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Palette.textSecondary,
+                            modifier = Modifier.padding(bottom = 14.dp),
+                        )
+                        GradientButton(text = stringResource(R.string.logs_open), onClick = onOpenLogs)
+                    }
+
                     SettingsCard(title = stringResource(R.string.ts_card_tips), icon = Icons.Rounded.Lightbulb) {
                         listOf(
                             R.string.ts_tip_same_network,
@@ -173,6 +186,7 @@ fun TroubleshootingScreen(
                             R.string.ts_tip_guest_wifi,
                             R.string.ts_tip_battery,
                             R.string.ts_tip_vpn,
+                            R.string.ts_tip_usb,
                             R.string.ts_tip_restart,
                         ).forEach { res ->
                             Text(

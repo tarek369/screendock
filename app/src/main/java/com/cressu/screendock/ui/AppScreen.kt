@@ -54,7 +54,7 @@ import kotlinx.coroutines.launch
 private const val TAG = "AirplayMainActivity"
 private const val REVIEW_SETTLE_DELAY_MS = 1_500L
 
-private enum class Screen { IDLE, SETTINGS, TROUBLESHOOTING }
+private enum class Screen { IDLE, SETTINGS, TROUBLESHOOTING, LOGS }
 
 @Composable
 fun AppScreen(version: String, context: Context) {
@@ -129,7 +129,11 @@ fun AppScreen(version: String, context: Context) {
 
     // --- Navigation ---
     BackHandler(enabled = screen != Screen.IDLE) {
-        screen = if (screen == Screen.TROUBLESHOOTING) troubleshootingReturn else Screen.IDLE
+        screen = when (screen) {
+            Screen.LOGS -> Screen.TROUBLESHOOTING
+            Screen.TROUBLESHOOTING -> troubleshootingReturn
+            else -> Screen.IDLE
+        }
     }
     // A connection starting while the user is in an inner page brings them back to the media screen.
     LaunchedEffect(mediaMode) {
@@ -236,7 +240,24 @@ fun AppScreen(version: String, context: Context) {
                                 diagnostics = { net ->
                                     supportDiagnostics(context, proUnlocked, settings, receiverRunning, net)
                                 },
+                                onOpenLogs = { screen = Screen.LOGS },
                                 onBack = { screen = troubleshootingReturn },
+                            )
+                        }
+                        Screen.LOGS -> {
+                            val receiverRunning =
+                                receiverEnabled && state != com.cressu.screendock.service.ReceiverState.IDLE
+                            LogsScreen(
+                                header = {
+                                    logReportHeader(
+                                        supportDiagnostics(
+                                            context, proUnlocked, settings, receiverRunning,
+                                            NetworkInfoProvider.read(context),
+                                        ),
+                                        settings,
+                                    )
+                                },
+                                onBack = { screen = Screen.TROUBLESHOOTING },
                             )
                         }
                         Screen.IDLE -> MediaContent(
