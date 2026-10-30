@@ -37,4 +37,9 @@ echo "== direct-URL wait_ready"
 $CC $FLAGS -I"$OUT" -I"$HERE" "$HERE/test_wait_ready.c" -lpthread -o "$OUT/test_wait_ready"
 "$OUT/test_wait_ready" || status=1
 
+echo "== oboe timeline buffer (header-only; no Oboe needed)"
+${CXX:-clang++} -std=c++17 -g -O1 -Wall -Wextra -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+    -I"$CPP" -I"$HERE" "$HERE/test_timeline_buffer.cpp" -o "$OUT/test_timeline_buffer"
+"$OUT/test_timeline_buffer" || status=1
+
 exit $status

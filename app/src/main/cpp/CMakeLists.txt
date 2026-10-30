@@ -151,14 +151,21 @@ add_library(alac STATIC
 target_include_directories(alac PUBLIC ${ALAC_DIR})
 target_compile_definitions(alac PUBLIC TARGET_RT_LITTLE_ENDIAN=1)
 
+# ---------------------------------------------------------------- Oboe ---
+# Optional low-latency audio output. Built from source (git submodule, Apache-2.0) as a
+# STATIC lib: the Maven AAR's prefab module requires c++_shared, while the app ships
+# c++_static (single .so). Only the pieces we reference survive --gc-sections.
+add_subdirectory(third_party/oboe)
+
 # ------------------------------------------------------- shared library (.so)
 add_library(airplay_native SHARED
     native_bridge.cpp
+    oboe_audio_engine.cpp
     android_raop_callbacks.c
     android_dnssd_shim.c
     android_event_channel.c
 )
-target_link_libraries(airplay_native PRIVATE airplay_core alac log android)
+target_link_libraries(airplay_native PRIVATE airplay_core alac oboe log android)
 # gc-sections + identical-code-folding; exclude-libs hides every symbol that
 # comes from the static archives (OpenSSL, libc++, plist, ...). 16 KB page
 # alignment comes from ANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES (build.gradle.kts).

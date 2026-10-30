@@ -22,6 +22,8 @@ import com.cressu.screendock.discovery.NsdServiceManager
 import com.cressu.screendock.discovery.UsbMdnsAdvertiser
 import com.cressu.screendock.model.HwAddressProvider
 import com.cressu.screendock.renderer.AudioRenderer
+import com.cressu.screendock.renderer.NativeAudioConfig
+import com.cressu.screendock.renderer.queryDeviceAudioOutput
 import com.cressu.screendock.renderer.ScaleMode
 import com.cressu.screendock.renderer.VideoRenderer
 import com.cressu.screendock.settings.AirPlaySettings
@@ -266,7 +268,7 @@ class AirPlayService : Service(), RaopCallbackHandler {
         allowedDevices = settingsRepo.allowedDevices()
 
         videoRenderer = VideoRenderer().also { it.scaleMode = parseScale(settings.scaleMode) }
-        audioRenderer = AudioRenderer()
+        audioRenderer = AudioRenderer(NativeAudioConfig(settings.lowLatencyAudio, settings.audioCushionMs), queryDeviceAudioOutput(this))
         videoRenderer?.audioActive = { audioRenderer?.isActive == true }
 
         val hwAddr = HwAddressProvider.getHardwareAddress(applicationContext)

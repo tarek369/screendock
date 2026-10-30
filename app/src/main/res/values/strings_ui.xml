@@ -99,6 +99,11 @@
     <string name="set_hls_desc">Play videos sent with the AirPlay button directly on this device. Turn off to allow screen mirroring only.</string>
     <string name="set_keep_on_audio">Keep screen on for music</string>
     <string name="set_keep_on_audio_desc">Prevents the display from sleeping while the Now Playing screen is showing.</string>
+    <string name="set_low_latency_audio">Low-latency audio (experimental)</string>
+    <string name="set_low_latency_audio_desc">Uses a faster audio output to cut delay for music and calls. Falls back to the standard output if it cannot start. Applies after restart.</string>
+    <string name="set_audio_cushion">Audio buffer</string>
+    <string name="set_audio_cushion_auto">Auto</string>
+    <string name="set_audio_cushion_hint">Smaller = less delay but more risk of crackling on weak Wi-Fi. Auto adapts to your network.</string>
     <string name="set_h265_desc">Sharper video at the same bitrate. Turn off if a sender has trouble connecting.</string>
     <string name="set_pin_mode">PIN protection</string>
     <string name="pin_off">Off</string>

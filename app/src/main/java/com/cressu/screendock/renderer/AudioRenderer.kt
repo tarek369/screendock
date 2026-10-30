@@ -43,7 +43,12 @@ import kotlin.concurrent.withLock
  * wallBaseNs`; subsequent packets are paced (sleep if ahead) or dropped (if
  * behind) to keep drift within human-perceptual thresholds (~40–80 ms).
  */
-class AudioRenderer {
+class AudioRenderer(
+    /** Optional Oboe low-latency sink (default OFF -> AudioTrack path, unchanged). */
+    private val nativeConfig: NativeAudioConfig = NativeAudioConfig(),
+    /** Device native output (sampleRate, framesPerBurst) hint for Oboe's OpenSL ES backend; 0 = unknown. */
+    private val deviceOutput: Pair<Int, Int> = 0 to 0,
+) {
 
     /**
      * Kill-switch for the software ALAC fallback. When `false` a device that
@@ -59,6 +64,15 @@ class AudioRenderer {
     // --- output (fixed: 44.1 kHz / stereo / PCM16) -------------------------
     @Volatile
     private var audioTrack: AudioTrack? = null
+
+    // --- optional Oboe sink (all touched under codecLock) --------------------
+    /** Native engine handle; 0 = not open. When non-zero it replaces [audioTrack]. */
+    private var oboeHandle: Long = 0L
+    /** Set after a failed open so we never retry-storm; AudioTrack carries the session. */
+    private var oboeUnavailable: Boolean = false
+    private var oboeWrites: Long = 0L
+    /** PTS of the packet currently being decoded (for decoders that do not report one). */
+    private var currentPtsNs: Long = 0L
 
     // --- active decoder state (all touched under codecLock) -----------------
     private var codec: MediaCodec? = null
@@ -177,6 +191,7 @@ class AudioRenderer {
             currentLinearGain = dbToLinear(currentVolumeDb)
             try {
                 audioTrack?.setVolume(currentLinearGain)
+                if (oboeHandle != 0L) NativeBridge.audioSetGain(oboeHandle, currentLinearGain)
             } catch (t: Throwable) {
                 Log.w(TAG, "AudioTrack.setVolume failed", t)
             }
@@ -223,6 +238,7 @@ class AudioRenderer {
         if (data.isEmpty() || released) return
         ensureConfiguredLocked(ct)
         ensureTrackLocked()
+        currentPtsNs = ptsNs
 
         // A/V sync: pace or drop this packet to align with the PTS timeline.
         if (!paceAudio(ptsNs)) return   // dropped to maintain sync
@@ -312,6 +328,9 @@ class AudioRenderer {
      */
     private fun paceAudio(ptsNs: Long): Boolean {
         lastAudioNs = System.nanoTime()
+        // Oboe path: the native timeline buffer absorbs jitter and aligns to the sender
+        // timeline itself (silence fill / late drop), so no sleep-based pacing here.
+        if (oboeHandle != 0L) return true
         val delayNs = playoutClock.delayNs(ptsNs) ?: return syncAudio(ptsNs)
         val queuedNs = audioTrack?.let { queuedNsLocked(it) } ?: 0L
         val action = AvSyncPolicy.audioAction(delayNs, queuedNs)
@@ -443,12 +462,13 @@ class AudioRenderer {
             when {
                 outIndex >= 0 -> {
                     val outBuf = codec.getOutputBuffer(outIndex)
-                    if (outBuf != null && info.size > 0 && track != null) {
+                    if (outBuf != null && info.size > 0 && (track != null || oboeHandle != 0L)) {
                         outBuf.position(info.offset)
                         outBuf.limit(info.offset + info.size)
                         if (drainChunk.size < info.size) drainChunk = ByteArray(info.size)
                         outBuf.get(drainChunk, 0, info.size)
-                        writePcmLocked(track, drainChunk, info.size)
+                        val outPtsNs = if (info.presentationTimeUs != 0L) info.presentationTimeUs * 1000L else currentPtsNs
+                        writePcmLocked(drainChunk, info.size, outPtsNs)
                     }
                     codec.releaseOutputBuffer(outIndex, false)
                     iterations++
@@ -485,18 +505,28 @@ class AudioRenderer {
     private fun feedSwAlacLocked(data: ByteArray) {
         val h = swAlacHandle
         if (h == 0L) return
-        val track = this.audioTrack ?: return
+        if (audioTrack == null && oboeHandle == 0L) return
         val pcm = try {
             NativeBridge.alacDecode(h, data)
         } catch (t: Throwable) {
             Log.e(TAG, "NativeBridge.alacDecode threw", t)
             ByteArray(0)
         }
-        if (pcm.isNotEmpty()) writePcmLocked(track, pcm, pcm.size)
+        if (pcm.isNotEmpty()) writePcmLocked(pcm, pcm.size, currentPtsNs)
     }
 
-    private fun writePcmLocked(track: AudioTrack, pcm: ByteArray, length: Int) {
+    private fun writePcmLocked(pcm: ByteArray, length: Int, ptsNs: Long) {
         if (length <= 0) return
+        if (oboeHandle != 0L) {
+            try {
+                NativeBridge.audioWrite(oboeHandle, pcm, length, ptsNs)
+                if (++oboeWrites % OBOE_STATS_EVERY == 0L) logOboeStatsLocked()
+            } catch (t: Throwable) {
+                Log.w(TAG, "Oboe write failed", t)
+            }
+            return
+        }
+        val track = audioTrack ?: return
         try {
             val written = track.write(pcm, 0, length, AudioTrack.WRITE_BLOCKING)
             if (written > 0) framesWritten += written / BYTES_PER_FRAME
@@ -521,8 +551,48 @@ class AudioRenderer {
 
     // ---- internals: AudioTrack lifecycle -----------------------------------
 
+    /** Try to bring up the Oboe sink; on any failure remember it and let AudioTrack take over. */
+    private fun tryOpenOboeLocked(): Boolean {
+        if (!nativeConfig.enabled || oboeUnavailable) return false
+        val handle = try {
+            NativeBridge.audioOpen(
+                SAMPLE_RATE, nativeConfig.effectiveCushionMs, 0, true,
+                deviceOutput.first, deviceOutput.second,
+            )
+        } catch (t: Throwable) {
+            Log.e(TAG, "Oboe engine open threw", t)
+            0L
+        }
+        if (AudioSinkSelector.select(nativeConfig, handle) != AudioSink.OBOE) {
+            oboeUnavailable = true
+            Log.w(TAG, "Oboe low-latency audio unavailable; falling back to AudioTrack")
+            return false
+        }
+        oboeHandle = handle
+        oboeWrites = 0L
+        NativeBridge.audioSetGain(handle, currentLinearGain)
+        Log.i(TAG, "Oboe low-latency audio active (cushion=" +
+            (if (nativeConfig.effectiveCushionMs == 0) "auto" else "${nativeConfig.effectiveCushionMs}ms") + ")")
+        return true
+    }
+
+    private fun logOboeStatsLocked() {
+        val st = NativeBridge.audioStats(oboeHandle) ?: return
+        if (st.size < 7) return
+        Log.d(TAG, "oboe stats backlog=${st[0]}ms cushion=${st[1]}ms trims=${st[2]} drops=${st[3]} " +
+            "silences=${st[4]} underruns=${st[5]} xruns=${st[6]}")
+    }
+
+    private fun closeOboeLocked() {
+        val h = oboeHandle
+        if (h == 0L) return
+        oboeHandle = 0L
+        try { NativeBridge.audioClose(h) } catch (t: Throwable) { Log.w(TAG, "Oboe close failed", t) }
+    }
+
     private fun ensureTrackLocked() {
-        if (audioTrack != null) return
+        if (audioTrack != null || oboeHandle != 0L) return
+        if (tryOpenOboeLocked()) return
 
         var minBuf = AudioTrack.getMinBufferSize(SAMPLE_RATE, CHANNEL_MASK, ENCODING)
         if (minBuf <= 0) {
@@ -586,6 +656,7 @@ class AudioRenderer {
     }
 
     private fun stopAndReleaseTrackLocked() {
+        closeOboeLocked()
         audioTrack?.let { t ->
             try { t.pause() } catch (ign: Throwable) { /* best-effort */ }
             try { t.flush() } catch (ign: Throwable) { /* best-effort */ }
@@ -628,6 +699,7 @@ class AudioRenderer {
         private const val LEAD_NS = 20_000_000L              // keep 20 ms lead after sleeping
         private const val ACTIVE_WINDOW_NS = 1_500_000_000L
         private const val BYTES_PER_FRAME = 4                  // PCM16 stereo
+        private const val OBOE_STATS_EVERY = 1024L          // log Oboe timeline stats every N writes
         private const val MAX_DROPS = 3                      // cap consecutive drops before re-anchor (fast recovery)
 
         // RAOP codec types.
