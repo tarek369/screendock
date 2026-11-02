@@ -34,8 +34,10 @@ object NativeBridge {
     fun versionString(): String =
         if (loaded) nativeGetVersion() else "native library not loaded"
 
-    /** Round-trips raop_init/dnssd_init to confirm symbols resolve. M0 health check. */
-    fun selfTest(): Boolean = if (loaded) nativeSelfTest() else false
+    /** Round-trips raop_init/dnssd_init to confirm symbols resolve. Runs once per process; later calls reuse the result. */
+    fun selfTest(): Boolean = selfTestResult
+
+    private val selfTestResult: Boolean by lazy { if (loaded) nativeSelfTest() else false }
 
     // ---- Full surface (stable contract; M1+) ------------------------------
     // Kept here so the Kotlin<->C signature pair is reviewable in one place.
