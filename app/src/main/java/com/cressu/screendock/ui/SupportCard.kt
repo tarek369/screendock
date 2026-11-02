@@ -2,6 +2,7 @@ package com.cressu.screendock.ui
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -39,13 +40,21 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.core.content.pm.PackageInfoCompat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import com.cressu.screendock.R
+import com.cressu.screendock.logs.LogCapture
+import com.cressu.screendock.logs.LogFiles
+import com.cressu.screendock.logs.LogRedactor
+import com.cressu.screendock.logs.LogReport
 import com.cressu.screendock.settings.AirPlaySettings
 import com.cressu.screendock.ui.components.FieldLabel
 import com.cressu.screendock.ui.components.GradientButton
 import com.cressu.screendock.ui.components.Segment
 import com.cressu.screendock.ui.components.SegmentedControl
 import com.cressu.screendock.ui.components.SettingsCard
+import com.cressu.screendock.ui.components.SwitchRow
 import com.cressu.screendock.ui.components.focusGlow
 import com.cressu.screendock.ui.theme.Palette
 
@@ -58,6 +67,7 @@ fun TellUsCard(diagnostics: () -> SupportDiagnostics) {
     val context = LocalContext.current
     var problem by rememberSaveable { mutableStateOf(SupportProblem.NOT_FOUND) }
     var sender by rememberSaveable { mutableStateOf(SenderKind.IPHONE) }
+    var includeLogs by rememberSaveable { mutableStateOf(true) }
     val prompt = stringResource(R.string.support_email_prompt)
     val noEmailApp = stringResource(R.string.support_no_email_app, SupportEmail.ADDRESS)
     val problems = listOf(
@@ -92,14 +102,23 @@ fun TellUsCard(diagnostics: () -> SupportDiagnostics) {
             segments = SenderKind.entries.map { Segment(it, it.label) },
             onSelect = { sender = it },
         )
+        Spacer(Modifier.height(12.dp))
+        SwitchRow(
+            title = stringResource(R.string.support_include_logs),
+            description = stringResource(R.string.support_include_logs_desc),
+            checked = includeLogs,
+            onCheckedChange = { includeLogs = it },
+        )
         Spacer(Modifier.height(18.dp))
         GradientButton(
             text = stringResource(R.string.support_send),
             icon = Icons.Rounded.Email,
             onClick = {
+                val d = diagnostics()
                 val subject = SupportEmail.subject(problem, sender)
-                val body = SupportEmail.body(prompt, problem, sender, diagnostics())
-                if (!launchSupportEmail(context, subject, body)) {
+                val body = SupportEmail.body(prompt, problem, sender, d)
+                val logs = if (includeLogs) captureSupportLogs(SupportEmail.diagnosticLines(problem, sender, d)) else null
+                if (!launchSupportEmail(context, subject, body, logs)) {
                     Toast.makeText(context, noEmailApp, Toast.LENGTH_LONG).show()
                 }
             },
@@ -137,13 +156,32 @@ private fun ProblemChip(label: String, selected: Boolean, onClick: () -> Unit) {
     )
 }
 
-/** Opens the user's email app with a prefilled message. False when no app can handle it. */
-fun launchSupportEmail(context: Context, subject: String, body: String): Boolean {
-    val intent = Intent(Intent.ACTION_SENDTO, Uri.parse(SupportEmail.mailtoUri(subject, body))).apply {
+/** Redacted logs to send with a support email: the full report file plus a short inline tail. */
+class SupportLogs(val report: String, val tail: List<String>)
+
+/** Snapshot of the in-app log buffer, redacted, with [header] lines at the top of the report. */
+fun captureSupportLogs(header: List<String>): SupportLogs {
+    val lines = LogCapture.buffer.snapshot()
+    val stamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z", Locale.US).format(Date())
+    return SupportLogs(
+        report = LogReport.format(header, lines, stamp),
+        tail = lines.takeLast(SupportEmail.LOG_TAIL_LINES).map { LogRedactor.redact(it.raw) },
+    )
+}
+
+/**
+ * Opens the user's email app with a prefilled message to support. With [logs], the report is
+ * attached as a file; if no email app takes attachments (or the file can't be written) the
+ * last log lines go into the body instead. False when no email app exists at all.
+ */
+fun launchSupportEmail(context: Context, subject: String, body: String, logs: SupportLogs? = null): Boolean {
+    if (logs != null && launchWithAttachment(context, subject, body, logs.report)) return true
+    val fullBody = if (logs != null) SupportEmail.withLogTail(body, logs.tail) else body
+    val intent = Intent(Intent.ACTION_SENDTO, Uri.parse(SupportEmail.mailtoUri(subject, fullBody))).apply {
         // Some mail apps ignore the mailto query and read only the extras.
         putExtra(Intent.EXTRA_EMAIL, arrayOf(SupportEmail.ADDRESS))
         putExtra(Intent.EXTRA_SUBJECT, subject)
-        putExtra(Intent.EXTRA_TEXT, body)
+        putExtra(Intent.EXTRA_TEXT, fullBody)
         if (context !is Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
     return try {
@@ -151,6 +189,32 @@ fun launchSupportEmail(context: Context, subject: String, body: String): Boolean
         true
     } catch (e: ActivityNotFoundException) {
         Log.w(TAG, "no email app for support mail", e)
+        false
+    }
+}
+
+/** ACTION_SEND with a mailto: selector, so only email apps are offered and the log file is attached. */
+private fun launchWithAttachment(context: Context, subject: String, body: String, report: String): Boolean {
+    return try {
+        val uri = LogFiles.write(context, report)
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_EMAIL, arrayOf(SupportEmail.ADDRESS))
+            putExtra(Intent.EXTRA_SUBJECT, subject)
+            putExtra(Intent.EXTRA_TEXT, body)
+            putExtra(Intent.EXTRA_STREAM, uri)
+            clipData = ClipData.newRawUri(null, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            selector = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:"))
+            if (context !is Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(send)
+        true
+    } catch (e: ActivityNotFoundException) {
+        Log.w(TAG, "no email app accepts attachments; inlining log tail", e)
+        false
+    } catch (e: Exception) {
+        Log.w(TAG, "could not attach log report; inlining log tail", e)
         false
     }
 }

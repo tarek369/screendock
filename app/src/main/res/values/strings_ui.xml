@@ -151,6 +151,7 @@
     <string name="logs_title">Logs</string>
     <string name="logs_clear">Clear logs</string>
     <string name="logs_share">Share logs</string>
+    <string name="logs_email">Email logs to support</string>
     <string name="logs_share_failed">No app available to share the logs.</string>
     <string name="logs_level_all">All</string>
     <string name="logs_level_info">Info</string>
@@ -170,6 +171,8 @@
     <string name="support_problem_other">Something else</string>
     <string name="support_sender_label">Mirroring from</string>
     <string name="support_send">Email support</string>
+    <string name="support_include_logs">Include app logs</string>
+    <string name="support_include_logs_desc">Helps us see why it failed. PINs and passwords are removed.</string>
     <string name="support_note">Opens your email app with device details filled in. You see everything before sending.</string>
     <string name="support_email_prompt">Tell us what happened (optional):</string>
     <string name="support_no_email_app">No email app found. Write to us at %1$s</string>

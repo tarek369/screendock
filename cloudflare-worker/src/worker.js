@@ -13,7 +13,7 @@ const PRIVACY = `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Privacy Policy — ScreenDock</title>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","@id":"https://screendock.cressu.com/privacy#webpage","url":"https://screendock.cressu.com/privacy","name":"Privacy Policy — ScreenDock","inLanguage":"en","datePublished":"2026-09-19","isPartOf":{"@id":"https://screendock.cressu.com/#site"},"about":{"@id":"https://screendock.cressu.com/#app"}}
+{"@context":"https://schema.org","@type":"WebPage","@id":"https://screendock.cressu.com/privacy#webpage","url":"https://screendock.cressu.com/privacy","name":"Privacy Policy — ScreenDock","inLanguage":"en","datePublished":"2026-09-19","dateModified":"2026-11-02","isPartOf":{"@id":"https://screendock.cressu.com/#site"},"about":{"@id":"https://screendock.cressu.com/#app"}}
 </script>
 <style>
   body{margin:0;background:#07090D;color:#F2F5FA;font:16px/1.65 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -29,7 +29,7 @@ const PRIVACY = `<!DOCTYPE html>
 <body>
 <main>
   <h1>Privacy Policy</h1>
-  <p class="muted">Effective date: September 19, 2026 · Applies to the ScreenDock Android application</p>
+  <p class="muted">Effective date: September 19, 2026 · Last updated: November 2, 2026 · Applies to the ScreenDock Android application</p>
 
   <h2>1. Who we are</h2>
   <p>ScreenDock ("the app") is developed and operated by Cressu ("we", "us"). It turns an Android device into an AirPlay receiver so that Apple devices can mirror their screen or stream audio to it.</p>
@@ -42,6 +42,7 @@ const PRIVACY = `<!DOCTYPE html>
     <li><strong style="color:#F2F5FA">Local network traffic.</strong> To receive mirroring, the app communicates directly with Apple devices on your Wi-Fi network using the AirPlay protocol. Screen, audio, and control data sent by your Apple devices is decoded on your Android device and is never transmitted to us or to any third party.</li>
     <li><strong style="color:#F2F5FA">Device-generated identifiers.</strong> The app generates a local cryptographic key pair and derives a device identifier from your device's network hardware address, as required by the AirPlay protocol for discovery and encryption. These identifiers never leave your local network except as part of the protocol handshake with your own Apple devices.</li>
     <li><strong style="color:#F2F5FA">Notifications.</strong> The app posts a persistent Android notification while the receiver is running. This never sends data anywhere.</li>
+    <li><strong style="color:#F2F5FA">Support emails (optional).</strong> If you choose to contact support from the app, it opens your own email app with device details (app version, device model, Android version, network type) and, unless you switch it off, a file of the app's recent log lines. PINs and passwords are removed from the logs. Nothing is sent until you press send in your email app, and we use what you send only to answer your request.</li>
     <li><strong style="color:#F2F5FA">Your settings.</strong> Preferences such as the receiver name and video quality are stored locally on your device only.</li>
   </ul>
 

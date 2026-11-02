@@ -45,7 +45,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.FileProvider
 import com.cressu.screendock.R
 import com.cressu.screendock.logs.LogCapture
 import com.cressu.screendock.logs.LogLevel
@@ -57,7 +56,8 @@ import com.cressu.screendock.ui.components.GlassIconButton
 import com.cressu.screendock.ui.components.Segment
 import com.cressu.screendock.ui.components.SegmentedControl
 import com.cressu.screendock.ui.theme.Palette
-import java.io.File
+import com.cressu.screendock.logs.LogFiles
+import androidx.compose.material.icons.rounded.Email
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -65,8 +65,6 @@ import kotlinx.coroutines.delay
 
 private const val TAG = "AirplayLogs"
 private const val REFRESH_MS = 500L
-private const val REPORT_DIR = "logs"
-private const val REPORT_FILE = "screendock-logs.txt"
 
 /** Header lines (app, device, settings summary) for a shared report. Never includes a PIN. */
 fun logReportHeader(d: SupportDiagnostics, settings: AirPlaySettings): List<String> = listOf(
@@ -94,6 +92,8 @@ fun LogsScreen(header: () -> List<String>, onBack: () -> Unit) {
     val listState = rememberLazyListState()
     val backFocus = remember { FocusRequester() }
     val isTv = LocalIsTv.current
+    val emailPrompt = stringResource(R.string.support_email_prompt)
+    val noEmailApp = stringResource(R.string.support_no_email_app, SupportEmail.ADDRESS)
 
     LaunchedEffect(isTv) {
         if (isTv) { delay(150); runCatching { backFocus.requestFocus() } }
@@ -137,6 +137,19 @@ fun LogsScreen(header: () -> List<String>, onBack: () -> Unit) {
                     icon = Icons.Rounded.DeleteSweep,
                     contentDescription = stringResource(R.string.logs_clear),
                     onClick = { LogCapture.buffer.clear(); lines = emptyList() },
+                )
+                Spacer(Modifier.width(8.dp))
+                GlassIconButton(
+                    icon = Icons.Rounded.Email,
+                    contentDescription = stringResource(R.string.logs_email),
+                    onClick = {
+                        val h = header()
+                        val logs = captureSupportLogs(h)
+                        val body = (listOf(emailPrompt, "", "", "--- Please keep the details below ---") + h).joinToString("\n")
+                        if (!launchSupportEmail(context, "ScreenDock: logs", body, logs)) {
+                            Toast.makeText(context, noEmailApp, Toast.LENGTH_LONG).show()
+                        }
+                    },
                 )
                 Spacer(Modifier.width(8.dp))
                 GlassIconButton(
@@ -204,9 +217,7 @@ private fun now(): String = SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z", Locale.US)
 /** Writes the report to the app cache and opens the share sheet. Returns false on failure. */
 private fun shareLogs(context: Context, text: String): Boolean {
     return try {
-        val dir = File(context.cacheDir, REPORT_DIR).apply { mkdirs() }
-        val file = File(dir, REPORT_FILE).apply { writeText(text) }
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.logs", file)
+        val uri = LogFiles.write(context, text)
         val send = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_STREAM, uri)

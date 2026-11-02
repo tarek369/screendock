@@ -67,13 +67,14 @@ object SupportEmail {
      * [prompt] is the localized "tell us what happened" line; the diagnostics
      * block stays English so every report reads the same on our side.
      */
-    fun body(prompt: String, problem: SupportProblem, sender: SenderKind, d: SupportDiagnostics): String {
+    fun body(prompt: String, problem: SupportProblem, sender: SenderKind, d: SupportDiagnostics): String =
+        (listOf(prompt, "", "", "--- Please keep the details below ---") + diagnosticLines(problem, sender, d))
+            .joinToString("\n")
+
+    /** English "Key: value" lines describing this install; also used as the attached log file's header. */
+    fun diagnosticLines(problem: SupportProblem, sender: SenderKind, d: SupportDiagnostics): List<String> {
         val receiver = if (d.receiverRunning) "running, ${d.resolution} @ ${d.fps} fps" else "stopped"
         return listOf(
-            prompt,
-            "",
-            "",
-            "--- Please keep the details below ---",
             "Problem: ${problem.summary}",
             "Sender: ${sender.label}",
             "App: ScreenDock ${d.appVersion} (${d.versionCode}), ${if (d.pro) "Pro" else "Free"}",
@@ -82,7 +83,17 @@ object SupportEmail {
             "Network: ${d.network}, VPN ${if (d.vpnOn) "on" else "off"}",
             "Receiver: $receiver",
             "Successful sessions: ${d.successfulSessions}",
-        ).joinToString("\n")
+        )
+    }
+
+    /** Lines inlined into the email body when no email app accepts an attachment. */
+    const val LOG_TAIL_LINES = 60
+
+    /** Appends the last [LOG_TAIL_LINES] (already redacted) log lines to [body]; unchanged when there are none. */
+    fun withLogTail(body: String, redactedLines: List<String>): String {
+        if (redactedLines.isEmpty()) return body
+        val tail = redactedLines.takeLast(LOG_TAIL_LINES)
+        return body + "\n\n--- Last ${tail.size} log lines ---\n" + tail.joinToString("\n")
     }
 
     /** RFC 6068 mailto: spaces as %20 (not '+', which mail apps show literally). */

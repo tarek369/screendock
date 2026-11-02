@@ -70,6 +70,26 @@ class SupportLogicTest {
         assertTrue(body.contains("Receiver: stopped"))
     }
 
+    @Test fun logTailAppendsOnlyLastLines() {
+        val lines = (1..100).map { "line $it" }
+        val out = SupportEmail.withLogTail("body", lines)
+        assertTrue(out.startsWith("body\n\n--- Last ${SupportEmail.LOG_TAIL_LINES} log lines ---\n"))
+        assertTrue(out.endsWith("line 100"))
+        assertFalse(out.contains("line 40\n"))
+        assertTrue(out.contains("line 41\n"))
+    }
+
+    @Test fun logTailLeavesBodyAloneWithoutLogs() {
+        assertEquals("body", SupportEmail.withLogTail("body", emptyList()))
+    }
+
+    @Test fun diagnosticLinesMatchBodyBlock() {
+        val lines = SupportEmail.diagnosticLines(SupportProblem.NOT_FOUND, SenderKind.IPHONE, diag)
+        val body = SupportEmail.body("prompt", SupportProblem.NOT_FOUND, SenderKind.IPHONE, diag)
+        assertTrue(body.endsWith(lines.joinToString("\n")))
+        assertTrue(lines.none { it.contains("PIN", ignoreCase = true) })
+    }
+
     @Test fun wifiBandFromFrequency() {
         assertEquals("2.4", WifiBand.fromMhz(2437))
         assertEquals("5", WifiBand.fromMhz(5180))
