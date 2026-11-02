@@ -22,6 +22,7 @@ import androidx.compose.material.icons.rounded.Cast
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.material.icons.rounded.Tv
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.Icon
@@ -38,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -77,6 +79,7 @@ fun SettingsScreen(
     onToggleReceiver: (Boolean) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var settings by remember { mutableStateOf(AirPlaySettings()) }
     var initial by remember { mutableStateOf<AirPlaySettings?>(null) }
     val receiverEnabled by AirPlayService.receiverEnabled.collectAsState()
@@ -177,6 +180,21 @@ fun SettingsScreen(
                             icon = Icons.Rounded.Wifi,
                             muted = true,
                             onClick = onOpenTroubleshooting,
+                        )
+                    }
+
+                    SettingsCard(title = stringResource(R.string.rate_title), icon = Icons.Rounded.ThumbUp) {
+                        Text(
+                            stringResource(R.string.rate_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Palette.textSecondary,
+                        )
+                        Spacer16()
+                        GradientButton(
+                            text = stringResource(R.string.rate_button),
+                            icon = Icons.Rounded.ThumbUp,
+                            muted = true,
+                            onClick = { openPlayListing(context) },
                         )
                     }
 

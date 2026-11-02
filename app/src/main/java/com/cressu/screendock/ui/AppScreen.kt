@@ -147,30 +147,36 @@ fun AppScreen(version: String, context: Context) {
     val pip = LocalPip.current
     SideEffect { pip?.mediaScreenShowing = shownMode == MediaMode.MIRROR || shownMode == MediaMode.VIDEO }
 
-    // --- In-app review (only on idle, right after a session ended) ---
+    // --- In-app review (on idle, after a session ended or when the app comes to the front) ---
     var previousMode by remember { mutableStateOf(mediaMode) }
-    var sessionJustEnded by remember { mutableStateOf(false) }
+    var reviewCheck by remember { mutableStateOf(0) }
     LaunchedEffect(mediaMode) {
-        if (previousMode != MediaMode.NONE && mediaMode == MediaMode.NONE) sessionJustEnded = true
-        if (mediaMode != MediaMode.NONE) sessionJustEnded = false
+        if (previousMode != MediaMode.NONE && mediaMode == MediaMode.NONE) reviewCheck++
         previousMode = mediaMode
     }
-    LaunchedEffect(sessionJustEnded, screen) {
-        if (!sessionJustEnded || screen != Screen.IDLE) return@LaunchedEffect
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) reviewCheck++
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(reviewCheck, screen) {
+        if (reviewCheck == 0 || screen != Screen.IDLE) return@LaunchedEffect
         delay(REVIEW_SETTLE_DELAY_MS) // let the service record the finished session
         val s = repo.current()
+        val now = System.currentTimeMillis()
         val eligible = ReviewPolicy.shouldRequest(
             successfulSessions = s.successfulSessions,
-            reviewPrompted = s.reviewPrompted,
-            sessionJustEnded = true,
+            history = s.reviewHistory(),
+            nowMs = now,
             mediaActive = AirPlayService.mediaMode.value != MediaMode.NONE,
             paywallOrCooldown = AirPlayService.sessionLimitHit.value ||
-                AirPlayService.cooldownUntilMs.value > System.currentTimeMillis(),
+                AirPlayService.cooldownUntilMs.value > now,
         )
-        sessionJustEnded = false
         val activity = activityContext.findActivity()
         if (eligible && activity != null) {
-            repo.updateReviewPrompted(true) // once ever, regardless of what Play decides to show
+            repo.recordReviewAsk(s.successfulSessions, now) // counted whether or not Play shows the dialog
             requestInAppReview(activity)
         }
     }
@@ -182,13 +188,13 @@ fun AppScreen(version: String, context: Context) {
         val ask = ReviewPolicy.shouldRequestAfterPurchase(
             wasPro = wasPurchased,
             isPro = isPurchased,
-            reviewPrompted = repo.current().reviewPrompted,
+            history = repo.current().reviewHistory(),
         )
         wasPurchased = isPurchased
         val activity = activityContext.findActivity()
         if (ask && activity != null) {
             delay(REVIEW_SETTLE_DELAY_MS) // let the Play purchase sheet close first
-            repo.updateReviewPrompted(true)
+            repo.recordReviewAsk(repo.current().successfulSessions, System.currentTimeMillis())
             requestInAppReview(activity)
         }
     }
@@ -374,3 +380,9 @@ private fun WindowModeEffect(mode: MediaMode, keepScreenOnAudio: Boolean) {
         }
     }
 }
+
+private fun AirPlaySettings.reviewHistory() = ReviewHistory(
+    askCount = reviewAskCount,
+    lastAskedMs = reviewLastAskedMs,
+    sessionsAtLastAsk = reviewSessionsAtLastAsk,
+)

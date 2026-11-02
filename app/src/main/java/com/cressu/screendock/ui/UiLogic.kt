@@ -34,29 +34,46 @@ object ClockFormatter {
         else (positionSec / durationSec).coerceIn(0f, 1f)
 }
 
+/** What we remember about past review requests (Play never tells us if a dialog was shown). */
+data class ReviewHistory(
+    val askCount: Int = 0,
+    val lastAskedMs: Long = 0L,
+    /** successfulSessions at the time of the last ask; a new good session is needed before asking again. */
+    val sessionsAtLastAsk: Int = 0,
+)
+
 object ReviewPolicy {
-    const val MIN_SUCCESSFUL_SESSIONS = 2
+    const val MIN_SUCCESSFUL_SESSIONS = 1
+    /** Play's quota often shows nothing, so retry a few times instead of giving up after one call. */
+    const val MAX_ASKS = 3
+    const val RETRY_INTERVAL_MS = 14L * 24 * 60 * 60 * 1000
 
     /**
-     * Ask for an in-app review only after enough successful sessions, only once
-     * ever, and only on the idle screen right after a session ended — never
-     * while media is active.
+     * Ask for an in-app review on the idle screen (after a session ends or when the
+     * app is opened) once the user has had a good session since the last ask —
+     * never while media is active or the paywall/cooldown is showing.
      */
     fun shouldRequest(
         successfulSessions: Int,
-        reviewPrompted: Boolean,
-        sessionJustEnded: Boolean,
+        history: ReviewHistory,
+        nowMs: Long,
         mediaActive: Boolean,
         paywallOrCooldown: Boolean = false,
-    ): Boolean = !reviewPrompted &&
-        !paywallOrCooldown &&
+    ): Boolean = !paywallOrCooldown &&
         !mediaActive &&
-        sessionJustEnded &&
-        successfulSessions >= MIN_SUCCESSFUL_SESSIONS
+        successfulSessions >= MIN_SUCCESSFUL_SESSIONS &&
+        successfulSessions > history.sessionsAtLastAsk &&
+        canAskAgain(history, nowMs)
 
-    /** Ask once right after the user completes a Pro purchase in the app. */
-    fun shouldRequestAfterPurchase(wasPro: Boolean, isPro: Boolean, reviewPrompted: Boolean): Boolean =
-        !reviewPrompted && !wasPro && isPro
+    /** Ask right after the user completes a Pro purchase in the app (still capped by [MAX_ASKS]). */
+    fun shouldRequestAfterPurchase(wasPro: Boolean, isPro: Boolean, history: ReviewHistory): Boolean =
+        !wasPro && isPro && history.askCount < MAX_ASKS
+
+    private fun canAskAgain(history: ReviewHistory, nowMs: Long): Boolean = when {
+        history.askCount >= MAX_ASKS -> false
+        history.askCount == 0 -> true
+        else -> nowMs - history.lastAskedMs >= RETRY_INTERVAL_MS
+    }
 }
 
 object PinValidator {

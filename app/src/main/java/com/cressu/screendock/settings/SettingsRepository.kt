@@ -60,9 +60,11 @@ data class AirPlaySettings(
     val audioCushionMs: Int = 0,
     val autoOpenOnConnect: Boolean = true,
     val onboardingDone: Boolean = false,
-    /** Sessions of at least 60 s that ended normally (drives the review prompt). */
+    /** Sessions of at least 2 min that ended normally (drives the review prompt). */
     val successfulSessions: Int = 0,
-    val reviewPrompted: Boolean = false,
+    val reviewAskCount: Int = 0,
+    val reviewLastAskedMs: Long = 0L,
+    val reviewSessionsAtLastAsk: Int = 0,
 )
 
 /** Pure helpers for the default receiver name. */
@@ -109,7 +111,11 @@ class SettingsRepository(private val context: Context) {
         val AUTO_OPEN = booleanPreferencesKey("auto_open_on_connect")
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         val SUCCESSFUL_SESSIONS = intPreferencesKey("successful_sessions")
+        /** Legacy once-ever flag (≤ 0.3.7 vc12); read only to migrate into REVIEW_ASK_COUNT. */
         val REVIEW_PROMPTED = booleanPreferencesKey("review_prompted")
+        val REVIEW_ASK_COUNT = intPreferencesKey("review_ask_count")
+        val REVIEW_LAST_ASKED = longPreferencesKey("review_last_asked_ms")
+        val REVIEW_SESSIONS_AT_ASK = intPreferencesKey("review_sessions_at_ask")
         val ALLOWED_DEVICES = stringSetPreferencesKey("allowed_devices")
 
         val LIM_USED = longPreferencesKey("limiter_used_ms")
@@ -142,7 +148,11 @@ class SettingsRepository(private val context: Context) {
             autoOpenOnConnect = p[Keys.AUTO_OPEN] ?: true,
             onboardingDone = p[Keys.ONBOARDING_DONE] ?: false,
             successfulSessions = p[Keys.SUCCESSFUL_SESSIONS] ?: 0,
-            reviewPrompted = p[Keys.REVIEW_PROMPTED] ?: false,
+            // An old "prompted" flag counts as one ask with no timestamp, so it is retried right away
+            // (Play's quota probably showed nothing that first time).
+            reviewAskCount = p[Keys.REVIEW_ASK_COUNT] ?: if (p[Keys.REVIEW_PROMPTED] == true) 1 else 0,
+            reviewLastAskedMs = p[Keys.REVIEW_LAST_ASKED] ?: 0L,
+            reviewSessionsAtLastAsk = p[Keys.REVIEW_SESSIONS_AT_ASK] ?: 0,
         )
     }
 
@@ -220,8 +230,14 @@ class SettingsRepository(private val context: Context) {
         context.dataStore.edit { it[Keys.ONBOARDING_DONE] = done }
     }
 
-    suspend fun updateReviewPrompted(prompted: Boolean) {
-        context.dataStore.edit { it[Keys.REVIEW_PROMPTED] = prompted }
+    /** Records one in-app review request (whether or not Play actually showed the dialog). */
+    suspend fun recordReviewAsk(successfulSessions: Int, nowMs: Long) {
+        context.dataStore.edit {
+            val previous = it[Keys.REVIEW_ASK_COUNT] ?: if (it[Keys.REVIEW_PROMPTED] == true) 1 else 0
+            it[Keys.REVIEW_ASK_COUNT] = previous + 1
+            it[Keys.REVIEW_LAST_ASKED] = nowMs
+            it[Keys.REVIEW_SESSIONS_AT_ASK] = successfulSessions
+        }
     }
 
     suspend fun incrementSuccessfulSessions() {

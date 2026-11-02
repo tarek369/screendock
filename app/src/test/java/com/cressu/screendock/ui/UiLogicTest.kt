@@ -32,21 +32,41 @@ class UiLogicTest {
         assertEquals(1f, ClockFormatter.fraction(500f, 100f), 0f)
     }
 
-    @Test fun reviewPolicy() {
-        assertTrue(ReviewPolicy.shouldRequest(2, false, true, false))
-        assertTrue(ReviewPolicy.shouldRequest(10, false, true, false))
-        assertFalse(ReviewPolicy.shouldRequest(1, false, true, false))
-        assertFalse(ReviewPolicy.shouldRequest(10, false, true, false, paywallOrCooldown = true))
-        assertFalse(ReviewPolicy.shouldRequest(3, true, true, false))
-        assertFalse(ReviewPolicy.shouldRequest(3, false, false, false))
-        assertFalse(ReviewPolicy.shouldRequest(3, false, true, true))
+    @Test fun reviewAfterGoodSession() {
+        val now = 1_000_000_000_000L
+        val fresh = ReviewHistory()
+        assertTrue(ReviewPolicy.shouldRequest(1, fresh, now, mediaActive = false))
+        assertFalse(ReviewPolicy.shouldRequest(0, fresh, now, mediaActive = false))
+        assertFalse(ReviewPolicy.shouldRequest(3, fresh, now, mediaActive = true))
+        assertFalse(ReviewPolicy.shouldRequest(3, fresh, now, mediaActive = false, paywallOrCooldown = true))
+    }
+
+    @Test fun reviewRetriesAfterIntervalWithNewSession() {
+        val now = 1_000_000_000_000L
+        val asked = ReviewHistory(askCount = 1, lastAskedMs = now, sessionsAtLastAsk = 2)
+        // no new good session since the last ask
+        assertFalse(ReviewPolicy.shouldRequest(2, asked, now + ReviewPolicy.RETRY_INTERVAL_MS, false))
+        // new session but too soon
+        assertFalse(ReviewPolicy.shouldRequest(3, asked, now + ReviewPolicy.RETRY_INTERVAL_MS - 1, false))
+        // new session and interval passed
+        assertTrue(ReviewPolicy.shouldRequest(3, asked, now + ReviewPolicy.RETRY_INTERVAL_MS, false))
+        // capped
+        val maxed = asked.copy(askCount = ReviewPolicy.MAX_ASKS)
+        assertFalse(ReviewPolicy.shouldRequest(9, maxed, now + 10 * ReviewPolicy.RETRY_INTERVAL_MS, false))
+    }
+
+    @Test fun legacyPromptedFlagIsRetriedImmediately() {
+        // migrated legacy flag: askCount = 1, no timestamp, no session snapshot
+        val legacy = ReviewHistory(askCount = 1, lastAskedMs = 0L, sessionsAtLastAsk = 0)
+        assertTrue(ReviewPolicy.shouldRequest(1, legacy, 1_000_000_000_000L, false))
     }
 
     @Test fun reviewAfterPurchase() {
-        assertTrue(ReviewPolicy.shouldRequestAfterPurchase(wasPro = false, isPro = true, reviewPrompted = false))
-        assertFalse(ReviewPolicy.shouldRequestAfterPurchase(wasPro = true, isPro = true, reviewPrompted = false))
-        assertFalse(ReviewPolicy.shouldRequestAfterPurchase(wasPro = false, isPro = false, reviewPrompted = false))
-        assertFalse(ReviewPolicy.shouldRequestAfterPurchase(wasPro = false, isPro = true, reviewPrompted = true))
+        val fresh = ReviewHistory()
+        assertTrue(ReviewPolicy.shouldRequestAfterPurchase(wasPro = false, isPro = true, history = fresh))
+        assertFalse(ReviewPolicy.shouldRequestAfterPurchase(wasPro = true, isPro = true, history = fresh))
+        assertFalse(ReviewPolicy.shouldRequestAfterPurchase(wasPro = false, isPro = false, history = fresh))
+        assertFalse(ReviewPolicy.shouldRequestAfterPurchase(false, true, ReviewHistory(askCount = ReviewPolicy.MAX_ASKS)))
     }
 
     @Test fun pinValidation() {

@@ -710,7 +710,7 @@ class AirPlayService : Service(), RaopCallbackHandler {
         /** Free-tier mirroring/video minutes per usage window (Pro = unlimited). */
         const val FREE_SESSION_MINUTES = 10L
 
-        private const val MIN_SUCCESS_SESSION_MS = 60_000L
+        private const val MIN_SUCCESS_SESSION_MS = 120_000L
 
         private val _state = MutableStateFlow(ReceiverState.IDLE)
         val state: StateFlow<ReceiverState> = _state

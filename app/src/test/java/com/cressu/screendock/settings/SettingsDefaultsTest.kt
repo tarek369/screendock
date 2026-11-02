@@ -46,7 +46,8 @@ class Phase2SettingsDefaultsTest {
         assertEquals(true, s.autoOpenOnConnect)
         assertEquals(false, s.onboardingDone)
         assertEquals(0, s.successfulSessions)
-        assertEquals(false, s.reviewPrompted)
+        assertEquals(0, s.reviewAskCount)
+        assertEquals(0L, s.reviewLastAskedMs)
     }
 
     @Test fun `default display name includes model`() =

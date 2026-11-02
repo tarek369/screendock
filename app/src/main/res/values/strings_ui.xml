@@ -120,6 +120,9 @@
     <string name="set_apply_hint">Restarts the receiver to re-advertise — senders reconnect automatically.</string>
 
     <!-- Troubleshooting -->
+    <string name="rate_title">Enjoying ScreenDock?</string>
+    <string name="rate_desc">A quick rating on Google Play helps other people find ScreenDock.</string>
+    <string name="rate_button">Rate on Google Play</string>
     <string name="ts_title">Troubleshooting</string>
     <string name="ts_entry_desc">Can\'t see this device on your iPhone or Mac? Check your network details and common fixes.</string>
     <string name="ts_entry_button">Open troubleshooting</string>
