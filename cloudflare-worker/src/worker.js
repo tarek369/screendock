@@ -1,3 +1,4 @@
+import { handleRtdn } from './rtdn.js';
 /**
  * ScreenDock site — Cloudflare Worker (free plan).
  * The landing page and its media are static assets in ./public. This script
@@ -89,6 +90,7 @@ export default {
       return new Response(PRIVACY, { headers: HTML });
     }
     if (path === '/healthz') return new Response('ok');
+    if (path === '/play-rtdn') return handleRtdn(request, env);
     // Static site in ./public; unknown paths get public/404.html with a real 404 status.
     return env.ASSETS.fetch(request);
   },

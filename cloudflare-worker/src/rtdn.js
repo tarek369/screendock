@@ -1,0 +1,87 @@
+// Google Play Real-Time Developer Notifications → ntfy push.
+// Pub/Sub push subscription POSTs here with ?token=<RTDN_TOKEN>.
+// Secrets (wrangler secret put): RTDN_TOKEN, NTFY_TOPIC.
+
+const PACKAGE = 'com.cressu.screendock';
+const NTFY_BASE = 'https://ntfy.sh/';
+
+// https://developer.android.com/google/play/billing/rtdn-reference
+const ONE_TIME_TYPES = {
+  1: { title: 'ScreenDock Pro sold 💰', tags: 'moneybag', priority: '4' },
+  2: { title: 'ScreenDock purchase canceled', tags: 'x', priority: '3' },
+};
+
+/** Constant-time string compare (avoid leaking the token via timing). */
+function safeEqual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+/** Decode the Pub/Sub envelope; returns the RTDN object or null. */
+export function decodeEnvelope(body) {
+  const data = body && body.message && body.message.data;
+  if (typeof data !== 'string') return null;
+  try {
+    return JSON.parse(atob(data));
+  } catch {
+    return null;
+  }
+}
+
+/** Map an RTDN payload to a notification, or null when it is not worth a push. */
+export function describe(n) {
+  if (!n || n.packageName !== PACKAGE) return null;
+  const when = n.eventTimeMillis ? new Date(Number(n.eventTimeMillis)).toISOString() : '';
+  if (n.testNotification) {
+    return { title: 'ScreenDock RTDN test ✅', tags: 'white_check_mark', priority: '3',
+      body: `Play test notification received ${when}` };
+  }
+  if (n.oneTimeProductNotification) {
+    const o = n.oneTimeProductNotification;
+    const kind = ONE_TIME_TYPES[o.notificationType];
+    if (!kind) return null;
+    return { ...kind, body: `Product: ${o.sku || 'unknown'}\n${when}` };
+  }
+  if (n.voidedPurchaseNotification) {
+    const v = n.voidedPurchaseNotification;
+    return { title: 'ScreenDock purchase refunded ↩️', tags: 'leftwards_arrow_with_hook', priority: '4',
+      body: `Order: ${v.orderId || 'unknown'}\n${when}` };
+  }
+  return null;
+}
+
+async function notify(topic, msg) {
+  const res = await fetch(NTFY_BASE + encodeURIComponent(topic), {
+    method: 'POST',
+    body: msg.body,
+    headers: { Title: msg.title, Tags: msg.tags, Priority: msg.priority },
+  });
+  if (!res.ok) throw new Error(`ntfy ${res.status}`);
+}
+
+export async function handleRtdn(request, env) {
+  if (request.method !== 'POST') return new Response('method not allowed', { status: 405 });
+  const token = new URL(request.url).searchParams.get('token');
+  if (!env.RTDN_TOKEN || !env.NTFY_TOPIC || !safeEqual(token, env.RTDN_TOKEN)) {
+    return new Response('forbidden', { status: 403 });
+  }
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    // Malformed envelope: ack so Pub/Sub does not retry forever.
+    return new Response('bad envelope', { status: 204 });
+  }
+  const msg = describe(decodeEnvelope(body));
+  if (!msg) return new Response(null, { status: 204 });
+  try {
+    await notify(env.NTFY_TOPIC, msg);
+  } catch (err) {
+    console.error('rtdn notify failed', err && err.message);
+    // Non-2xx makes Pub/Sub retry the delivery later.
+    return new Response('notify failed', { status: 502 });
+  }
+  return new Response(null, { status: 204 });
+}
