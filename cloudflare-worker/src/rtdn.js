@@ -2,6 +2,8 @@
 // Pub/Sub push subscription POSTs here with ?token=<RTDN_TOKEN>.
 // Secrets (wrangler secret put): RTDN_TOKEN, NTFY_TOPIC.
 
+import { playClient } from './play_api.js';
+
 const PACKAGE = 'com.cressu.screendock';
 const NTFY_BASE = 'https://ntfy.sh/';
 
@@ -52,11 +54,61 @@ export function describe(n) {
   return null;
 }
 
+/** "BR" -> regional-indicator flag emoji; '' for anything that is not two letters. */
+export function flag(country) {
+  if (!/^[A-Za-z]{2}$/.test(country || '')) return '';
+  return String.fromCodePoint(...[...country.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
+}
+
+/** Google Money {currencyCode, units, nanos} -> "50.99 BRL"; '' when absent. */
+export function money(m) {
+  if (!m || !m.currencyCode) return '';
+  const value = Number(m.units || 0) + Number(m.nanos || 0) / 1e9;
+  return `${value.toFixed(2)} ${m.currencyCode}`;
+}
+
+/** Order (Play orders API) -> extra title suffix + body lines. Pure, unit-tested. */
+export function orderDetails(order) {
+  if (!order) return null;
+  const country = order.buyerAddress && order.buyerAddress.buyerCountry;
+  const item = (order.lineItems || [])[0] || {};
+  const lines = [
+    money(item.listingPrice || order.total) && `Price: ${money(item.listingPrice || order.total)}`,
+    money(order.developerRevenueInBuyerCurrency) && `You get: ${money(order.developerRevenueInBuyerCurrency)}`,
+    country && `Country: ${flag(country)} ${country}`,
+    order.orderId && `Order: ${order.orderId}`,
+  ].filter(Boolean);
+  return { suffix: country ? ` ${flag(country)} ${country}` : '', lines };
+}
+
+/** Best effort: look up country + price for purchases and refunds. Never throws. */
+async function enrich(env, n, msg) {
+  try {
+    const play = await playClient(env);
+    if (!play) return msg;
+    let orderId = n.voidedPurchaseNotification && n.voidedPurchaseNotification.orderId;
+    const o = n.oneTimeProductNotification;
+    if (!orderId && o && o.purchaseToken && o.sku) {
+      orderId = (await play.productPurchase(o.sku, o.purchaseToken)).orderId;
+    }
+    if (!orderId) return msg;
+    const details = orderDetails(await play.order(orderId));
+    if (!details) return msg;
+    return { ...msg, title: msg.title + details.suffix, body: [...details.lines, msg.body].join('\n') };
+  } catch (err) {
+    console.error('rtdn enrich failed', err && err.message);
+    return { ...msg, body: `${msg.body}\n(details unavailable)` };
+  }
+}
+
 async function notify(topic, msg) {
-  const res = await fetch(NTFY_BASE + encodeURIComponent(topic), {
+  // JSON publish: header values must be Latin-1, which breaks emoji/flags in titles.
+  const res = await fetch(NTFY_BASE, {
     method: 'POST',
-    body: msg.body,
-    headers: { Title: msg.title, Tags: msg.tags, Priority: msg.priority },
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      topic, title: msg.title, message: msg.body, tags: [msg.tags], priority: Number(msg.priority),
+    }),
   });
   if (!res.ok) throw new Error(`ntfy ${res.status}`);
 }
@@ -74,8 +126,10 @@ export async function handleRtdn(request, env) {
     // Malformed envelope: ack so Pub/Sub does not retry forever.
     return new Response('bad envelope', { status: 204 });
   }
-  const msg = describe(decodeEnvelope(body));
-  if (!msg) return new Response(null, { status: 204 });
+  const rtdn = decodeEnvelope(body);
+  const base = describe(rtdn);
+  if (!base) return new Response(null, { status: 204 });
+  const msg = await enrich(env, rtdn, base);
   try {
     await notify(env.NTFY_TOPIC, msg);
   } catch (err) {
