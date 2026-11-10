@@ -129,6 +129,12 @@ fun MediaCard(settings: AirPlaySettings, onChange: (AirPlaySettings) -> Unit) {
             onCheckedChange = { onChange(settings.copy(keepScreenOnAudio = it)) },
         )
         SwitchRow(
+            title = stringResource(R.string.set_sync_volume),
+            description = stringResource(R.string.set_sync_volume_desc),
+            checked = settings.syncSenderVolume,
+            onCheckedChange = { onChange(settings.copy(syncSenderVolume = it)) },
+        )
+        SwitchRow(
             title = stringResource(R.string.set_low_latency_audio),
             description = stringResource(R.string.set_low_latency_audio_desc),
             checked = settings.lowLatencyAudio,

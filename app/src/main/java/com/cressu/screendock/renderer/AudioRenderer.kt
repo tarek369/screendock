@@ -26,8 +26,9 @@ import kotlin.concurrent.withLock
  *
  * ### Resilience (NFR-6)
  * Any [IllegalStateException] raised by [MediaCodec] is swallowed here:
- * 1. the failing codec type's hardware path is blacklisted for the rest of the
- *    session (so we never retry-storm a known-bad decoder),
+ * 1. the failing decoder is remembered and the next capable platform decoder is
+ *    tried ([AudioDecoderSelector]); only when every candidate failed is the codec
+ *    type blacklisted for the session (so we never retry-storm a known-bad decoder),
  * 2. for ALAC the software fallback is engaged when [swAlacEnabled],
  * 3. the exception is **never** propagated to the native caller, because doing
  *    so would tear down the entire AirPlay session.
@@ -80,8 +81,14 @@ class AudioRenderer(
     private var configuredCt: Int = CT_NONE
     private var configuredSpf: Int = 0
 
-    /** HW codec types that threw IllegalStateException this session. */
+    /** Codec types for which EVERY platform decoder failed this session (no retry storm). */
     private val hwBlacklist: MutableSet<Int> = HashSet()
+    /** Platform decoder names that failed this session; the next candidate is tried instead. */
+    private val failedDecoders: MutableSet<String> = HashSet()
+    /** Name of the running platform decoder (null = none). */
+    private var activeDecoderName: String? = null
+    /** Inputs queued since the decoder last produced PCM (no-output watchdog). */
+    private var inputsWithoutOutput: Int = 0
 
     // --- A/V sync: PTS pacing anchor (matches VideoRenderer's PTS scheduling) ---
     // ptsNs is ntp_time_remote — same clock domain as video. We anchor the first
@@ -104,8 +111,19 @@ class AudioRenderer(
     private var syncDbgCount: Int = 0
 
     // --- volume -------------------------------------------------------------
-    private var currentVolumeDb: Float = MAX_DB
+    private var currentVolumeDb: Float = AudioGain.MAX_DB
     private var currentLinearGain: Float = 1.0f
+
+    /**
+     * "Sync sender volume" setting. `true` (default): the sender's volume slider sets our gain.
+     * `false`: sender volume is ignored and we play at full gain (device buttons control volume).
+     */
+    @Volatile
+    var followSenderVolume: Boolean = true
+        set(value) {
+            field = value
+            codecLock.withLock { if (!released) applyGainLocked() }
+        }
 
     @Volatile
     private var released: Boolean = false
@@ -187,14 +205,18 @@ class AudioRenderer(
     fun setVolume(db: Float) {
         codecLock.withLock {
             if (released) return@withLock
-            currentVolumeDb = db.coerceIn(MIN_DB, MAX_DB)
-            currentLinearGain = dbToLinear(currentVolumeDb)
-            try {
-                audioTrack?.setVolume(currentLinearGain)
-                if (oboeHandle != 0L) NativeBridge.audioSetGain(oboeHandle, currentLinearGain)
-            } catch (t: Throwable) {
-                Log.w(TAG, "AudioTrack.setVolume failed", t)
-            }
+            currentVolumeDb = db.coerceIn(AudioGain.MIN_DB, AudioGain.MAX_DB)
+            applyGainLocked()
+        }
+    }
+
+    private fun applyGainLocked() {
+        currentLinearGain = AudioGain.effectiveGain(currentVolumeDb, followSenderVolume)
+        try {
+            audioTrack?.setVolume(currentLinearGain)
+            if (oboeHandle != 0L) NativeBridge.audioSetGain(oboeHandle, currentLinearGain)
+        } catch (t: Throwable) {
+            Log.w(TAG, "AudioTrack.setVolume failed", t)
         }
     }
 
@@ -209,6 +231,7 @@ class AudioRenderer(
             teardownDecodersLocked()
             stopAndReleaseTrackLocked()
             hwBlacklist.clear()
+            failedDecoders.clear()
             configuredCt = CT_NONE
             configuredSpf = 0
             hasSyncAnchor = false   // re-anchor on next session
@@ -255,6 +278,7 @@ class AudioRenderer(
             stopAndReleaseTrackLocked()
             drainChunk = ByteArray(0)
             hwBlacklist.clear()
+            failedDecoders.clear()
             configuredCt = CT_NONE
             configuredSpf = 0
             Log.i(TAG, "release()")
@@ -392,45 +416,74 @@ class AudioRenderer(
     }
 
     /**
-     * Instantiate the hardware [MediaCodec] for [ct]. For ALAC, if the HW path
-     * is already blacklisted we go straight to the software decoder.
+     * Instantiate a platform [MediaCodec] for [ct], trying every capable decoder in turn
+     * ([AudioDecoderSelector]). Only when ALL of them failed is [ct] blacklisted for the
+     * session; ALAC then falls back to the bundled software decoder.
      */
     private fun setupCodecLocked(ct: Int, samplesPerFrame: Int) {
-        if (ct == CT_ALAC && hwBlacklist.contains(CT_ALAC)) {
-            if (swAlacEnabled) {
-                ensureSwAlacLocked()
-            } else {
-                Log.w(TAG, "ALAC HW blacklisted and swAlacEnabled=false; no audio path")
-            }
+        if (hwBlacklist.contains(ct)) {
+            if (ct == CT_ALAC && swAlacEnabled) ensureSwAlacLocked()
             return
         }
-        try {
-            val c = createHwCodecLocked(ct) ?: return
+        val mime = mimeFor(ct) ?: run {
+            Log.w(TAG, "Unsupported ct=$ct; no HW decoder")
+            return
+        }
+        val c = createHwCodecLocked(ct, mime)
+        if (c != null) {
             codec = c
-            Log.i(TAG, "HW decoder ready (ct=$ct, spf=$samplesPerFrame)")
-        } catch (ise: IllegalStateException) {
-            Log.e(TAG, "HW MediaCodec IllegalStateException for ct=$ct", ise)
-            hwBlacklist.add(ct)
-            if (ct == CT_ALAC && swAlacEnabled) ensureSwAlacLocked()
-        } catch (t: Throwable) {
-            // e.g. createDecoderByType() IOException / no decoder available.
-            Log.e(TAG, "HW MediaCodec unavailable for ct=$ct", t)
-            hwBlacklist.add(ct)
-            if (ct == CT_ALAC && swAlacEnabled) ensureSwAlacLocked()
+            inputsWithoutOutput = 0
+            Log.i(TAG, "Decoder ready: $activeDecoderName (ct=$ct, spf=$samplesPerFrame)")
+            return
+        }
+        Log.e(TAG, "No working platform decoder for ct=$ct (failed: $failedDecoders)")
+        hwBlacklist.add(ct)
+        if (ct == CT_ALAC) {
+            if (swAlacEnabled) ensureSwAlacLocked() else Log.w(TAG, "ALAC HW failed and swAlacEnabled=false; no audio path")
         }
     }
 
-    /** Build + configure + start the platform decoder. May throw. */
-    private fun createHwCodecLocked(ct: Int): MediaCodec? {
-        val mime = when (ct) {
-            CT_AAC_ELD, CT_AAC_LC -> MediaFormat.MIMETYPE_AUDIO_AAC // "audio/mp4a-latm"
-            CT_ALAC -> MIME_AUDIO_ALAC
-            else -> {
-                Log.w(TAG, "Unsupported ct=$ct; no HW decoder")
-                return null
-            }
+    private fun mimeFor(ct: Int): String? = when (ct) {
+        CT_AAC_ELD, CT_AAC_LC -> MediaFormat.MIMETYPE_AUDIO_AAC // "audio/mp4a-latm"
+        CT_ALAC -> MIME_AUDIO_ALAC
+        else -> null
+    }
+
+    /**
+     * Try each candidate decoder (best first) until one configures + starts. Returns null when
+     * every candidate failed. With an empty decoder list we fall back to createDecoderByType once.
+     */
+    private fun createHwCodecLocked(ct: Int, mime: String): MediaCodec? {
+        val names = AudioDecoderSelector.order(AudioDecoderSelector.platformCandidates(mime), failedDecoders)
+        if (names.isEmpty()) {
+            if (DEFAULT_DECODER in failedDecoders) return null
+            return startDecoderLocked(DEFAULT_DECODER, ct, mime)
         }
-        val format = MediaFormat().apply {
+        for (name in names) {
+            startDecoderLocked(name, ct, mime)?.let { return it }
+        }
+        return null
+    }
+
+    /** Create + configure + start one decoder; on failure remember [name] and return null. */
+    private fun startDecoderLocked(name: String, ct: Int, mime: String): MediaCodec? {
+        var c: MediaCodec? = null
+        return try {
+            c = if (name == DEFAULT_DECODER) MediaCodec.createDecoderByType(mime) else MediaCodec.createByCodecName(name)
+            c.configure(buildFormat(ct, mime), null, null, 0)
+            c.start()
+            activeDecoderName = name
+            c
+        } catch (t: Throwable) {
+            Log.w(TAG, "Decoder $name failed for ct=$ct (${t.javaClass.simpleName}: ${t.message})")
+            failedDecoders.add(name)
+            try { c?.release() } catch (_: Throwable) { /* best-effort */ }
+            null
+        }
+    }
+
+    private fun buildFormat(ct: Int, mime: String): MediaFormat =
+        MediaFormat().apply {
             setString(MediaFormat.KEY_MIME, mime)
             setInteger(MediaFormat.KEY_SAMPLE_RATE, SAMPLE_RATE)
             setInteger(MediaFormat.KEY_CHANNEL_COUNT, CHANNELS)
@@ -450,11 +503,6 @@ class AudioRenderer(
                 }
             }
         }
-        val c = MediaCodec.createDecoderByType(mime)
-        c.configure(format, null, null, 0)
-        c.start()
-        return c
-    }
 
     // ---- internals: MediaCodec feed / drain --------------------------------
 
@@ -468,6 +516,11 @@ class AudioRenderer(
                 val n = minOf(data.size, inBuf.capacity())
                 inBuf.put(data, 0, n)
                 codec.queueInputBuffer(inputIndex, 0, n, ptsNs / 1000L, 0)
+                // A decoder that swallows input but never emits PCM (e.g. a vendor AAC decoder
+                // that "accepts" ELD) counts as failed -> the next candidate is tried.
+                if (++inputsWithoutOutput > NO_OUTPUT_LIMIT) {
+                    throw IllegalStateException("decoder $activeDecoderName produced no output")
+                }
             } else {
                 // Return the slot so the codec doesn't stall on the next dequeue.
                 try {
@@ -491,6 +544,7 @@ class AudioRenderer(
             when {
                 outIndex >= 0 -> {
                     val outBuf = codec.getOutputBuffer(outIndex)
+                    if (info.size > 0) inputsWithoutOutput = 0
                     if (outBuf != null && info.size > 0 && (track != null || oboeHandle != 0L)) {
                         outBuf.position(info.offset)
                         outBuf.limit(info.offset + info.size)
@@ -566,16 +620,21 @@ class AudioRenderer(
 
     // ---- internals: failure handling ---------------------------------------
 
-    /** Contain a MediaCodec failure: blacklist HW, kill the codec, maybe arm SW. */
+    /**
+     * Contain a MediaCodec failure: kill the codec and remember its name, so the next packet
+     * sets up the next candidate decoder. [setupCodecLocked] blacklists [ct] (and arms SW ALAC)
+     * only once every candidate has failed.
+     */
     private fun onCodecFailureLocked(ct: Int) {
-        Log.e(TAG, "MediaCodec failure for ct=$ct; blacklisting HW path for this session")
-        hwBlacklist.add(ct)
+        val failed = activeDecoderName ?: DEFAULT_DECODER
+        Log.e(TAG, "MediaCodec failure for ct=$ct on $failed; trying the next decoder")
+        failedDecoders.add(failed)
         codec?.let { c ->
             try { c.stop() } catch (t: Throwable) { /* best-effort */ }
             try { c.release() } catch (t: Throwable) { /* best-effort */ }
         }
         codec = null
-        if (ct == CT_ALAC && swAlacEnabled) ensureSwAlacLocked()
+        activeDecoderName = null
     }
 
     // ---- internals: AudioTrack lifecycle -----------------------------------
@@ -674,6 +733,7 @@ class AudioRenderer(
             try { c.release() } catch (t: Throwable) { /* best-effort */ }
         }
         codec = null
+        activeDecoderName = null
         if (swAlacHandle != 0L) {
             try {
                 NativeBridge.alacDestroy(swAlacHandle)
@@ -695,17 +755,6 @@ class AudioRenderer(
         framesWritten = 0L
     }
 
-    // ---- helpers ------------------------------------------------------------
-
-    private fun dbToLinear(db: Float): Float {
-        val clamped = db.coerceIn(MIN_DB, MAX_DB)
-        return when {
-            clamped <= MIN_DB -> 0.0f          // mute
-            clamped >= MAX_DB -> 1.0f          // unity
-            else -> Math.pow(10.0, (clamped / 20.0).toDouble()).toFloat()
-        }
-    }
-
     companion object {
         private const val TAG = "AirplayAudio"
 
@@ -719,8 +768,10 @@ class AudioRenderer(
         /** AudioTrack buffer ceiling (~0.73 s of stereo PCM16 @ 44.1 kHz). */
         private const val MAX_BUFFER_BYTES = 128 * 1024
 
-        private const val MIN_DB = -144.0f
-        private const val MAX_DB = 0.0f
+        /** Pseudo decoder name for MediaCodec.createDecoderByType (empty MediaCodecList). */
+        private const val DEFAULT_DECODER = "<default>"
+        /** Queued inputs with no PCM out before a decoder counts as dead (~1-2 s of audio). */
+        private const val NO_OUTPUT_LIMIT = 100
 
         // A/V sync thresholds (human perception of A/V drift is ~40–80 ms).
         private const val AHEAD_THRESHOLD_NS = 40_000_000L   // 40 ms ahead → sleep to pace

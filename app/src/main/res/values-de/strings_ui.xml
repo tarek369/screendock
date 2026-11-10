@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- German UI strings. Apple UI terms follow Apple's German UI ("Kontrollzentrum", "Bildschirmsynchronisierung"). -->
+<resources>
+    <!-- Idle -->
+    <string name="idle_status_core_failed">Nativer Kern fehlgeschlagen</string>
+    <string name="idle_status_stopped">Empfänger gestoppt</string>
+    <string name="idle_status_waking">Empfänger wird geweckt…</string>
+    <string name="idle_status_cooldown">Pause der Gratisversion</string>
+    <string name="idle_status_ready">Bereit zum Empfangen</string>
+    <string name="idle_status_starting">Empfänger wird gestartet…</string>
+    <string name="stopped_title">Empfänger ist gestoppt</string>
+    <string name="stopped_body">Andere Geräte sehen dieses Gerät erst, wenn du den Empfänger startest.</string>
+    <string name="action_start_receiver">Empfänger starten</string>
+    <string name="error_core_title">Nativer Kern konnte nicht starten</string>
+    <string name="error_core_body">Installiere die App neu – diesem Gerät fehlt eventuell die nötige ABI-Unterstützung.</string>
+    <string name="mirroring_active">Spiegelung aktiv</string>
+
+    <!-- Guide -->
+    <string name="guide_overline">SO VERBINDEST DU DICH</string>
+    <string name="guide_step1_title">Kontrollzentrum</string>
+    <string name="guide_step1_body">Wische auf deinem iPhone oder iPad von der oberen rechten Ecke nach unten. Auf dem Mac klickst du in der Menüleiste auf das Kontrollzentrum-Symbol.</string>
+    <string name="guide_step2_title">Bildschirmsynchronisierung</string>
+    <string name="guide_step2_body">Tippe auf „Bildschirmsynchronisierung“.</string>
+    <string name="guide_step3_title">Gerät auswählen</string>
+    <string name="guide_step3_pre">"Wähle "</string>
+    <string name="guide_step3_post">" – die Spiegelung startet."</string>
+    <string name="guide_same_wifi">Beide Geräte müssen im selben WLAN sein.</string>
+
+    <!-- Pro / purchase -->
+    <string name="pro_unlock_price">Pro freischalten – %1$s</string>
+    <string name="pro_purchase_pending">Kauf ausstehend…</string>
+    <string name="pro_purchase_pending_hint">Google Play verarbeitet deine Zahlung noch. Pro wird automatisch freigeschaltet, sobald sie abgeschlossen ist.</string>
+    <string name="pro_card_title">ScreenDock Pro</string>
+    <string name="pro_card_body">Unbegrenzte Spiegelung und AirPlay-Videos. Gratis: %1$d Minuten, dann %2$d Minuten Pause. Musik ist immer gratis.</string>
+    <string name="pro_unlocked">Freigeschaltet – danke, dass du ScreenDock unterstützt!</string>
+    <string name="nudge_title">Sitzungslimit erreicht</string>
+    <string name="nudge_body">Gratis-Sitzungen dauern %1$d Minuten. ScreenDock Pro schaltet unbegrenzte Spiegelung frei – einmaliger Kauf, kein Abo.</string>
+    <string name="cooldown_title">Limit der Gratis-Sitzung erreicht</string>
+    <string name="cooldown_body">Die nächste Gratis-Sitzung ist in %1$s möglich. Mit Pro spiegelst du ohne Limit.</string>
+
+    <!-- Scale mode -->
+    <string name="scale_fit">Einpassen</string>
+    <string name="scale_fill">Füllen</string>
+    <string name="scale_stretch">Strecken</string>
+    <string name="scale_tap_to_change">Zum Ändern tippen</string>
+
+    <!-- Now playing -->
+    <string name="np_unknown_title">Aktuelle Wiedergabe</string>
+    <string name="np_playing_from">Wiedergabe von %1$s</string>
+
+    <!-- Security prompts -->
+    <string name="approval_title">„%1$s“ die Verbindung erlauben?</string>
+    <string name="approval_body">Erlaube nur Geräte, die du kennst. Dieses Gerät kann dann hier seinen Bildschirm zeigen oder Audio abspielen.</string>
+    <string name="approval_allow">Erlauben</string>
+    <string name="approval_deny">Ablehnen</string>
+    <string name="pin_overlay_title">Gib diese PIN auf deinem Gerät ein</string>
+    <string name="pin_overlay_body">Tippe den Code auf dem Gerät ein, das sich verbindet, um die Kopplung abzuschließen.</string>
+
+    <!-- Onboarding -->
+    <string name="onb_skip">Überspringen</string>
+    <string name="onb_next">Weiter</string>
+    <string name="onb_done">Los geht\'s</string>
+    <string name="onb1_title">Selbes WLAN, am besten 5 GHz</string>
+    <string name="onb1_body">Dein Apple-Gerät und dieses Gerät müssen im selben WLAN sein. Ein 5-GHz-Netz liefert das schärfste, flüssigste Bild.</string>
+    <string name="onb1_tip">Gastnetzwerke und manche VPNs blockieren die Gerätesuche.</string>
+    <string name="onb2_title">Bildschirmsynchronisierung öffnen</string>
+    <string name="onb2_body">Wische auf dem iPhone oder iPad nach unten zum Kontrollzentrum und tippe auf „Bildschirmsynchronisierung“. Auf dem Mac öffnest du das Kontrollzentrum in der Menüleiste und wählst „Bildschirmsynchronisierung“. Wähle dann „%1$s“.</string>
+    <string name="onb2_tip">Musik und YouTube gehen auch: Tippe in der App auf das AirPlay-Symbol und wähle dieses Gerät.</string>
+    <string name="onb3_title">Erreichbar bleiben</string>
+    <string name="onb3_body">Android kann den Empfänger schlafen legen, wenn die App im Hintergrund ist. Nimm ScreenDock von der Akku-Optimierung aus, damit andere Geräte es immer finden.</string>
+    <string name="onb3_battery_ok">Akku-Optimierung ist für ScreenDock aus</string>
+    <string name="onb3_battery_action">Akku-Einstellungen öffnen</string>
+    <string name="onb3_notif_ok">Benachrichtigungen sind erlaubt</string>
+    <string name="onb3_notif_action">Benachrichtigungen erlauben</string>
+
+    <!-- Settings -->
+    <string name="set_title">Einstellungen</string>
+    <string name="set_subtitle">Empfänger-Einstellungen</string>
+    <string name="set_card_receiver">Empfänger</string>
+    <string name="set_card_display">Anzeige</string>
+    <string name="set_card_quality">Videoqualität</string>
+    <string name="set_card_media">Medien</string>
+    <string name="set_card_codecs">Codecs</string>
+    <string name="set_card_security">Sicherheit</string>
+    <string name="set_device_name">Gerätename</string>
+    <string name="set_device_name_hint">Diesen Namen sehen andere Geräte bei der Auswahl.</string>
+    <string name="set_receiver_running">Empfänger aktiv</string>
+    <string name="set_receiver_running_desc">Ausschalten, damit andere Geräte dieses Gerät nicht mehr sehen.</string>
+    <string name="set_auto_start_boot">Beim Hochfahren starten</string>
+    <string name="set_auto_start_boot_desc">Startet den Empfänger nach einem Neustart im Hintergrund. Android wartet damit eventuell bis zum Entsperren, und Benachrichtigungen müssen erlaubt bleiben.</string>
+    <string name="set_auto_open">Bei Verbindung automatisch öffnen</string>
+    <string name="set_auto_open_desc">Holt ScreenDock in den Vordergrund, wenn sich ein Gerät verbindet.</string>
+    <string name="set_scale_label">Bildskalierung</string>
+    <string name="set_scale_hint">Einpassen zeigt alles mit Rändern, Füllen schneidet zu und füllt den Bildschirm, Strecken verzerrt auf die genaue Größe. Tippe während der Spiegelung auf den Bildschirm, um schnell zu wechseln.</string>
+    <string name="set_max_res">Max. Auflösung</string>
+    <string name="set_fps">Bildrate</string>
+    <string name="set_native_hint">„Native“ entspricht der Panel-Auflösung dieses Displays.</string>
+    <string name="set_hls">AirPlay-Video (YouTube u. a.)</string>
+    <string name="set_hls_desc">Videos, die per AirPlay-Taste gesendet werden, direkt auf diesem Gerät abspielen. Ausschalten, um nur Bildschirmsynchronisierung zu erlauben.</string>
+    <string name="set_keep_on_audio">Bildschirm bei Musik anlassen</string>
+    <string name="set_keep_on_audio_desc">Verhindert, dass das Display schläft, solange die Wiedergabe-Ansicht angezeigt wird.</string>
+    <string name="set_sync_volume">Lautstärke vom Sender übernehmen</string>
+    <string name="set_sync_volume_desc">Die Lautstärke des sendenden Geräts steuert die Wiedergabe hier. Ausschalten, um mit voller Lautstärke abzuspielen und die Lautstärketasten dieses Geräts zu nutzen.</string>
+    <string name="set_low_latency_audio">Audio mit geringer Latenz (experimentell)</string>
+    <string name="set_low_latency_audio_desc">Nutzt eine schnellere Audioausgabe für weniger Verzögerung bei Musik und Anrufen. Fällt auf die Standardausgabe zurück, wenn sie nicht startet. Gilt nach dem Neustart.</string>
+    <string name="set_audio_cushion">Audiopuffer</string>
+    <string name="set_audio_cushion_auto">Auto</string>
+    <string name="set_audio_cushion_hint">Kleiner = weniger Verzögerung, aber eher Knistern bei schwachem WLAN. Auto passt sich deinem Netz an.</string>
+    <string name="set_h265_desc">Schärferes Video bei gleicher Bitrate. Ausschalten, wenn ein Gerät Probleme beim Verbinden hat.</string>
+    <string name="set_pin_mode">PIN-Schutz</string>
+    <string name="pin_off">Aus</string>
+    <string name="pin_random">Zufällig</string>
+    <string name="pin_fixed">Fest</string>
+    <string name="pin_off_desc">Jedes Gerät in deinem Netzwerk kann sich verbinden.</string>
+    <string name="pin_random_desc">Bei jeder Verbindung erscheint eine neue 4-stellige PIN auf dem Bildschirm.</string>
+    <string name="pin_fixed_desc">Andere Geräte müssen jedes Mal dieselbe 4-stellige PIN eingeben.</string>
+    <string name="pin_field_label">4-stellige PIN</string>
+    <string name="pin_field_error">Gib genau 4 Ziffern ein.</string>
+    <string name="set_ask_before">Vor neuen Geräten fragen</string>
+    <string name="set_ask_before_desc">Zeigt „Erlauben / Ablehnen“, sobald sich ein Gerät verbinden will.</string>
+    <string name="set_apply">Übernehmen &amp; neu starten</string>
+    <string name="set_apply_hint">Startet den Empfänger neu – andere Geräte verbinden sich automatisch wieder.</string>
+
+    <!-- Troubleshooting -->
+    <string name="rate_title">Gefällt dir ScreenDock?</string>
+    <string name="rate_desc">Eine kurze Bewertung bei Google Play hilft anderen, ScreenDock zu finden.</string>
+    <string name="rate_button">Bei Google Play bewerten</string>
+    <string name="ts_title">Fehlerbehebung</string>
+    <string name="ts_entry_desc">Du siehst dieses Gerät nicht auf deinem iPhone oder Mac? Prüfe deine Netzwerkdaten und typische Lösungen.</string>
+    <string name="ts_entry_button">Fehlerbehebung öffnen</string>
+    <string name="ts_card_network">Dieses Gerät</string>
+    <string name="ts_card_tips">Tipps</string>
+    <string name="ts_row_name">Empfängername</string>
+    <string name="ts_row_ip">IP-Adresse</string>
+    <string name="ts_row_network">Netzwerk</string>
+    <string name="ts_row_receiver">Empfänger</string>
+    <string name="ts_ip_none">Nicht verbunden</string>
+    <string name="ts_receiver_on">Aktiv</string>
+    <string name="ts_receiver_off">Gestoppt</string>
+    <string name="ts_transport_wifi">WLAN</string>
+    <string name="ts_transport_ethernet">Ethernet</string>
+    <string name="ts_transport_other">Anderes Netzwerk</string>
+    <string name="ts_transport_none">Kein Netzwerk</string>
+    <string name="ts_tip_same_network">Dein iPhone, iPad oder Mac muss im selben Netzwerk sein wie dieses Gerät – nicht in einem Gastnetz.</string>
+    <string name="ts_tip_5ghz">Nutze 5-GHz-WLAN und bleib in der Nähe des Routers für die beste Qualität.</string>
+    <string name="ts_tip_guest_wifi">Manche Router isolieren Geräte voneinander („AP-Isolation“ oder „Client-Isolation“). Schalte das aus, wenn andere Geräte dieses Gerät nicht sehen.</string>
+    <string name="ts_tip_battery">Nimm ScreenDock von der Akku-Optimierung aus, damit Android den Empfänger im Hintergrund nicht beendet.</string>
+    <string name="ts_tip_vpn">Schalte VPNs auf beiden Geräten zum Testen aus.</string>
+    <string name="ts_tip_restart">Klappt es immer noch nicht? Schalte das WLAN am sendenden Gerät aus und wieder ein oder nutze „Übernehmen &amp; neu starten“ in den Einstellungen.</string>
+
+    <!-- Troubleshooting: tell us -->
+    <string name="ts_tip_usb">USB-Tethering vom Mac? Führe einmal \"adb shell settings put global tether_force_usb_functions 1\" auf diesem Gerät aus und schalte USB-Tethering dann aus und wieder ein.</string>
+    <string name="logs_title">Protokolle</string>
+    <string name="logs_clear">Protokolle löschen</string>
+    <string name="logs_share">Protokolle teilen</string>
+    <string name="logs_email">Protokolle an Support senden</string>
+    <string name="logs_share_failed">Keine App zum Teilen der Protokolle gefunden.</string>
+    <string name="logs_level_all">Alle</string>
+    <string name="logs_level_info">Info</string>
+    <string name="logs_level_warn">Warnung</string>
+    <string name="logs_level_error">Fehler</string>
+    <string name="logs_empty">Noch keine Protokollzeilen.</string>
+    <string name="logs_card_title">App-Protokolle</string>
+    <string name="logs_card_desc">Sieh dir die letzten Protokollzeilen der App an oder teile sie mit dem Support. PINs sind nie enthalten.</string>
+    <string name="logs_open">Protokolle öffnen</string>
+    <string name="support_title">Klappt\'s immer noch nicht? Schreib uns</string>
+    <string name="support_body">Wir lesen jede Nachricht und beheben, was wir können, im nächsten Update.</string>
+    <string name="support_problem_label">Was passiert?</string>
+    <string name="support_problem_not_found">Gerät erscheint nicht</string>
+    <string name="support_problem_drops">Verbindet, bricht dann ab</string>
+    <string name="support_problem_black">Schwarzer Bildschirm</string>
+    <string name="support_problem_sound">Kein Ton</string>
+    <string name="support_problem_other">Etwas anderes</string>
+    <string name="support_sender_label">Spiegeln von</string>
+    <string name="support_send">E-Mail an Support</string>
+    <string name="support_include_logs">App-Protokolle anhängen</string>
+    <string name="support_include_logs_desc">Hilft uns zu sehen, warum es nicht klappt. PINs und Passwörter werden entfernt.</string>
+    <string name="support_note">Öffnet deine E-Mail-App mit ausgefüllten Gerätedaten. Du siehst alles vor dem Senden.</string>
+    <string name="support_email_prompt">Beschreib kurz, was passiert ist (optional):</string>
+    <string name="support_no_email_app">Keine E-Mail-App gefunden. Schreib uns an %1$s</string>
+
+    <!-- Idle: nothing connected after a while -->
+    <string name="help_overline">NOCH NICHTS VERBUNDEN</string>
+    <string name="help_title">%1$s erscheint nicht auf deinem iPhone oder Mac?</string>
+    <string name="help_wifi_ok">Dieses Gerät ist im WLAN</string>
+    <string name="help_ethernet_ok">Dieses Gerät ist per Ethernet verbunden</string>
+    <string name="help_no_wifi">Dieses Gerät ist nicht im WLAN</string>
+    <string name="help_no_wifi_body">Verbinde es mit demselben WLAN wie dein iPhone oder Mac.</string>
+    <string name="help_vpn">Ein VPN ist aktiv</string>
+    <string name="help_vpn_body">VPNs verbergen dieses Gerät vor Apple-Geräten. Schalte es zum Spiegeln aus.</string>
+    <string name="help_same_wifi">Bring dein iPhone oder deinen Mac ins selbe WLAN</string>
+    <string name="help_same_wifi_named">Verbinde dein iPhone oder deinen Mac mit %1$s</string>
+    <string name="help_same_wifi_body">Kein Gastnetz. Mobile Daten funktionieren nicht.</string>
+    <string name="help_mirror">Kontrollzentrum → Bildschirmsynchronisierung</string>
+    <string name="help_mirror_body">Wähle dann „%1$s“ aus der Liste.</string>
+    <string name="help_more_fixes">Weitere Lösungen</string>
+    <string name="help_works_now">Klappt jetzt</string>
+    <string name="idle_tell_us">Klappt nicht? Schreib uns</string>
+
+    <!-- Accessibility -->
+    <string name="cd_back">Zurück</string>
+    <string name="cd_settings">Einstellungen</string>
+    <string name="cd_troubleshooting">Fehlerbehebung</string>
+    <string name="cd_dismiss">Schließen</string>
+    <string name="cd_cover_art">Albumcover</string>
+    <string name="cd_progress">Wiedergabeposition %1$s von %2$s</string>
+    <string name="cd_scale_mode">Bildskalierung: %1$s. Zum Ändern aktivieren.</string>
+    <string name="cd_pip">Bild-in-Bild</string>
+</resources>

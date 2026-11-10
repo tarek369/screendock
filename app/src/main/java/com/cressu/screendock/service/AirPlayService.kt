@@ -20,6 +20,7 @@ import com.cressu.screendock.bridge.NativeBridge
 import com.cressu.screendock.bridge.RaopCallbackHandler
 import com.cressu.screendock.discovery.NsdServiceManager
 import com.cressu.screendock.discovery.UsbMdnsAdvertiser
+import com.cressu.screendock.discovery.isLegacyWifiFallbackNeeded
 import com.cressu.screendock.model.HwAddressProvider
 import com.cressu.screendock.renderer.AudioRenderer
 import com.cressu.screendock.renderer.NativeAudioConfig
@@ -77,6 +78,7 @@ class AirPlayService : Service(), RaopCallbackHandler {
     private lateinit var notifier: ReceiverNotification
     private lateinit var hls: HlsPlayerController
     private lateinit var limiter: LimiterCoordinator
+    private lateinit var audioFocus: AudioFocusController
     private val gate = ApprovalGate()
 
     @Volatile private var handle: Long = 0L
@@ -90,6 +92,7 @@ class AirPlayService : Service(), RaopCallbackHandler {
     private var nsdManager: NsdServiceManager? = null
     private var networkWatcher: NetworkWatcher? = null
     private var usbMdns: UsbMdnsAdvertiser? = null
+    private var wifiMdns: UsbMdnsAdvertiser? = null
     private var audioRenderer: AudioRenderer? = null
     private var mediaSession: MediaSessionController? = null
     private var wifiLock: WifiManager.WifiLock? = null
@@ -112,6 +115,7 @@ class AirPlayService : Service(), RaopCallbackHandler {
         settingsRepo = SettingsRepository(applicationContext)
         notifier = ReceiverNotification(applicationContext).also { it.createChannels() }
         activeGate = gate
+        audioFocus = AudioFocusController(applicationContext)
         hls = HlsPlayerController(applicationContext, { activeHandle }, { onHlsFinished() })
         limiter = LimiterCoordinator(
             scope = scope, repo = settingsRepo,
@@ -123,6 +127,7 @@ class AirPlayService : Service(), RaopCallbackHandler {
             settingsRepo.settings.collect { s ->
                 settingsNow = s
                 videoRenderer?.scaleMode = parseScale(s.scaleMode)
+                audioRenderer?.followSenderVolume = s.syncSenderVolume
             }
         }
         scope.launch { proUnlocked.collect { limiter.publishCooldown(); updateLimiterCounting() } }
@@ -269,6 +274,7 @@ class AirPlayService : Service(), RaopCallbackHandler {
 
         videoRenderer = VideoRenderer().also { it.scaleMode = parseScale(settings.scaleMode) }
         audioRenderer = AudioRenderer(NativeAudioConfig(settings.lowLatencyAudio, settings.audioCushionMs), queryDeviceAudioOutput(this))
+        audioRenderer?.followSenderVolume = settings.syncSenderVolume
         videoRenderer?.audioActive = { audioRenderer?.isActive == true }
 
         val hwAddr = HwAddressProvider.getHardwareAddress(applicationContext)
@@ -298,6 +304,16 @@ class AirPlayService : Service(), RaopCallbackHandler {
                     NativeBridge.getRaopServiceName(h),
                 ),
             ) { iface, addr -> Log.i(TAG, "USB link " + (iface?.let { "up on $it (${addr?.hostAddress})" } ?: "down")) }.also { it.start() }
+        }
+        if (isLegacyWifiFallbackNeeded(Build.VERSION.SDK_INT)) {
+            // Android 7.x: our own responder beside NsdManager; yields while the system mdnsd answers.
+            wifiMdns = UsbMdnsAdvertiser.forLegacyWifi(
+                UsbMdnsAdvertiser.servicesFor(
+                    settings.displayName, port,
+                    NativeBridge.getAirplayTxtRecords(h), NativeBridge.getRaopTxtRecords(h),
+                    NativeBridge.getRaopServiceName(h),
+                ),
+            ) { iface, addr -> Log.i(TAG, "Wi-Fi fallback mDNS " + (iface?.let { "on $it (${addr?.hostAddress})" } ?: "down")) }.also { it.start() }
         }
 
         _errorMessage.value = null
@@ -337,6 +353,7 @@ class AirPlayService : Service(), RaopCallbackHandler {
         networkWatcher?.stop(); networkWatcher = null
         nsdManager?.stop(); nsdManager = null
         usbMdns?.stop(); usbMdns = null
+        wifiMdns?.stop(); wifiMdns = null
         val h = handle
         activeHandle = 0L
         hls.stopAndWait() // no HLS push may reach native after this point
@@ -519,6 +536,7 @@ class AirPlayService : Service(), RaopCallbackHandler {
         sessionStartElapsed = 0L
         sessionAlerted = false
         trackGen.incrementAndGet()
+        audioFocus.release()
         if (countSuccess && started > 0L && SystemClock.elapsedRealtime() - started >= MIN_SUCCESS_SESSION_MS) {
             scope.launch { runCatching { settingsRepo.incrementSuccessfulSessions() } }
         }
@@ -622,6 +640,8 @@ class AirPlayService : Service(), RaopCallbackHandler {
     }
 
     override fun onAudioData(data: ByteArray, ct: Int, ntpTimeNs: Long, seqNum: Int) {
+        // connCount guard: a packet in flight after endSession must not re-grab focus while idle.
+        if (connCount.get() > 0) audioFocus.acquire(movie = _mediaMode.value == MediaMode.MIRROR)
         audioRenderer?.feedAudio(data, ct, ntpTimeNs, seqNum)
     }
 
@@ -637,7 +657,7 @@ class AirPlayService : Service(), RaopCallbackHandler {
     }
 
     override fun onVolumeChange(volume: Float) {
-        Log.i(TAG, "sender volume: $volume dB")
+        Log.i(TAG, "sender volume: $volume dB" + if (settingsNow.syncSenderVolume) "" else " (ignored: sync off)")
         audioRenderer?.setVolume(volume)
     }
 
