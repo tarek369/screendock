@@ -5,7 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.annotation.SuppressLint
 import android.os.Build
+import androidx.annotation.RequiresApi
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -152,6 +154,7 @@ class MainActivity : ComponentActivity() {
      * controller), so keys reach the window here before Compose. Matching UP events are consumed
      * too. Back is not handled here (normal navigation).
      */
+    @SuppressLint("RestrictedApi") // lint false positive on ComponentActivity.dispatchKeyEvent
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (handleVideoKey(event)) return true
         return super.dispatchKeyEvent(event)
@@ -195,6 +198,7 @@ class MainActivity : ComponentActivity() {
         return PipLogic.aspectMilli(size?.first ?: 0, size?.second ?: 0)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun buildPipParams(autoEnter: Boolean, aspectMilli: Int): PictureInPictureParams {
         val builder = PictureInPictureParams.Builder()
             .setAspectRatio(Rational(aspectMilli, PipLogic.ASPECT_DENOMINATOR))
@@ -212,7 +216,7 @@ class MainActivity : ComponentActivity() {
      * simplest correct way; params are only pushed when they change.
      */
     private fun startPipParamsSync() {
-        if (!pip.supported) return
+        if (!pip.supported || Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 lastPipKey = Long.MIN_VALUE
@@ -232,7 +236,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun enterPip() {
-        if (!pip.supported || !shouldEnterPip()) return
+        if (!pip.supported || Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !shouldEnterPip()) return
         runCatching { enterPictureInPictureMode(buildPipParams(true, currentVideoAspectMilli())) }
             .onFailure { Log.w(TAG, "enterPictureInPictureMode failed", it) }
     }

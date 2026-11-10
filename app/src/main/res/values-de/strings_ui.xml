@@ -17,9 +17,9 @@
 
     <!-- Guide -->
     <string name="guide_overline">SO VERBINDEST DU DICH</string>
-    <string name="guide_step1_title">Kontrollzentrum</string>
+    <string name="guide_step1_title">Menü öffnen</string>
     <string name="guide_step1_body">Wische auf deinem iPhone oder iPad von der oberen rechten Ecke nach unten. Auf dem Mac klickst du in der Menüleiste auf das Kontrollzentrum-Symbol.</string>
-    <string name="guide_step2_title">Bildschirmsynchronisierung</string>
+    <string name="guide_step2_title">Spiegeln</string>
     <string name="guide_step2_body">Tippe auf „Bildschirmsynchronisierung“.</string>
     <string name="guide_step3_title">Gerät auswählen</string>
     <string name="guide_step3_pre">"Wähle "</string>
@@ -206,4 +206,6 @@
     <string name="cd_progress">Wiedergabeposition %1$s von %2$s</string>
     <string name="cd_scale_mode">Bildskalierung: %1$s. Zum Ändern aktivieren.</string>
     <string name="cd_pip">Bild-in-Bild</string>
+    <string name="set_return_previous">Nach dem Spiegeln zur vorherigen App zurück</string>
+    <string name="set_return_previous_desc">Hat sich ScreenDock für eine Verbindung geöffnet, kehrt es zum vorherigen Bildschirm zurück, sobald das letzte Gerät die Verbindung trennt.</string>
 </resources>
