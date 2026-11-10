@@ -90,6 +90,8 @@
     <string name="set_auto_start_boot_desc">Starts the receiver in the background after this device restarts. Android may delay it until the device is unlocked, and it needs notifications to stay allowed.</string>
     <string name="set_auto_open">Open automatically on connect</string>
     <string name="set_auto_open_desc">Bring ScreenDock to the front when a sender connects.</string>
+    <string name="set_return_previous">Return to previous app when mirroring ends</string>
+    <string name="set_return_previous_desc">If ScreenDock opened for a connection, go back to what was on screen when the last sender disconnects.</string>
     <string name="set_scale_label">Picture scaling</string>
     <string name="set_scale_hint">Fit shows everything with bars, Fill crops to cover the screen, Stretch distorts to the exact bounds. Tap the screen while mirroring to switch quickly.</string>
     <string name="set_max_res">Max resolution</string>

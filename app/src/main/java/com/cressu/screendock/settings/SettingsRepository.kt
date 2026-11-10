@@ -61,6 +61,8 @@ data class AirPlaySettings(
     /** Sender volume slider controls our gain (true) or is ignored -> full gain (false). */
     val syncSenderVolume: Boolean = true,
     val autoOpenOnConnect: Boolean = true,
+    /** Step aside (moveTaskToBack) when the last sender leaves, if a connection opened the UI. */
+    val returnToPreviousApp: Boolean = true,
     val onboardingDone: Boolean = false,
     /** Sessions of at least 2 min that ended normally (drives the review prompt). */
     val successfulSessions: Int = 0,
@@ -112,6 +114,7 @@ class SettingsRepository(private val context: Context) {
         val AUDIO_CUSHION_MS = intPreferencesKey("audio_cushion_ms")
         val SYNC_SENDER_VOLUME = booleanPreferencesKey("sync_sender_volume")
         val AUTO_OPEN = booleanPreferencesKey("auto_open_on_connect")
+        val RETURN_TO_PREVIOUS = booleanPreferencesKey("return_to_previous_app")
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         val SUCCESSFUL_SESSIONS = intPreferencesKey("successful_sessions")
         /** Legacy once-ever flag (≤ 0.3.7 vc12); read only to migrate into REVIEW_ASK_COUNT. */
@@ -150,6 +153,7 @@ class SettingsRepository(private val context: Context) {
             audioCushionMs = NativeAudioConfig.sanitizeCushion(p[Keys.AUDIO_CUSHION_MS] ?: 0),
             syncSenderVolume = p[Keys.SYNC_SENDER_VOLUME] ?: true,
             autoOpenOnConnect = p[Keys.AUTO_OPEN] ?: true,
+            returnToPreviousApp = p[Keys.RETURN_TO_PREVIOUS] ?: true,
             onboardingDone = p[Keys.ONBOARDING_DONE] ?: false,
             successfulSessions = p[Keys.SUCCESSFUL_SESSIONS] ?: 0,
             // An old "prompted" flag counts as one ask with no timestamp, so it is retried right away
@@ -232,6 +236,10 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun updateAutoOpenOnConnect(enabled: Boolean) {
         context.dataStore.edit { it[Keys.AUTO_OPEN] = enabled }
+    }
+
+    suspend fun updateReturnToPreviousApp(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.RETURN_TO_PREVIOUS] = enabled }
     }
 
     suspend fun updateOnboardingDone(done: Boolean) {
