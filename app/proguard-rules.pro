@@ -22,3 +22,13 @@
 
 # Play review-ktx references a compile-only annotation
 -dontwarn com.google.android.gms.common.annotation.NoNullnessRewrite
+
+# Media3/ExoPlayer on API 24-30: classes such as android.media.metrics.LogSessionId do not exist
+# there. R8 can merge/inline references to them into code that loads on older devices ->
+# NoClassDefFoundError at runtime (crash when AirPlay video starts). Keep Media3's class
+# structure intact and ignore the missing API 31+ platform classes.
+# (Adapted from jqssun/android-airplay-server PR #95, GPL-3.0.)
+-keep class androidx.media3.** { *; }
+-dontwarn androidx.media3.**
+-dontwarn android.media.metrics.**
+-keep class android.media.metrics.** { *; }

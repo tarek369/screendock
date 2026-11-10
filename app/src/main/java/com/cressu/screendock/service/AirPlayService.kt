@@ -22,6 +22,7 @@ import com.cressu.screendock.discovery.NsdServiceManager
 import com.cressu.screendock.discovery.UsbMdnsAdvertiser
 import com.cressu.screendock.model.HwAddressProvider
 import com.cressu.screendock.renderer.AudioRenderer
+import com.cressu.screendock.renderer.DecoderCaps
 import com.cressu.screendock.renderer.NativeAudioConfig
 import com.cressu.screendock.renderer.queryDeviceAudioOutput
 import com.cressu.screendock.renderer.ScaleMode
@@ -29,6 +30,7 @@ import com.cressu.screendock.renderer.VideoRenderer
 import com.cressu.screendock.settings.AirPlaySettings
 import com.cressu.screendock.settings.PinMode
 import com.cressu.screendock.settings.SettingsRepository
+import com.cressu.screendock.ui.MainActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -308,8 +310,11 @@ class AirPlayService : Service(), RaopCallbackHandler {
     }
 
     private fun configureNative(h: Long, s: AirPlaySettings) {
-        NativeBridge.setH265Enabled(h, s.h265Enabled)
-        val (w, hgt) = resolveAdvertisedSize(s)
+        // Only advertise H.265 when a decoder exists, whatever the toggle says (PR #31).
+        val h265 = s.h265Enabled && DecoderCaps.hasDecoder(DecoderCaps.MIME_HEVC)
+        if (s.h265Enabled && !h265) Log.i(TAG, "H.265 enabled but no HEVC decoder: advertising H.264 only")
+        NativeBridge.setH265Enabled(h, h265)
+        val (w, hgt) = resolveAdvertisedSize(s, h265)
         NativeBridge.setDisplaySize(h, w, hgt, s.maxFps)
         NativeBridge.setHlsEnabled(h, s.hlsEnabled)
         val pin = when (s.pinMode) {
@@ -395,9 +400,17 @@ class AirPlayService : Service(), RaopCallbackHandler {
 
     /**
      * Resolve the advertised mirroring size from settings. The 0×0 "Native" sentinel maps to the
-     * real panel resolution (landscape-oriented), capped at 4K.
+     * real panel resolution (landscape-oriented), capped at 4K. Either way the result is capped to
+     * what the H.264 (and, when advertised, H.265) decoder supports, keeping the aspect ratio:
+     * strict decoders stay black on streams beyond their limits. (Adapted from
+     * jqssun/android-airplay-server PR #31, GPL-3.0.)
      */
-    private fun resolveAdvertisedSize(settings: AirPlaySettings): Pair<Int, Int> {
+    private fun resolveAdvertisedSize(settings: AirPlaySettings, h265: Boolean): Pair<Int, Int> {
+        val (w, h) = wantedAdvertisedSize(settings)
+        return DecoderCaps.capAdvertisedSize(w, h, h265)
+    }
+
+    private fun wantedAdvertisedSize(settings: AirPlaySettings): Pair<Int, Int> {
         if (settings.maxWidth > 0 && settings.maxHeight > 0) return settings.maxWidth to settings.maxHeight
         val (w, h) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val b = getSystemService(WindowManager::class.java).maximumWindowMetrics.bounds
@@ -495,12 +508,32 @@ class AirPlayService : Service(), RaopCallbackHandler {
         return info.importance <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
     }
 
-    /** Auto-open: full-screen-intent notification (see [ReceiverNotification.notifyAlert] for the limits). */
-    private fun maybeAlertSession() {
-        if (sessionAlerted || !settingsNow.autoOpenOnConnect || isUiForeground()) return
+    /**
+     * Auto-open on connect: bring MainActivity to the front, marked as summoned so it can step
+     * aside again when the session ends (adapted from jqssun/android-airplay-server PR #64/#88,
+     * GPL-3.0). Android 10+ blocks most background activity starts (a foreground service alone
+     * is not an exemption; TVs and some OEMs allow it), so if the UI is still not on screen after
+     * [SUMMON_CONFIRM_MS] a heads-up notification is posted for the user to tap. No
+     * SYSTEM_ALERT_WINDOW / USE_FULL_SCREEN_INTENT (Play restricts the latter).
+     */
+    private fun maybeSummonUi() {
+        if (sessionAlerted || !settingsNow.autoOpenOnConnect) return
         sessionAlerted = true
+        if (MainActivity.isOnScreen) return // already on screen (or in PiP): nothing to do
         val who = admittedSender.ifBlank { getString(R.string.sender_unknown) }
-        notifier.notifySessionStarted(who)
+        main.post {
+            try {
+                startActivity(MainActivity.summonIntent(this))
+            } catch (t: Throwable) {
+                Log.w(TAG, "summon start failed", t)
+            }
+            main.postDelayed({
+                if (!MainActivity.isOnScreen && connCount.get() > 0 && !destroyed) {
+                    Log.i(TAG, "summon not shown (background start blocked?); posting alert")
+                    notifier.notifySessionStarted(who)
+                }
+            }, SUMMON_CONFIRM_MS)
+        }
     }
 
     private fun setMode(mode: MediaMode) {
@@ -510,6 +543,7 @@ class AirPlayService : Service(), RaopCallbackHandler {
             if (mode == MediaMode.NONE || mode == MediaMode.MIRROR) _nowPlaying.value = null
         }
         if (mode != MediaMode.NONE) { activity.incrementAndGet(); _currentPin.value = null }
+        if (mode == MediaMode.MIRROR || mode == MediaMode.VIDEO) maybeSummonUi()
         refreshAll()
     }
 
@@ -577,8 +611,7 @@ class AirPlayService : Service(), RaopCallbackHandler {
                 _state.value = ReceiverState.CONNECTED
                 _connectedSender.value = admittedSender.ifBlank { getString(R.string.sender_unknown) }
             }
-            // With a PIN the UI is opened once the code is known (see onDisplayPin).
-            if (settingsNow.pinMode == PinMode.OFF) maybeAlertSession()
+            // The UI is opened once mirroring/video starts (setMode) or a PIN must be shown.
             refreshAll()
         }
     }
@@ -639,7 +672,7 @@ class AirPlayService : Service(), RaopCallbackHandler {
 
     override fun onDisplayPin(pin: String) {
         _currentPin.value = pin // never logged
-        maybeAlertSession()
+        maybeSummonUi()
         refreshAll()
     }
 
@@ -711,6 +744,8 @@ class AirPlayService : Service(), RaopCallbackHandler {
         const val FREE_SESSION_MINUTES = 10L
 
         private const val MIN_SUCCESS_SESSION_MS = 120_000L
+        /** How long a summon may take to show the UI before the tap-to-open alert is posted. */
+        private const val SUMMON_CONFIRM_MS = 1_500L
 
         private val _state = MutableStateFlow(ReceiverState.IDLE)
         val state: StateFlow<ReceiverState> = _state

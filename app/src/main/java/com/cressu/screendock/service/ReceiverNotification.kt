@@ -97,6 +97,12 @@ class ReceiverNotification(private val ctx: Context) : NotificationTexts {
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
     )
 
+    /** Opens the UI marked as summoned by a session (it may step aside when the session ends). */
+    private fun summonAppIntent(): PendingIntent = PendingIntent.getActivity(
+        ctx, REQ_SUMMON, MainActivity.summonIntent(ctx),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+
     private fun serviceAction(action: String, req: Int, foreground: Boolean = false): PendingIntent {
         val i = Intent(ctx, AirPlayService::class.java).setAction(action)
         val flags = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
@@ -191,8 +197,11 @@ class ReceiverNotification(private val ctx: Context) : NotificationTexts {
      * heads-up notification the user taps. (USE_FULL_SCREEN_INTENT is deliberately not used:
      * Play restricts it to calling/alarm apps.)
      */
-    fun notifyAlert(id: Int, title: String, text: String, actions: List<Notification.Action> = emptyList()) {
-        val pi = openAppIntent()
+    fun notifyAlert(
+        id: Int, title: String, text: String,
+        actions: List<Notification.Action> = emptyList(),
+        pi: PendingIntent = openAppIntent(),
+    ) {
         val b = builder(CHANNEL_CONNECT)
             .setSmallIcon(R.drawable.ic_stat_screendock)
             .setContentTitle(title)
@@ -212,6 +221,7 @@ class ReceiverNotification(private val ctx: Context) : NotificationTexts {
         NOTIF_SESSION,
         ctx.getString(R.string.notif_session_started, sender),
         ctx.getString(R.string.notif_session_started_text),
+        pi = summonAppIntent(),
     )
 
     fun notifyApproval(sender: String) = notifyAlert(
@@ -240,5 +250,6 @@ class ReceiverNotification(private val ctx: Context) : NotificationTexts {
         const val NOTIF_STOPPED = 4
         const val NOTIF_BOOT = 5
         private const val ALERT_TIMEOUT_MS = 30_000L
+        private const val REQ_SUMMON = 10
     }
 }

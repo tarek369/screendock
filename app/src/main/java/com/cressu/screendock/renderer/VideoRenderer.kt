@@ -62,6 +62,8 @@ class VideoRenderer {
     private var lastKeyframe: ByteArray? = null
     private var lastKeyframeMime: String? = null
     private var lastStartFailNs = 0L
+    /** Decoder that worked after the default one failed to start; tried first next time (per MIME). */
+    private val fallbackDecoder = HashMap<String, String>()
     private var lastFpsTimeNs = 0L
     private var framesSinceLastFps = 0
     private var frameDbgCount = 0L
@@ -249,17 +251,7 @@ class VideoRenderer {
             Log.w(TAG, "startCodec: pipeline input surface not ready")
             return false
         }
-        val dec = try {
-            createConfigured(mime, keyData, isH265, surface, lowLatency = true)
-        } catch (e: Exception) {
-            Log.w(TAG, "low-latency decoder start failed ($e); retrying without")
-            try {
-                createConfigured(mime, keyData, isH265, surface, lowLatency = false)
-            } catch (t: Exception) {
-                Log.e(TAG, "Failed to create $mime decoder", t)
-                return false
-            }
-        }
+        val dec = createWithFallback(mime, keyData, isH265, surface) ?: return false
         codec = dec
         codecMime = mime
         codecValid = true
@@ -269,11 +261,47 @@ class VideoRenderer {
         return true
     }
 
+    /**
+     * Default decoder (low-latency, then plain); if it cannot start, other decoders for the
+     * MIME type incl. software ones (c2.android.* / OMX.google.*). Strict hardware decoders
+     * reject configs beyond their real limits. (Adapted from jqssun/android-airplay-server
+     * PR #31, GPL-3.0.) Returns null when nothing starts.
+     */
+    private fun createWithFallback(mime: String, keyData: ByteArray, isH265: Boolean, surface: Surface): MediaCodec? {
+        fallbackDecoder[mime]?.let { name ->
+            runCatching { return createConfigured(mime, keyData, isH265, surface, lowLatency = false, codecName = name) }
+                .onFailure { Log.w(TAG, "remembered decoder $name failed ($it)"); fallbackDecoder.remove(mime) }
+        }
+        try {
+            return createConfigured(mime, keyData, isH265, surface, lowLatency = true)
+        } catch (e: Exception) {
+            Log.w(TAG, "low-latency decoder start failed ($e); retrying without")
+        }
+        try {
+            return createConfigured(mime, keyData, isH265, surface, lowLatency = false)
+        } catch (e: Exception) {
+            Log.w(TAG, "default $mime decoder failed ($e); trying fallback decoders")
+        }
+        for (name in DecoderCaps.fallbackDecoders(mime, DecoderCaps.defaultDecoderName(mime))) {
+            try {
+                val dec = createConfigured(mime, keyData, isH265, surface, lowLatency = false, codecName = name)
+                Log.i(TAG, "using fallback decoder $name for $mime")
+                fallbackDecoder[mime] = name
+                return dec
+            } catch (e: Exception) {
+                Log.w(TAG, "fallback decoder $name failed ($e)")
+            }
+        }
+        Log.e(TAG, "Failed to create any $mime decoder")
+        return null
+    }
+
     /** Create, configure and start a decoder; releases it on ANY failure before rethrowing. */
     private fun createConfigured(
         mime: String, keyData: ByteArray, isH265: Boolean, surface: Surface, lowLatency: Boolean,
+        codecName: String? = null,
     ): MediaCodec {
-        val dec = MediaCodec.createDecoderByType(mime)
+        val dec = if (codecName != null) MediaCodec.createByCodecName(codecName) else MediaCodec.createDecoderByType(mime)
         try {
             dec.setCallback(DecoderCallback(), callbackHandler)
             dec.configure(buildFormat(mime, lowLatency, keyData, isH265), surface, null, 0)
@@ -294,7 +322,9 @@ class VideoRenderer {
             setInteger(MediaFormat.KEY_COLOR_STANDARD, MediaFormat.COLOR_STANDARD_BT709)
             setInteger(MediaFormat.KEY_COLOR_RANGE, MediaFormat.COLOR_RANGE_LIMITED)
             setInteger(MediaFormat.KEY_PRIORITY, 0)
-            setInteger(MediaFormat.KEY_OPERATING_RATE, 240)
+            // No KEY_OPERATING_RATE: a max-throughput hint wedges some Qualcomm decoders
+            // (c2.qti.hevc) before their first output frame -> permanent black screen.
+            // (Adapted from jqssun/android-airplay-server PR #40, GPL-3.0.)
             setInteger(MediaFormat.KEY_ALLOW_FRAME_DROP, 1)
             if (lowLatency) setInteger(MediaFormat.KEY_LOW_LATENCY, 1)
             if (isH265) {

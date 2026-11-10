@@ -85,6 +85,12 @@ fun ReceiverCard(
             checked = settings.autoOpenOnConnect,
             onCheckedChange = { onChange(settings.copy(autoOpenOnConnect = it)) },
         )
+        SwitchRow(
+            title = stringResource(R.string.set_return_previous),
+            description = stringResource(R.string.set_return_previous_desc),
+            checked = settings.returnToPreviousApp,
+            onCheckedChange = { onChange(settings.copy(returnToPreviousApp = it)) },
+        )
     }
 }
 

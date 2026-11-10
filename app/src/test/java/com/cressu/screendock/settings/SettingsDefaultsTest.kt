@@ -44,6 +44,7 @@ class Phase2SettingsDefaultsTest {
         assertEquals(true, s.hlsEnabled)
         assertEquals(false, s.keepScreenOnAudio)
         assertEquals(true, s.autoOpenOnConnect)
+        assertEquals(true, s.returnToPreviousApp)
         assertEquals(false, s.onboardingDone)
         assertEquals(0, s.successfulSessions)
         assertEquals(0, s.reviewAskCount)
