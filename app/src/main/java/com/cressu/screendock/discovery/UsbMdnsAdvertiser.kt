@@ -29,9 +29,17 @@ import kotlin.random.Random
  * RFC 6762 responder (probe, announce, answer, goodbye) bound ONLY to a tether interface;
  * Wi-Fi stays with NsdManager. If another responder claims our names on the link we yield.
  * All socket work happens on one daemon thread; [stop] signals it, and it closes the socket.
+ *
+ * The same responder doubles as the legacy Wi-Fi fallback ([forLegacyWifi], Android 7.x only):
+ * there it runs beside NsdManager on wlan*, stays quiet while the system mdnsd answers for our
+ * names, and only takes over when nothing else does.
  */
 class UsbMdnsAdvertiser(
     private val services: List<MdnsService>,
+    /** Which interfaces this responder may bind to (default: USB tether links). */
+    private val ifaceFilter: (String) -> Boolean = ::isUsbTetherIface,
+    /** Label for the thread / host name / logs ("usb" or "wlan"). */
+    private val label: String = "usb",
     private val onLink: (iface: String?, addr: Inet4Address?) -> Unit,
 ) {
     private class Link(val name: String, val addr: Inet4Address, val mask: Int, val socket: MulticastSocket) {
@@ -44,7 +52,9 @@ class UsbMdnsAdvertiser(
     private val running get() = stopped.count > 0
     private var thread: Thread? = null
     private val main = Handler(Looper.getMainLooper())
-    private val host = listOf("airplay-usb-%06x".format(Random.nextInt(0x1000000)), "local")
+    private val host = listOf("airplay-$label-%06x".format(Random.nextInt(0x1000000)), "local")
+    /** Interface whose socket last failed to open (logged once, not on every rescan). */
+    private var openFailedFor: String? = null
 
     private var link: Link? = null
     private var state = State.CHECKING
@@ -56,7 +66,7 @@ class UsbMdnsAdvertiser(
 
     fun start() {
         if (thread != null) return
-        thread = Thread(::_loop, "usb-mdns").apply { isDaemon = true; start() }
+        thread = Thread(::_loop, "$label-mdns").apply { isDaemon = true; start() }
     }
 
     fun stop() {
@@ -90,7 +100,7 @@ class UsbMdnsAdvertiser(
                 if (running) _onPacket(l, packet)
             }
         } catch (e: Exception) {
-            Log.w(TAG, "USB mDNS loop failed", e)
+            Log.w(TAG, "$label mDNS loop failed", e)
         } finally {
             link?.let {
                 _close(it)
@@ -113,7 +123,7 @@ class UsbMdnsAdvertiser(
     private fun _report(l: Link?) = main.post { if (running) onLink(l?.name, l?.addr) }
 
     private fun _findUsb() = NetworkInterface.getNetworkInterfaces()?.toList().orEmpty()
-        .filter { isUsbTetherIface(it.name) && it.isUp }
+        .filter { ifaceFilter(it.name) && it.isUp && !it.isLoopback }
         .firstNotNullOfOrNull { ni -> ni.interfaceAddresses.firstOrNull { it.address is Inet4Address }?.let { ni to it } }
 
     private fun _open(ni: NetworkInterface, ia: InterfaceAddress): Link? {
@@ -126,11 +136,14 @@ class UsbMdnsAdvertiser(
             socket.timeToLive = 255
             socket.soTimeout = RECEIVE_TIMEOUT_MS
             val prefix = ia.networkPrefixLength.toInt()
-            Log.i(TAG, "USB link ${ni.name} ${ia.address.hostAddress}/$prefix")
+            Log.i(TAG, "$label link ${ni.name} ${ia.address.hostAddress}/$prefix")
+            openFailedFor = null
             Link(ni.name, ia.address as Inet4Address, prefixToMask(prefix), socket)
         } catch (e: Exception) {
             socket.close()
-            Log.w(TAG, "Cannot open mDNS socket on ${ni.name}", e)
+            // e.g. the system mdnsd holds 5353 without SO_REUSEADDR: retried every scan, logged once.
+            if (openFailedFor != ni.name) Log.w(TAG, "Cannot open mDNS socket on ${ni.name}", e)
+            openFailedFor = ni.name
             null
         }
     }
@@ -360,6 +373,13 @@ class UsbMdnsAdvertiser(
         )
 
         fun isNeeded(sdkInt: Int = android.os.Build.VERSION.SDK_INT) = sdkInt <= MAX_SDK_NEEDING_RESPONDER
+
+        /**
+         * Wi-Fi fallback responder for Android 7.x (see [isLegacyWifiFallbackNeeded]). It yields
+         * whenever the system mdnsd answers for our names, so it only speaks when that failed.
+         */
+        fun forLegacyWifi(services: List<MdnsService>, onLink: (iface: String?, addr: Inet4Address?) -> Unit) =
+            UsbMdnsAdvertiser(services, ::isLegacyWifiIface, "wlan", onLink)
         private const val MDNS_PORT = 5353
         private val GROUP = InetSocketAddress(InetAddress.getByName("224.0.0.251"), MDNS_PORT)
         private const val SCAN_MS = 2000L

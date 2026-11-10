@@ -1,0 +1,41 @@
+<resources>
+    <string name="idle_status_initializing">Wird initialisiert…</string>
+    <string name="idle_status_native_load_failed">Native Bibliothek konnte nicht geladen werden</string>
+    <string name="idle_title_ready">Bereit zum Empfangen</string>
+    <string name="idle_subtitle">Warte auf ein AirPlay-Gerät…</string>
+    <!-- Service / notification -->
+    <string name="notif_channel_receiver">AirPlay-Empfänger</string>
+    <string name="notif_channel_receiver_desc">Empfängerstatus, solange ScreenDock läuft</string>
+    <string name="notif_channel_connect">Verbindungsanfragen</string>
+    <string name="notif_channel_connect_desc">Hinweise, wenn sich ein AirPlay-Gerät verbindet oder verbinden möchte</string>
+    <string name="notif_title_ready">Bereit zum Empfangen</string>
+    <string name="notif_title_starting">Wird gestartet…</string>
+    <string name="notif_title_stopped">Empfänger gestoppt</string>
+    <string name="notif_title_error">Empfängerfehler</string>
+    <string name="notif_title_connected">Verbunden mit %1$s</string>
+    <string name="notif_title_mirroring">Spiegelung von %1$s</string>
+    <string name="notif_title_playing">Wiedergabe: %1$s</string>
+    <string name="notif_title_playing_from">Wiedergabe von %1$s</string>
+    <string name="notif_title_video_from">Video von %1$s</string>
+    <string name="notif_title_pin">PIN: %1$s</string>
+    <string name="notif_text_advertising">Für AirPlay-Geräte sichtbar als „%1$s“</string>
+    <string name="notif_text_stopped">Tippe auf „Starten“, um wieder AirPlay zu empfangen</string>
+    <string name="notif_text_pin">Gib diesen Code auf dem sendenden Gerät ein</string>
+    <string name="notif_pin_public">Kopplungscode angefordert</string>
+    <string name="notif_action_stop">Empfänger stoppen</string>
+    <string name="notif_action_start">Starten</string>
+    <string name="notif_action_allow">Erlauben</string>
+    <string name="notif_action_deny">Ablehnen</string>
+    <string name="notif_approval_title">%1$s die Verbindung erlauben?</string>
+    <string name="notif_approval_text">Ein AirPlay-Gerät möchte auf diesen Bildschirm senden</string>
+    <string name="notif_session_started">%1$s verbindet sich</string>
+    <string name="notif_session_started_text">Tippen, um ScreenDock zu öffnen</string>
+    <string name="notif_boot_title">Tippen, um ScreenDock zu starten</string>
+    <string name="notif_boot_text">Diese Android-Version erlaubt keinen Start des Empfängers beim Hochfahren</string>
+    <string name="mediasession_name">ScreenDock-Wiedergabe</string>
+    <string name="error_native_not_loaded">Native Bibliothek konnte nicht geladen werden</string>
+    <string name="error_start_failed">Empfänger konnte nicht gestartet werden: %1$s</string>
+    <string name="error_mdns_failed">Anmeldung im Netzwerk fehlgeschlagen (Code %1$d). Neuer Versuch…</string>
+    <string name="error_no_network">Kein WLAN. Warte auf eine Verbindung…</string>
+    <string name="sender_unknown">AirPlay-Gerät</string>
+</resources>

@@ -22,6 +22,21 @@ internal val USB_IFACE_REGEX = Regex("(usb|rndis|ncm)\\d+")
 
 internal fun isUsbTetherIface(name: String) = USB_IFACE_REGEX.matches(name)
 
+/** Wi-Fi station interfaces for the Android 7.x fallback responder (wlan0, wlan1, ...). */
+internal val WIFI_IFACE_REGEX = Regex("wlan\\d+")
+
+internal fun isLegacyWifiIface(name: String) = WIFI_IFACE_REGEX.matches(name)
+
+/** Last API level (Android 7.1) that runs the Wi-Fi fallback responder beside NsdManager. */
+const val MAX_SDK_LEGACY_WIFI_RESPONDER = 25
+
+/**
+ * Android 7.x ships the legacy system mdnsd, which on some devices fails to serve our AirPlay
+ * records (support case: an iPhone could not see ScreenDock on an Android 7.0 tablet).
+ * Never true on 8.0+, where NsdManager has been reliable on Wi-Fi.
+ */
+fun isLegacyWifiFallbackNeeded(sdkInt: Int) = sdkInt <= MAX_SDK_LEGACY_WIFI_RESPONDER
+
 /** CIDR prefix length -> IPv4 netmask as an int. */
 internal fun prefixToMask(prefix: Int) = if (prefix <= 0) 0 else -1 shl (32 - prefix.coerceAtMost(32))
 

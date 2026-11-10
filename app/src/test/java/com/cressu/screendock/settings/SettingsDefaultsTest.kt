@@ -13,6 +13,11 @@ import org.junit.Test
 class SettingsDefaultsTest {
 
     @Test
+    fun `sync sender volume defaults to on (previous behaviour)`() {
+        assertTrue(AirPlaySettings().syncSenderVolume)
+    }
+
+    @Test
     fun `default display name is non-empty`() {
         val s = AirPlaySettings()
         assertTrue(s.displayName.isNotEmpty())

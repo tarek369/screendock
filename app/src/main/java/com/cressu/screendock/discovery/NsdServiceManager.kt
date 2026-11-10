@@ -222,6 +222,7 @@ class NsdServiceManager(
     private fun registerServiceLocked(info: NsdServiceInfo, label: String) {
         val listener = makeListener(label, generation)
         listeners.add(listener)
+        Log.i(TAG, "[$label] registering '${info.serviceName}' (txt=${runCatching { txtWireSize(info.attributes) }.getOrDefault(-1)}B)")
         try {
             nsdManager.registerService(info, NsdManager.PROTOCOL_DNS_SD, listener)
         } catch (t: Throwable) {
@@ -268,7 +269,11 @@ class NsdServiceManager(
             }
 
             override fun onRegistrationFailed(info: NsdServiceInfo, errorCode: Int) {
-                Log.e(TAG, "[$label] registration FAILED (errorCode=$errorCode) for '${info.serviceName}'.")
+                // Spelled out so support logs (in-app Logs, tag AirplayNsd) show WHY the system
+                // mdnsd refused us; TXT size is included because old mdnsd builds choke on long TXT.
+                val txtBytes = runCatching { txtWireSize(info.attributes) }.getOrDefault(-1)
+                Log.e(TAG, "[$label] registration FAILED: ${describeNsdError(errorCode)} for " +
+                    "'${info.serviceName}' (txt=${txtBytes}B, sdk=${android.os.Build.VERSION.SDK_INT}).")
                 synchronized(lock) {
                     val reg = registration ?: return
                     if (gen != generation) return // stale callback from a superseded registration
@@ -332,6 +337,20 @@ class NsdServiceManager(
 
         private const val REREGISTER_DELAY_MS = 700L
         private const val MAX_BACKOFF_MS = 30_000L
+
+        /** NsdManager.FAILURE_* code -> readable name (values are stable across API levels). */
+        internal fun describeNsdError(code: Int): String = when (code) {
+            0 -> "FAILURE_INTERNAL_ERROR(0)"
+            3 -> "FAILURE_ALREADY_ACTIVE(3)"
+            4 -> "FAILURE_MAX_LIMIT(4)"
+            5 -> "FAILURE_OPERATION_NOT_RUNNING(5)"
+            6 -> "FAILURE_BAD_PARAMETERS(6)"
+            else -> "UNKNOWN($code)"
+        }
+
+        /** Encoded DNS TXT rdata size: one length byte + "key" or "key=value" per entry. */
+        internal fun txtWireSize(attrs: Map<String, ByteArray?>): Int =
+            attrs.entries.sumOf { (k, v) -> 1 + k.toByteArray().size + (v?.let { 1 + it.size } ?: 0) }
 
         /** 1 s, 2 s, 4 s ... capped at 30 s. */
         internal fun backoffMs(attempt: Int): Long =
