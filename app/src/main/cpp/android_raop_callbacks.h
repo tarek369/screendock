@@ -13,6 +13,7 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include "raop.h"
+#include "paired_clients.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -43,6 +44,7 @@ typedef struct android_callback_ctx_s {
     jmethodID on_hls_stop;            /* ()V */
     jmethodID on_hls_scrub;           /* (F)V */
     jmethodID on_hls_rate;            /* (F)V */
+    jmethodID on_audio_flush;         /* ()V  sender FLUSH (0.3.8) */
 
     /* HLS playback snapshot: pushed from Kotlin (android_hls_update_info) and
      * read by UxPlay's httpd thread in on_video_acquire_playback_info, so the
@@ -62,6 +64,11 @@ typedef struct android_callback_ctx_s {
     /* Last AirPlay volume (dB) set by the sender; returned to /info queries.
      * calloc-zeroed = 0.0 = full volume, matching upstream UxPlay's default. */
     double volume_db;
+
+    /* Senders that completed PIN pairing, persisted to "<keyfile>.clients" so they
+     * stay paired across restarts; consulted by check_register (PIN mode only).
+     * adapted from jqssun/android-airplay-server PR #80 (GPL-3.0) */
+    paired_clients_t paired;
 } android_callback_ctx_t;
 
 /* Populate a raop_callbacks_t. cls/userdata is the android_callback_ctx_t.

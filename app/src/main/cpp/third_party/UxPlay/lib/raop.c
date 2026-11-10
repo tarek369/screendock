@@ -281,7 +281,10 @@ conn_request(void *ptr, http_request_t *request, http_response_t **response) {
             if (httpd_count_connection_type(raop->httpd, CONNECTION_TYPE_RAOP)) {
                 char ipaddr[40] = { '\0' };
                 utils_ipaddress_to_string(conn->remotelen, conn->remote, conn->zone_id, ipaddr, (int) (sizeof(ipaddr)));
-                if (httpd_nohold(raop->httpd)) {
+                /* A BLE discovery probe (GET /info?txtAirPlay, no CSeq) must not evict the
+                 * live session: it falls through to the 409 branch instead.
+                 * adapted from jqssun/android-airplay-server PR #55 (GPL-3.0) */
+                if (httpd_nohold(raop->httpd) && !ble) {
                     logger_log(raop->logger, LOGGER_INFO, "*****\"nohold\" feature: switch to new connection request from %s", ipaddr);		  
                     httpd_remove_known_connections(raop->httpd);
                     if (raop->callbacks.video_reset) {

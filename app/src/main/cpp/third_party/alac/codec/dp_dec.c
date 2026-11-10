@@ -60,6 +60,9 @@ void unpc_block( int32_t * pc1, int32_t * out, int32_t num, int16_t * coefs, int
 	int32_t				sum1, sg, sgn, top, dd;
 	int32_t *			pout;
 	int32_t				del, del0;
+	/* Sign-extend from chanbits: `(del << chanshift) >> chanshift` shifted a negative int
+	 * left (UB). Shift as unsigned, convert back, arithmetic right shift: same result.
+	 * adapted from jqssun/android-airplay-server PR #34 (GPL-3.0) */
 	uint32_t			chanshift = 32 - chanbits;
 	int32_t				denhalf = 1<<(denshift-1);
 
@@ -82,13 +85,13 @@ void unpc_block( int32_t * pc1, int32_t * out, int32_t num, int16_t * coefs, int
 			(original code)
 			for ( j = 1; j < num; j++ )
 				del = pc1[j] + out[j-1];
-				out[j] = (del << chanshift) >> chanshift;
+				out[j] = (int32_t)((uint32_t)del << chanshift) >> chanshift;
 		*/
 		prev = out[0];
 		for ( j = 1; j < num; j++ )
 		{
 			del = pc1[j] + prev;
-			prev = (del << chanshift) >> chanshift;
+			prev = (int32_t)((uint32_t)del << chanshift) >> chanshift;
 			out[j] = prev;
 		}
 		return;
@@ -97,7 +100,7 @@ void unpc_block( int32_t * pc1, int32_t * out, int32_t num, int16_t * coefs, int
 	for ( j = 1; j <= numactive; j++ )
 	{
 		del = pc1[j] + out[j-1];
-		out[j] = (del << chanshift) >> chanshift;
+		out[j] = (int32_t)((uint32_t)del << chanshift) >> chanshift;
 	}
 
 	lim = numactive + 1;
@@ -132,7 +135,7 @@ void unpc_block( int32_t * pc1, int32_t * out, int32_t num, int16_t * coefs, int
 			sg = sign_of_int(del);
 			del += top + sum1;
 
-			out[j] = (del << chanshift) >> chanshift;
+			out[j] = (int32_t)((uint32_t)del << chanshift) >> chanshift;
 
 			if ( sg > 0 )
 			{
@@ -226,7 +229,7 @@ void unpc_block( int32_t * pc1, int32_t * out, int32_t num, int16_t * coefs, int
 			sg = sign_of_int(del);
 			del += top + sum1;
 
-			out[j] = (del << chanshift) >> chanshift;
+			out[j] = (int32_t)((uint32_t)del << chanshift) >> chanshift;
 
 			if ( sg > 0 )
 			{
@@ -350,7 +353,7 @@ void unpc_block( int32_t * pc1, int32_t * out, int32_t num, int16_t * coefs, int
 			del0 = del;
 			sg = sign_of_int( del );
 			del += top + ((sum1 + denhalf) >> denshift);
-			out[j] = (del << chanshift) >> chanshift;
+			out[j] = (int32_t)((uint32_t)del << chanshift) >> chanshift;
 
 			if ( sg > 0 )
 			{

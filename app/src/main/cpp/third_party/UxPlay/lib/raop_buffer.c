@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <time.h>
 
 #include "raop_buffer.h"
 #include "raop_rtp.h"
@@ -34,6 +35,16 @@
 #include "byteutils.h"
 
 #define RAOP_BUFFER_LENGTH 256
+/* Bound resend/reordering waits by time, not by the 256-packet ring capacity
+ * (filling the ring takes ~2.8 s at 480 samples / 44.1 kHz).
+ * adapted from jqssun/android-airplay-server PR #81 (GPL-3.0) */
+#define RAOP_RESEND_WAIT_NS 100000000ULL
+
+static uint64_t buffer_monotonic_time(void) {
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    return (uint64_t) now.tv_sec * 1000000000ULL + (uint64_t) now.tv_nsec;
+}
 
 typedef struct {
     /* Data available */
@@ -172,11 +183,13 @@ raop_buffer_enqueue(raop_buffer_t *raop_buffer, unsigned char *data, unsigned sh
     if (datalen < 12 || datalen > RAOP_PACKET_LEN) {
         return -1;
     }
-    /* before time is synchronized, some empty data packets are sent */
-    if (datalen == 12 || (datalen == 16 && !memcmp(&data[12], empty_packet_marker, 4))) {
-        return 0;
-    }
-    int payload_size = datalen - 12;
+    /* Empty ("no data") packets still consume a sequence number. Keep a zero-length
+     * placeholder so restarting audio after silence does not wait for resends of
+     * these packets; the RTP dequeue loop discards them without decoding.
+     * adapted from jqssun/android-airplay-server PR #71 + #81 (GPL-3.0) */
+    int empty = datalen == 12 ||
+        (datalen == 16 && !memcmp(&data[12], empty_packet_marker, 4));
+    int payload_size = empty ? 0 : datalen - 12;
 
     /* Get correct seqnum for the packet */
     unsigned short seqnum = 0;
@@ -203,23 +216,29 @@ raop_buffer_enqueue(raop_buffer_t *raop_buffer, unsigned char *data, unsigned sh
         return 0;
     }
 
-    /* Update the raop_buffer entry header */
-    unsigned char *new_payload = malloc(payload_size);
+    /* Update the raop_buffer entry header. Non-NULL placeholder (1 byte) for
+     * empty packets lets dequeue advance past a silent packet. */
+    unsigned char *new_payload = malloc(payload_size ? payload_size : 1);
     if (!new_payload) {
         return -1;   /* out of memory: drop packet */
     }
+    free(entry->payload_data);   /* stale slot (never expected): don't leak it */
     entry->seqnum = seqnum;
     entry->rtp_timestamp = byteutils_get_int_be(data, 4);
+    entry->packet_arrival_time = buffer_monotonic_time();
     entry->filled = 1;
 
     entry->payload_data = new_payload;
-    int decrypt_ret = raop_buffer_decrypt(raop_buffer, data, entry->payload_data, payload_size, &entry->payload_size);
-    if (decrypt_ret < 0 || (int) entry->payload_size > payload_size) {
-        free(entry->payload_data);
-        entry->payload_data = NULL;
-        entry->payload_size = 0;
-        entry->filled = 0;
-        return -1;
+    entry->payload_size = 0;
+    if (!empty) {
+        int decrypt_ret = raop_buffer_decrypt(raop_buffer, data, entry->payload_data, payload_size, &entry->payload_size);
+        if (decrypt_ret < 0 || (int) entry->payload_size > payload_size) {
+            free(entry->payload_data);
+            entry->payload_data = NULL;
+            entry->payload_size = 0;
+            entry->filled = 0;
+            return -1;
+        }
     }
 
     /* Update the raop_buffer seqnums */
@@ -246,17 +265,28 @@ raop_buffer_dequeue(raop_buffer_t *raop_buffer, unsigned int *length, uint32_t *
         return NULL;
     }
 
-    /* Get the first buffer entry for inspection */
+    /* Find the next received packet. Allow a short (100 ms, monotonic) resend
+     * window, then skip all missing slots in this call so a large gap cannot
+     * cost one read per slot.
+     * adapted from jqssun/android-airplay-server PR #81 (GPL-3.0) */
     raop_buffer_entry_t *entry = &raop_buffer->entries[raop_buffer->first_seqnum % RAOP_BUFFER_LENGTH];
-    if (no_resend) {
-        /* If we do no resends, always return the first entry */
-    } else if (!entry->filled) {
-        /* Check how much we have space left in the buffer */
-        if (entry_count < RAOP_BUFFER_LENGTH) {
-            /* Return nothing and hope resend gets on time */
+    if (!entry->filled) {
+        unsigned short next = raop_buffer->first_seqnum;
+        int skipped = 0;
+        while (skipped < entry_count && !entry->filled) {
+            next++;
+            skipped++;
+            entry = &raop_buffer->entries[next % RAOP_BUFFER_LENGTH];
+        }
+        if (skipped == entry_count) return NULL;
+        uint64_t now = buffer_monotonic_time();
+        if (!no_resend && entry_count < RAOP_BUFFER_LENGTH &&
+            now - entry->packet_arrival_time < RAOP_RESEND_WAIT_NS) {
             return NULL;
         }
-        /* Risk of buffer overrun, return empty buffer */
+        logger_log(raop_buffer->logger, LOGGER_DEBUG,
+                   "audio resend deadline: skipping %d missing packets", skipped);
+        raop_buffer->first_seqnum = next;
     }
 
     /* Update buffer and validate entry */
@@ -313,5 +343,8 @@ void raop_buffer_flush(raop_buffer_t *raop_buffer, int next_seq) {
     } else {
         raop_buffer->first_seqnum = next_seq;
         raop_buffer->last_seqnum = next_seq - 1;
+        /* reject packets older than next_seq even if the buffer was empty
+         * (adapted from jqssun/android-airplay-server PR #81, GPL-3.0) */
+        raop_buffer->is_empty = 0;
     }
 }

@@ -217,6 +217,35 @@ class AudioRenderer(
         }
     }
 
+    /**
+     * Sender FLUSH (seek / track skip / pause): drop everything decoded or queued
+     * but keep the sink open. The decoder is rebuilt on the next packet (cheap, and
+     * avoids MediaCodec's CSD-resubmit-after-flush caveat). Called on the rtp_audio
+     * thread, ordered with [feedAudio]; [codecLock] guards against reset/release.
+     * Adapted from jqssun/android-airplay-server PR #81 (GPL-3.0).
+     */
+    fun flush() {
+        codecLock.withLock {
+            if (released) return@withLock
+            try {
+                teardownDecodersLocked()
+                if (oboeHandle != 0L) NativeBridge.audioFlush(oboeHandle)
+                audioTrack?.let { t ->
+                    t.pause()
+                    t.flush()
+                    t.play()
+                    // queued = written - head; re-base so a flushed backlog isn't counted
+                    framesWritten = t.playbackHeadPosition.toLong() and 0xFFFFFFFFL
+                }
+            } catch (t: Throwable) {
+                Log.w(TAG, "flush failed", t)
+            }
+            hasSyncAnchor = false
+            consecutiveDrops = 0
+            Log.i(TAG, "flush()")
+        }
+    }
+
     /** Idempotent teardown. Release the decoders, the AudioTrack, and the SW ALAC handle. */
     fun release() {
         codecLock.withLock {

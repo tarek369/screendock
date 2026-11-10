@@ -88,6 +88,17 @@ Java_com_cressu_screendock_bridge_NativeBridge_nativeAudioWrite(
     e->timeline->write(e->scratch.data(), samples, ptsNs);
 }
 
+/* Sender FLUSH (seek / track skip): drop PCM queued before this point but keep the
+ * stream running; the output callback discards it on its next read. Producer side:
+ * must not race with nativeAudioWrite (caller serializes, like write).
+ * adapted from jqssun/android-airplay-server PR #81 (GPL-3.0) */
+JNIEXPORT void JNICALL
+Java_com_cressu_screendock_bridge_NativeBridge_nativeAudioFlush(JNIEnv *, jobject, jlong handle)
+{
+    auto *e = reinterpret_cast<OboeEngine *>(handle);
+    if (e) e->timeline->flush();
+}
+
 /* Sender volume as linear gain (1 = unity). */
 JNIEXPORT void JNICALL
 Java_com_cressu_screendock_bridge_NativeBridge_nativeAudioSetGain(JNIEnv *, jobject, jlong handle, jfloat gain)

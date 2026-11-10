@@ -37,6 +37,23 @@ echo "== direct-URL wait_ready"
 $CC $FLAGS -I"$OUT" -I"$HERE" "$HERE/test_wait_ready.c" -lpthread -o "$OUT/test_wait_ready"
 "$OUT/test_wait_ready" || status=1
 
+echo "== paired-sender registry"
+$CC $FLAGS -I"$CPP" -I"$HERE" "$HERE/test_paired_clients.c" "$CPP/paired_clients.c" -lpthread \
+    -o "$OUT/test_paired_clients"
+"$OUT/test_paired_clients" "$OUT" || status=1
+
+echo "== raop audio RTP buffer + receive loop (incl. loopback UDP)"
+case "$(uname -s)" in
+    Darwin) PLAT="-include libkern/OSByteOrder.h -Dhtonll=OSSwapHostToBigInt64 -Dntohll=OSSwapBigToHostInt64 -D_DARWIN_C_SOURCE" ;;
+    *) PLAT="-D_DEFAULT_SOURCE" ;;
+esac
+# shellcheck disable=SC2086
+$CC -std=c17 -D_POSIX_C_SOURCE=200809L $PLAT -g -O1 -fno-omit-frame-pointer \
+    -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+    -I"$LIB" "$HERE/test_raop_audio.c" "$LIB/byteutils.c" "$LIB/logger.c" "$LIB/netutils.c" \
+    -pthread -lm -o "$OUT/test_raop_audio"
+AIRPLAY_TEST_UDP="${AIRPLAY_TEST_UDP:-1}" "$OUT/test_raop_audio" || status=1
+
 echo "== oboe timeline buffer (header-only; no Oboe needed)"
 ${CXX:-clang++} -std=c++17 -g -O1 -Wall -Wextra -fsanitize=address,undefined -fno-sanitize-recover=undefined \
     -I"$CPP" -I"$HERE" "$HERE/test_timeline_buffer.cpp" -o "$OUT/test_timeline_buffer"

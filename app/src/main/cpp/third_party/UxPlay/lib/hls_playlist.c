@@ -456,6 +456,10 @@ int hls_select_language(const char *master, const char *want_name, const char *p
             def = j;
         }
     }
+    /* A language the sender chose (selectedMediaArray / MediaSelectionOptions)
+     * wins over the device locale preference list.
+     * adapted from jqssun/android-airplay-server PR #94 (GPL-3.0) */
+    chosen = by_name;
     const char *p = pref_langs;
     while (p && chosen < 0) {
         if (strlen(p) < 2) {
@@ -473,7 +477,7 @@ int hls_select_language(const char *master, const char *want_name, const char *p
         }
     }
     if (chosen < 0) {
-        chosen = by_name >= 0 ? by_name : (def >= 0 ? def : 0);
+        chosen = def >= 0 ? def : 0;
     }
 
     const hls_line_t *sel = &lines[firsts[chosen]];

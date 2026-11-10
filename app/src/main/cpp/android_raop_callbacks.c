@@ -68,6 +68,7 @@ int android_callbacks_init(JNIEnv *env, jobject callback_handler,
     ctx->on_hls_stop           = (*env)->GetMethodID(env, cls, "onHlsStop",          "()V");
     ctx->on_hls_scrub          = (*env)->GetMethodID(env, cls, "onHlsScrub",         "(F)V");
     ctx->on_hls_rate           = (*env)->GetMethodID(env, cls, "onHlsRate",          "(F)V");
+    ctx->on_audio_flush        = (*env)->GetMethodID(env, cls, "onAudioFlush",       "()V");
 
     (*env)->DeleteLocalRef(env, cls);
 
@@ -79,7 +80,8 @@ int android_callbacks_init(JNIEnv *env, jobject callback_handler,
         !ctx->on_audio_data || !ctx->on_audio_format || !ctx->on_volume_change ||
         !ctx->on_display_pin || !ctx->on_client_request || !ctx->on_audio_metadata ||
         !ctx->on_cover_art || !ctx->on_audio_progress || !ctx->on_hls_play ||
-        !ctx->on_hls_stop || !ctx->on_hls_scrub || !ctx->on_hls_rate) {
+        !ctx->on_hls_stop || !ctx->on_hls_scrub || !ctx->on_hls_rate ||
+        !ctx->on_audio_flush) {
         LOGE("callbacks_init: one or more RaopCallbackHandler methods not found "
              "(signature drift between Kotlin and C?)");
         android_callbacks_release(env, ctx);
@@ -94,6 +96,7 @@ int android_callbacks_init(JNIEnv *env, jobject callback_handler,
     pthread_condattr_destroy(&ca);
     ctx->hls_mu_ready = true;
     ctx->hls_duration = -1.0;
+    paired_clients_init(&ctx->paired);
     return 0;
 }
 
@@ -108,6 +111,7 @@ void android_callbacks_release(JNIEnv *env, android_callback_ctx_t *ctx)
         pthread_mutex_destroy(&ctx->hls_mu);
         ctx->hls_mu_ready = false;
     }
+    if (ctx) paired_clients_clear(&ctx->paired);
 }
 
 /* ---- thread attach / detach ------------------------------------------------
@@ -334,6 +338,20 @@ static int cb_video_set_codec(void *cls, video_codec_t codec)
 }
 
 static void cb_noop(void *cls) { (void) cls; }
+
+/* Sender FLUSH (seek / track skip / pause on RAOP audio). Runs on the rtp_audio
+ * thread from raop_rtp_process_events, after raop_buffer_flush and before the
+ * next audio_process, so Kotlin sees it strictly ordered with onAudioData.
+ * adapted from jqssun/android-airplay-server PR #81 (GPL-3.0) */
+static void cb_audio_flush(void *cls)
+{
+    android_callback_ctx_t *ctx = (android_callback_ctx_t *) cls;
+    LOGI("audio_flush");
+    JNIEnv *env = cb_get_env(ctx);
+    if (!env) return;
+    (*env)->CallVoidMethod(env, ctx->callback_ref, ctx->on_audio_flush);
+    cb_check(env, "onAudioFlush");
+}
 
 /* ---- HLS helpers -------------------------------------------------------- */
 
@@ -623,8 +641,30 @@ static void cb_report_client_request(void *cls, char *deviceid, char *model, cha
     if (jn) (*env)->DeleteLocalRef(env, jn);
 }
 
+/* A sender completed pairing and was admitted: remember its public key so a
+ * later pair-verify (after a receiver restart) is accepted without a new PIN.
+ * Runs on the httpd thread. adapted from jqssun/android-airplay-server PR #80 (GPL-3.0) */
 static void cb_register_client(void *cls, const char *device_id, const char *pk, const char *name)
-{ (void) cls; (void) device_id; (void) pk; (void) name; }   /* device registry is v2 */
+{
+    android_callback_ctx_t *ctx = (android_callback_ctx_t *) cls;
+    (void) device_id;
+    int rc = paired_clients_add(&ctx->paired, pk);
+    if (rc == 1) LOGI("paired sender remembered (%s)", name ? name : "?");
+    else if (rc == -2) LOGW("paired sender kept in memory only: could not write registry file");
+    else if (rc == -1) LOGW("register_client: invalid client key ignored");
+}
+
+/* PIN mode only (raop_handler_pairverify): a pair-verify without pair-setup on
+ * this connection is accepted only from a sender that paired before. Unknown
+ * keys get no response, so the sender falls back to PIN pairing (pair-pin-start).
+ * adapted from jqssun/android-airplay-server PR #80 (GPL-3.0) */
+static bool cb_check_register(void *cls, const char *pk)
+{
+    android_callback_ctx_t *ctx = (android_callback_ctx_t *) cls;
+    bool known = paired_clients_contains(&ctx->paired, pk);
+    LOGI("pair-verify from %s sender", known ? "a paired" : "an unknown");
+    return known;
+}
 
 static void cb_display_pin(void *cls, char *pin)
 {
@@ -658,7 +698,7 @@ void android_callbacks_fill(raop_callbacks_t *cbs)
     cbs->conn_init         = cb_conn_init;
     cbs->conn_destroy      = cb_conn_destroy;
     cbs->conn_teardown     = cb_conn_teardown;
-    cbs->audio_flush       = cb_noop;
+    cbs->audio_flush       = cb_audio_flush;
     cbs->video_flush       = cb_noop;
     cbs->audio_set_client_volume = cb_audio_set_client_volume;
     cbs->audio_set_volume  = cb_audio_set_volume;
@@ -683,6 +723,5 @@ void android_callbacks_fill(raop_callbacks_t *cbs)
     cbs->on_video_stop                  = cb_on_video_stop;
     cbs->on_video_acquire_playback_info = cb_on_video_acquire_playback_info;
     cbs->on_video_playlist_remove       = cb_on_video_playlist_remove;
-    /* check_register stays NULL: it is NULL-guarded and NULL means "accept all
-     * clients" (device registry is v2). */
+    cbs->check_register                 = cb_check_register;
 }

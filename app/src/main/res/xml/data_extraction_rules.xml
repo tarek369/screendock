@@ -3,11 +3,13 @@
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="file" path="airplay_key.pem" />
+        <exclude domain="file" path="airplay_key.pem.clients" />
         <exclude domain="file" path="datastore/airplay_local_state.preferences_pb" />
         <exclude domain="sharedpref" path="screendock_service.xml" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="file" path="airplay_key.pem" />
+        <exclude domain="file" path="airplay_key.pem.clients" />
         <exclude domain="file" path="datastore/airplay_local_state.preferences_pb" />
         <exclude domain="sharedpref" path="screendock_service.xml" />
     </device-transfer>

@@ -625,6 +625,10 @@ class AirPlayService : Service(), RaopCallbackHandler {
         audioRenderer?.feedAudio(data, ct, ntpTimeNs, seqNum)
     }
 
+    override fun onAudioFlush() {
+        audioRenderer?.flush()
+    }
+
     override fun onAudioFormat(ct: Int, samplesPerFrame: Int, usingScreen: Boolean) {
         Log.i(TAG, "audio format: ct=$ct spf=$samplesPerFrame usingScreen=$usingScreen")
         audioRenderer?.onFormat(ct, samplesPerFrame)

@@ -164,6 +164,7 @@ add_library(airplay_native SHARED
     android_raop_callbacks.c
     android_dnssd_shim.c
     android_event_channel.c
+    paired_clients.c
 )
 target_link_libraries(airplay_native PRIVATE airplay_core alac oboe log android)
 # gc-sections + identical-code-folding; exclude-libs hides every symbol that

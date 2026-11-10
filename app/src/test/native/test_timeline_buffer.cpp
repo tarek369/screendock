@@ -93,6 +93,47 @@ static void test_flush() {
     CHECK(t.debugInfo().backlogMs == 0);
 }
 
+/* Sender FLUSH: old PCM discarded, PCM decoded after the flush kept; jitter
+ * history reset. adapted from jqssun/android-airplay-server PR #81 (GPL-3.0) */
+static void test_sender_flush_keeps_new_audio() {
+    TimelineBuffer t(44100, 2, 1, 95);
+    std::vector<int16_t> oldSound(960, 111), newSound(960, 222), out(960, 7);
+    t.write(oldSound.data(), oldSound.size(), 10 * NS_PER_SEC);
+    t.flush();
+    /* new audio may be decoded before the output thread sees the FLUSH */
+    t.write(newSound.data(), newSound.size(), 20 * NS_PER_SEC);
+    t.read(out.data(), 480);
+    bool allNew = true;
+    for (auto s : out) allNew = allNew && s == 222;
+    CHECK(allNew);
+    CHECK(t.debugInfo().metrics.drops == 0);
+    /* repeated flush, even while empty, preserves the latest generation */
+    bool ok = true;
+    for (int i = 0; i < 100; i++) {
+        t.write(oldSound.data(), oldSound.size(), (30 + i) * NS_PER_SEC);
+        t.flush();
+        t.write(oldSound.data(), oldSound.size(), (40 + i) * NS_PER_SEC);
+        t.flush();
+        t.write(newSound.data(), newSound.size(), (50 + i) * NS_PER_SEC);
+        t.read(out.data(), 480);
+        for (auto s : out) ok = ok && s == 222;
+    }
+    CHECK(ok);
+    t.flush();
+    t.read(out.data(), 480);
+    bool silent = true;
+    for (auto s : out) silent = silent && s == 0;
+    CHECK(silent);
+
+    DelayTracker tracker(44100, 2, 0, 95);
+    for (int i = 0; i < 100; i++)
+        tracker.observe(i * 10000000LL, i * 10000000LL + (i % 2) * 500000000LL, 10000000);
+    const size_t tuned = tracker.target();
+    tracker.reset();
+    CHECK(tuned > 0);
+    CHECK(tracker.target() == 0);  /* MIN_CUSHION_MS floor */
+}
+
 int main(void) {
     test_ring();
     test_prime_then_play();
@@ -102,5 +143,6 @@ int main(void) {
     test_underrun_pads_silence_and_counts();
     test_unsynced_pts_passthrough();
     test_flush();
+    test_sender_flush_keeps_new_audio();
     TEST_MAIN_END("timeline_buffer");
 }

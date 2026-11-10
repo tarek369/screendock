@@ -938,8 +938,12 @@ http_handler_play(raop_conn_t *conn, http_request_t *request, http_response_t *r
     /* we only support HLS if the playback location is terminated by "/master.m3u8" */
     const char *uri_suffix = strstr(play.location, "/master.m3u8");
     /* Direct media URL (progressive MP4, plain HLS, ...) cast from iOS Photos/Files, Safari, Infuse, VLC:
-       handed to the local player as-is.  Adapted from jqssun/android-airplay-server (GPL-3.0). */
-    bool direct_url = !uri_suffix && url_is_http(play.location);
+       handed to the local player as-is.  Adapted from jqssun/android-airplay-server (GPL-3.0).
+       A plain http(s) URL ending in /master.m3u8 (website video from Safari) is also fetched by the
+       player directly, as an Apple TV does; only other schemes (the YouTube app's mlhls://) need the
+       sender to relay playlists over FCUP, whose prefix rewriting cannot handle relative media URIs.
+       adapted from jqssun/android-airplay-server PR #86 (GPL-3.0) */
+    bool direct_url = url_is_http(play.location);
     if (!uri_suffix && !direct_url) {
         logger_log(raop->logger, LOGGER_ERR, "Content-Location has unsupported form:\n%s\n", play.location);	    
         goto play_error;
@@ -1102,7 +1106,11 @@ http_handler_hls(raop_conn_t *conn,  http_request_t *request, http_response_t *r
         http_response_init(response, "HTTP/1.1", 404, "Not Found");
         return;
     }
-    if (!strcmp(url, "/master.m3u8")){
+    /* match the path only: the master URL may carry a query string ("/master.m3u8?t=...")
+       adapted from jqssun/android-airplay-server PR #86 (GPL-3.0) */
+    static const char master_path[] = "/master.m3u8";
+    const size_t master_len = sizeof(master_path) - 1;
+    if (!strncmp(url, master_path, master_len) && (url[master_len] == '\0' || url[master_len] == '?')) {
         char * master_playlist  = get_master_playlist(airplay_video);
         if (master_playlist) {
             size_t len = strlen(master_playlist);

@@ -137,6 +137,14 @@ static void test_language(void) {
     /* preference list wins */
     CHECK(hls_select_language(MASTER, NULL, "fr:de_DE:en", &m, &code, &name) == 1);
     CHECK_STR(code, "de"); free(m); free(code); free(name);
+    /* sender's explicit choice wins over the device locale list (PR #94) */
+    CHECK(hls_select_language(MASTER, "Deutsch", "en:fr", &m, &code, &name) == 1);
+    CHECK_STR(code, "de"); CHECK_STR(name, "Deutsch");
+    CHECK(strstr(m, "a-de.m3u8") && !strstr(m, "-en.m3u8"));
+    free(m); free(code); free(name);
+    /* unknown sender choice: locale list still applies */
+    CHECK(hls_select_language(MASTER, "Klingon", "de:en", &m, &code, &name) == 1);
+    CHECK_STR(code, "de"); free(m); free(code); free(name);
     CHECK(hls_select_language(MASTER, NULL, "x", &m, &code, &name) == 1);   /* too short: ignored */
     CHECK_STR(code, "en"); free(m); free(code); free(name);
     /* no language lines */

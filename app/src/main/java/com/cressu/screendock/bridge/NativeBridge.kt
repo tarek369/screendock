@@ -137,6 +137,8 @@ object NativeBridge {
     fun audioWrite(engine: Long, pcm: ByteArray, length: Int, ptsNs: Long) = nativeAudioWrite(engine, pcm, length, ptsNs)
     fun audioSetGain(engine: Long, gain: Float) = nativeAudioSetGain(engine, gain)
     fun audioClose(engine: Long) = nativeAudioClose(engine)
+    /** Sender FLUSH: drop queued PCM, keep the stream open. Serialized with [audioWrite]. */
+    fun audioFlush(engine: Long) = nativeAudioFlush(engine)
 
     /** [backlogMs, cushionMs, trims, drops, silences, underruns, xruns], or null. */
     fun audioStats(engine: Long): IntArray? = nativeAudioStats(engine)
@@ -205,6 +207,7 @@ object NativeBridge {
     @JvmStatic private external fun nativeAudioWrite(engine: Long, pcm: ByteArray, length: Int, ptsNs: Long)
     @JvmStatic private external fun nativeAudioSetGain(engine: Long, gain: Float)
     @JvmStatic private external fun nativeAudioClose(engine: Long)
+    @JvmStatic private external fun nativeAudioFlush(engine: Long)
     @JvmStatic private external fun nativeAudioStats(engine: Long): IntArray?
 
     @JvmStatic private external fun nativeSendTouchEvent(

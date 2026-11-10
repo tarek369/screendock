@@ -215,6 +215,19 @@ Java_com_cressu_screendock_bridge_NativeBridge_nativeInit(JNIEnv *env, jobject,
     android_callbacks_fill(&ctx->callbacks);
     ctx->callbacks.cls = &ctx->cb_ctx;
 
+    /* PIN-paired senders live beside the receiver key: "<keyfile>.clients"
+     * (excluded from backup like the key). adapted from jqssun/android-airplay-server PR #80 (GPL-3.0) */
+    if (ctx->key_file) {
+        size_t len = strlen(ctx->key_file) + sizeof(PAIRED_CLIENTS_SUFFIX);
+        char *reg = (char *) malloc(len);
+        if (reg) {
+            snprintf(reg, len, "%s%s", ctx->key_file, PAIRED_CLIENTS_SUFFIX);
+            int n = paired_clients_load(&ctx->cb_ctx.paired, reg);
+            LOGI("nativeInit: %d paired sender(s) loaded", n);
+            free(reg);
+        }
+    }
+
     ctx->raop = raop_init(&ctx->callbacks);
     if (!ctx->raop) {
         LOGE("nativeInit: raop_init failed");

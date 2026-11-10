@@ -27,6 +27,11 @@ interface RaopCallbackHandler {
     fun onAudioData(data: ByteArray, ct: Int, ntpTimeNs: Long, seqNum: Int)
     fun onAudioFormat(ct: Int, samplesPerFrame: Int, usingScreen: Boolean)
     fun onVolumeChange(volume: Float)
+    /**
+     * Sender FLUSH (seek, track skip, pause): drop buffered/decoded audio. Called on the
+     * rtp_audio thread, strictly ordered with [onAudioData]. Descriptor: ()V
+     */
+    fun onAudioFlush()
 
     // ---- PIN ----
     /** Called when a sender starts PIN pairing; [pin] is the 4-digit code the user must type on the sender. */
