@@ -30,13 +30,13 @@ const PRIVACY = `<!DOCTYPE html>
 <body>
 <main>
   <h1>Privacy Policy</h1>
-  <p class="muted">Effective date: September 19, 2026 · Last updated: November 2, 2026 · Applies to the ScreenDock Android application</p>
+  <p class="muted">Effective date: September 19, 2026 · Last updated: November 17, 2026 · Applies to the ScreenDock Android application</p>
 
   <h2>1. Who we are</h2>
   <p>ScreenDock ("the app") is developed and operated by Cressu ("we", "us"). It turns an Android device into an AirPlay receiver so that Apple devices can mirror their screen or stream audio to it.</p>
 
   <h2>2. The short version</h2>
-  <p><strong style="color:#F2F5FA">We do not collect, store, or share any personal data.</strong> The app has no accounts, no analytics, no advertising, and no tracking. It works entirely on your local network.</p>
+  <p><strong style="color:#F2F5FA">We do not collect, store, or share any personal data.</strong> The app has no accounts, no analytics, and no advertising. Mirroring works entirely on your local network.</p>
 
   <h2>3. What the app processes (and why)</h2>
   <ul>
@@ -61,7 +61,7 @@ const PRIVACY = `<!DOCTYPE html>
   <p>ScreenDock is a general-audience utility and is not directed at children under 13. It does not knowingly collect any data from anyone, including children.</p>
 
   <h2>7. Third parties</h2>
-  <p>The app contains no third-party analytics, advertising, or tracking SDKs. The only third-party service involved is Google Play, which handles distribution and payment.</p>
+  <p>The app contains no third-party analytics, advertising, or tracking SDKs. The only third-party service involved is Google Play, which handles distribution and payment. The Google Play Billing library built into the app (used for the optional Pro purchase) sends its own diagnostic data to Google; that data is handled under <a href="https://policies.google.com/privacy">Google's privacy policy</a>, and we do not receive it.</p>
 
   <h2>8. Open source</h2>
   <p>ScreenDock is open source under GPLv3. You can inspect exactly how it handles data by reading the source code.</p>

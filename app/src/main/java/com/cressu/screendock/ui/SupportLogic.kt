@@ -1,5 +1,7 @@
 package com.cressu.screendock.ui
 
+import com.cressu.screendock.logs.LogLevel
+import com.cressu.screendock.logs.LogLine
 import java.net.URLEncoder
 
 /** Pure, Android-free logic for the "nothing connected" help card and the support email (unit-tested). */
@@ -88,6 +90,21 @@ object SupportEmail {
 
     /** Lines inlined into the email body when no email app accepts an attachment. */
     const val LOG_TAIL_LINES = 60
+
+    /** Log tags written by ScreenDock itself (Kotlin + native), matched by prefix. */
+    private val APP_TAG_PREFIXES = listOf("Airplay", "AirPlay", "ScreenDock", "UsbMdns")
+
+    /**
+     * The lines worth inlining: ScreenDock's own tags plus any error (crashes come from other
+     * tags), so UI touch noise can't push receiver lines out. Falls back to all lines when the
+     * app logged nothing. At most [LOG_TAIL_LINES], newest last.
+     */
+    fun tailLines(lines: List<LogLine>): List<LogLine> {
+        val useful = lines.filter { line ->
+            line.level == LogLevel.ERROR || APP_TAG_PREFIXES.any { line.tag.startsWith(it) }
+        }
+        return useful.ifEmpty { lines }.takeLast(LOG_TAIL_LINES)
+    }
 
     /** Appends the last [LOG_TAIL_LINES] (already redacted) log lines to [body]; unchanged when there are none. */
     fun withLogTail(body: String, redactedLines: List<String>): String {

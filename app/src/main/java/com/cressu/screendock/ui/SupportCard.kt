@@ -165,7 +165,7 @@ fun captureSupportLogs(header: List<String>): SupportLogs {
     val stamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z", Locale.US).format(Date())
     return SupportLogs(
         report = LogReport.format(header, lines, stamp),
-        tail = lines.takeLast(SupportEmail.LOG_TAIL_LINES).map { LogRedactor.redact(it.raw) },
+        tail = SupportEmail.tailLines(lines).map { LogRedactor.redact(it.raw) },
     )
 }
 

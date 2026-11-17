@@ -1,5 +1,7 @@
 package com.cressu.screendock.ui
 
+import com.cressu.screendock.logs.LogLevel
+import com.cressu.screendock.logs.LogLine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -77,6 +79,30 @@ class SupportLogicTest {
         assertTrue(out.endsWith("line 100"))
         assertFalse(out.contains("line 40\n"))
         assertTrue(out.contains("line 41\n"))
+    }
+
+    @Test fun tailLinesKeepOwnTagsAndErrorsDropNoise() {
+        val own = LogLine(LogLevel.INFO, "AirplayNsd", "own1")
+        val svc = LogLine(LogLevel.DEBUG, "AirPlayService", "own2")
+        val billing = LogLine(LogLevel.INFO, "ScreenDockBilling", "own3")
+        val usb = LogLine(LogLevel.INFO, "UsbMdnsAdvertiser", "own4")
+        val crash = LogLine(LogLevel.ERROR, "AndroidRuntime", "crash")
+        val touch = LogLine(LogLevel.INFO, "VRI[MainActivity]@c55eaf9", "touch")
+        val back = LogLine(LogLevel.WARN, "WindowOnBackDispatcher", "back")
+        val out = SupportEmail.tailLines(listOf(own, touch, svc, back, billing, crash, usb))
+        assertEquals(listOf("own1", "own2", "own3", "crash", "own4"), out.map { it.raw })
+    }
+
+    @Test fun tailLinesFallBackToEverythingWhenNoAppLines() {
+        val touch = LogLine(LogLevel.INFO, "VRI[MainActivity]", "touch")
+        assertEquals(listOf(touch), SupportEmail.tailLines(listOf(touch)))
+    }
+
+    @Test fun tailLinesKeepOnlyTheLastLimit() {
+        val lines = (1..100).map { LogLine(LogLevel.INFO, "AirplayNative", "l$it") }
+        val out = SupportEmail.tailLines(lines)
+        assertEquals(SupportEmail.LOG_TAIL_LINES, out.size)
+        assertEquals("l100", out.last().raw)
     }
 
     @Test fun logTailLeavesBodyAloneWithoutLogs() {
