@@ -162,6 +162,8 @@ footer nav{display:flex;flex-wrap:wrap;gap:24px}
 footer a{text-decoration:none;color:var(--muted)}
 footer a:hover{color:var(--text)}
 footer p{max-width:46em}
+.featured-on{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;font-size:13px}
+.featured-on img{height:36px!important;width:auto!important;display:block}
 
 /* Mobile sticky install bar */
 .sticky{position:fixed;left:12px;right:12px;bottom:12px;z-index:5;display:none;align-items:center;gap:12px;padding:10px 10px 10px 14px;border-radius:16px;
